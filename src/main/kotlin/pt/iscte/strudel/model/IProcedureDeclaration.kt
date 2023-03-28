@@ -1,0 +1,60 @@
+package pt.iscte.strudel.model
+
+
+const val INSTANCE_FLAG = "INSTANCE"
+const val CONSTRUCTOR_FLAG = "CONSTRUCTOR"
+const val BUILTIN_FLAG = "BUILTIN"
+const val HIDDEN_FLAG = "HIDDEN"
+
+typealias IParameter = IVariableDeclaration<IProcedureDeclaration>
+
+interface IProcedureDeclaration : IModuleMember {
+    val parameters: List<IParameter>
+    val returnType: IType
+    fun addParameter(type: IType): IParameter
+    fun expression(args: List<IExpression>): IProcedureCallExpression
+
+    fun expression(vararg args: IExpression): IProcedureCallExpression {
+        return expression(listOf(*args))
+    }
+
+    fun shortSignature(): String? {
+        return "$id(...)"
+    }
+
+    fun longSignature(): String? {
+        var args = ""
+        for (p in parameters) {
+            if (!args.isEmpty()) args += ", "
+            args += p.type
+        }
+        return "$returnType $id($args)"
+    }
+
+//    fun matchesSignature(id: String, args: List<IExpression>): Boolean {
+//        return matchesSignature(id, *args.map { it.type })
+//    }
+
+    fun matchesSignature(id: String, vararg paramTypes: IType): Boolean {
+        if (id != id) return false
+        val parameters = parameters
+        if (parameters.size != paramTypes.size) return false
+        var i = 0
+        for (t in paramTypes) if (!parameters[i++].type.isSame(t)) return false
+        return true
+    }
+
+    // compares id and types of parameters
+    // excludes return
+    fun hasSameSignature(procedure: IProcedureDeclaration): Boolean {
+        if (id != procedure.id || parameters.size != procedure.parameters.size) return false
+        val procParamsIt = procedure.parameters.iterator()
+        for (p in parameters) if (p.type != procParamsIt.next().type) return false
+        return true
+    }
+
+    fun isEqualTo(procedure: IProcedureDeclaration): Boolean {
+        return hasSameSignature(procedure) && returnType == procedure.returnType
+    }
+}
+
