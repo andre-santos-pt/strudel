@@ -68,5 +68,17 @@ internal class Block(override val parent: IBlockHolder,
 
     }
 
-    override fun toString(): String = "{\n" + children.joinToString(separator = "\n") { "$it" } + "\n" + tabs(parent).dropLast(1) + "}"
+    override fun toString(): String {
+        val tabs = if(parent is Block)
+            tabs(parent)
+        else
+            ""
+        val tabsEnd = if(parent is Block)
+            tabs
+        else
+            tabs(parent).dropLast(1)
+
+        return "$tabs{\n" + children.joinToString(separator = "\n", postfix = "\n") { "$it" } +
+                tabsEnd + "}"
+    }
 }

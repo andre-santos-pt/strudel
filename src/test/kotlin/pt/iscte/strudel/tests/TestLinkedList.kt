@@ -12,6 +12,8 @@ import kotlin.test.assertEquals
 
 class TestLinkedList : pt.iscte.strudel.tests.BaseTest({
 
+    id = "SingleLinkedList"
+
     val nodeType = Record("Node") {
         Field(INT, "element")
         Field(this, "next")

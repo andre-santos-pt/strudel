@@ -42,6 +42,6 @@ interface IProgramElement {
         get() = getProperty(ID_PROP) as? String
         set(value) = setProperty(ID_PROP, value)
 
-    val flags: Set<String>
-        get() = emptySet()
+    val flags: List<String>
+        get() = emptyList()
 }

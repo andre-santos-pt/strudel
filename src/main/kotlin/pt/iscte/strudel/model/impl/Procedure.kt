@@ -42,7 +42,12 @@ internal open class Procedure(
         return ProcedureCall(NullBlock, this, -1, args.toMutableList())
     }
 
-    override fun toString(): String = "static $returnType $id(" +
+    private val accessModifier: String get() {
+        val m = flags.find { it != "static" }
+        return if(m == null) "" else "$m "
+    }
+
+    override fun toString(): String = accessModifier + "static $returnType $id(" +
             parameters.joinToString(", ") {
                 "${it.type.id} ${it.id ?: "$" + parameters.indexOf(it)}"
             } + ") $block"

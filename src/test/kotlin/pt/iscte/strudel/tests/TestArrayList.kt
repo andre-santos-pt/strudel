@@ -6,6 +6,8 @@ import kotlin.test.assertEquals
 
 class TestArrayList : pt.iscte.strudel.tests.BaseTest({
 
+    id = "IntArrayList"
+
     val listType = Record("IntArrayList") {
         Field(array(INT), "elements")
         Field(INT, "count")
@@ -35,7 +37,7 @@ class TestArrayList : pt.iscte.strudel.tests.BaseTest({
 
     @Test
     fun test() {
-        val list = vm.allocateRecord(module.recordTypes[1])
+        val list = vm.allocateRecord(module.recordTypes[0])
         vm.execute(module.procedures[0], list)
         vm.execute(module.procedures[2], list, vm.getValue(2))
         vm.execute(module.procedures[2], list, vm.getValue(3))

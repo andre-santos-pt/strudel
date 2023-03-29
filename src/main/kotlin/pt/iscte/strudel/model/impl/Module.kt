@@ -24,11 +24,22 @@ internal class Module : ProgramElement(), IModule {
             .groupBy { it.getProperty(NAMESPACE_PROP) as String }
 
         namespaces.forEach {
-            output += "class ${it.key} {\n\t" + it.value.joinToString(separator = "\n\n\t") { "$it" } +"\n}\n\n"
+            output += "class ${it.key} {\n"
+
+            members.filterIsInstance<IRecordType>()
+                .find { m -> m.id == it.key }?.let { rec ->
+                    output += rec.fields.joinToString(prefix ="\t", separator = "\n\t", postfix = "\n\n") { f ->
+                        "${f.type.id} ${f.id};"
+                    }
+                }
+
+            output += it.value.joinToString(prefix = "\t", separator = "\n\n\t") { "$it" }
+            output += "\n}\n\n"
         }
 
         members.filterIsInstance<IRecordType>().forEach {
-            output += it.toString() + "\n\n"
+            if(!namespaces.containsKey(it.id))
+                output += it.toString() + "\n\n"
         }
         return output
     }

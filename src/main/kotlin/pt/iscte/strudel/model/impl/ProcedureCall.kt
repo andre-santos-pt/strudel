@@ -11,7 +11,7 @@ internal class ProcedureCall(
     Expression(), IProcedureCall, IProcedureCallExpression {
 
     init {
-        if(parent != NullBlock)
+        if (parent != NullBlock)
             (parent as Block).add(this, index)
     }
 
@@ -23,13 +23,14 @@ internal class ProcedureCall(
 
 
     override val parts: List<IExpression>
-         get() = arguments
+        get() = arguments
 
     override fun copyTo(newParent: IBlockHolder, index: Int): IProcedureCall =
         ProcedureCall(newParent.block, procedure, index, arguments)
 
     override fun toString(): String =
-        (if(parent != NullBlock) tabs(parent) else "") +
-        "${procedure.id}(" +arguments.joinToString(", ") { "$it" } + ")" +
-                (if(parent != NullBlock) ";" else "")
+        (if (parent != NullBlock) tabs(parent) else "") +
+                (if (procedure.namespace != null) procedure.namespace + "." else "") +
+                "${procedure.id}(" + arguments.joinToString(", ") { "$it" } + ")" +
+                (if (parent != NullBlock) ";" else "")
 }

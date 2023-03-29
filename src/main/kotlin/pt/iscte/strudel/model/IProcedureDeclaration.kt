@@ -35,6 +35,8 @@ interface IProcedureDeclaration : IModuleMember {
 //        return matchesSignature(id, *args.map { it.type })
 //    }
 
+    val thisParameter: IParameter get() = parameters.find { it.id == "\$this" }!!
+
     fun matchesSignature(id: String, vararg paramTypes: IType): Boolean {
         if (id != id) return false
         val parameters = parameters

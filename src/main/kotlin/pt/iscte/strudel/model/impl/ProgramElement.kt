@@ -27,8 +27,8 @@ internal open class ProgramElement(vararg flags: String) : IProgramElement {
         }
     }
 
-    override val flags: Set<String>
-        get() = properties.filterValues { it == true }.keys
+    override val flags: List<String>
+        get() = properties.filterValues { it == true }.keys.toList()
 
     override fun cloneProperties(e: IProgramElement) {
         (e as ProgramElement).properties.forEach {
