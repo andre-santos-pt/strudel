@@ -308,12 +308,15 @@ class Java2Strudel(
                 types.mapType(type.nameAsString),
                 "\$init"
             ).apply {
-                block.Return((types.mapType(type.nameAsString).asRecordType).heapAllocation())
+                var instance = addParameter(returnType).apply {
+                    id = "instance"
+                }
+                block.Return(instance)
                 setProperty(NAMESPACE_PROP, type.nameAsString)
             }
 
         val procedures: List<Pair<CallableDeclaration<*>?, IProcedure>> =
-            classes.filter { it.constructors.isEmpty() }.map {
+            classes.filter { it.constructors.isEmpty() && it.methods.none { it.nameAsString == "\$init" } }.map {
                 null to createDefaultConstructor(it)
             } + classes.map { it.constructors }.flatten().map {
                 it to it.translateConstructor((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)

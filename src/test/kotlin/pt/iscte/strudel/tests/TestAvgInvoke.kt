@@ -7,6 +7,7 @@ import pt.iscte.strudel.model.IProcedureDeclaration
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TestAvgInvoke : pt.iscte.strudel.tests.BaseTest({
@@ -45,17 +46,17 @@ class TestAvgInvoke : pt.iscte.strudel.tests.BaseTest({
             var stack = 0
             override fun procedureCall(p: IProcedureDeclaration, args: List<IValue>) {
                 if(stack == 0)
-                    assertTrue(p == procedure)
+                    assertEquals(module.procedures.find { it.id == "avg" }!!, p)
                 else if(stack == 1)
-                    assertTrue(p == module.procedures[0])
+                    assertEquals(module.procedures.find { it.id == "sum" }!!, p)
                 stack++
             }
 
             override fun procedureEnd(p: IProcedureDeclaration, args: List<IValue>, result: IValue?) {
                 if(stack == 1)
-                   assertTrue(p == procedure)
+                   assertEquals(module.procedures.find { it.id == "avg" }!!, p)
                 else if(stack == 2)
-                    assertTrue(p == module.procedures[0])
+                    assertEquals(module.procedures.find { it.id == "sum" }!!, p)
                 stack--
             }
         })

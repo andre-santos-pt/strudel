@@ -47,7 +47,7 @@ internal open class Procedure(
         return if(m == null) "" else "$m "
     }
 
-    override fun toString(): String = accessModifier + "static $returnType $id(" +
+    override fun toString(): String = accessModifier + "static ${returnType.id} $id(" +
             parameters.joinToString(", ") {
                 "${it.type.id} ${it.id ?: "$" + parameters.indexOf(it)}"
             } + ") $block"

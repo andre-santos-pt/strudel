@@ -4,7 +4,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import kotlin.test.assertEquals
 
-class TestArrayList : pt.iscte.strudel.tests.BaseTest({
+class TestArrayList : BaseTest({
 
     id = "IntArrayList"
 
@@ -13,12 +13,13 @@ class TestArrayList : pt.iscte.strudel.tests.BaseTest({
         Field(INT, "count")
     }
 
-    Procedure(VOID, "init") {
+    Procedure(listType, "\$init") {
         val list = Param(listType, "list")
         FieldSet(list.expression(),listType.fields[0], INT.array().heapAllocation(
             lit(10)
         ))
         FieldSet(list.expression(), listType.fields[1], lit(0))
+        Return(list)
     }
 
     Procedure(INT, "size") {
@@ -37,8 +38,8 @@ class TestArrayList : pt.iscte.strudel.tests.BaseTest({
 
     @Test
     fun test() {
-        val list = vm.allocateRecord(module.recordTypes[0])
-        vm.execute(module.procedures[0], list)
+       // val list = vm.allocateRecord(module.recordTypes[0])
+        val list = vm.execute(module.procedures[0],  vm.allocateRecord(module.recordTypes[0]))!!
         vm.execute(module.procedures[2], list, vm.getValue(2))
         vm.execute(module.procedures[2], list, vm.getValue(3))
         val r = vm.execute(module.procedures[1], list)
