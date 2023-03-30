@@ -6,7 +6,7 @@ internal class ProcedureCall(
     override var parent: IBlockHolder,
     override var procedure: IProcedureDeclaration,
     index: Int = -1,
-    override val arguments: MutableList<IExpression>
+    override val arguments: List<IExpression>
 ) :
     Expression(), IProcedureCall, IProcedureCallExpression {
 

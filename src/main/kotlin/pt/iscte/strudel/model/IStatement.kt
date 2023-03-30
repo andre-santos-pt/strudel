@@ -103,7 +103,7 @@ interface IRecordFieldAssignment : IStatement {
 
 interface IProcedureCall : IStatement {
     val procedure: IProcedureDeclaration
-    val arguments: MutableList<IExpression>
+    val arguments: List<IExpression>
     val isOperation: Boolean
         get() = false
     val isBound: Boolean

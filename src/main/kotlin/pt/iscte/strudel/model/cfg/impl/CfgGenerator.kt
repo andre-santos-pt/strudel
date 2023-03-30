@@ -31,7 +31,7 @@ class CfgGenerator(val cfg: IControlFlowGraph) : IBlock.IVisitor {
 
     override fun visitAny(element: IBlockElement) {
         if (element is IStatement) {
-            val statementNode = cfg.newStatement((element as IStatement))
+            val statementNode = cfg.newStatement(element)
 
             // In case that this is the first assignment in the procedure.
             if (lastVisitedNode.isEntry) lastVisitedNode.next = statementNode

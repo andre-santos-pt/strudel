@@ -36,6 +36,7 @@ import com.github.javaparser.symbolsolver.model.resolution.TypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
+import pt.iscte.strudel.model.impl.ProcedureCall
 import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
@@ -316,9 +317,10 @@ class Java2Strudel(
             }
 
         val procedures: List<Pair<CallableDeclaration<*>?, IProcedure>> =
-            classes.filter { it.constructors.isEmpty() && it.methods.none { it.nameAsString == "\$init" } }.map {
-                null to createDefaultConstructor(it)
-            } + classes.map { it.constructors }.flatten().map {
+            classes.filter { it.constructors.isEmpty() && it.methods.none { it.nameAsString == "\$init" } }
+                .map {
+                    null to createDefaultConstructor(it)
+                } + classes.map { it.constructors }.flatten().map {
                 it to it.translateConstructor((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
             } + classes.map { it.methods }.flatten().map {
                 it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
@@ -326,7 +328,7 @@ class Java2Strudel(
 
         procedures.filter {
             it.first != null
-        }. forEach {
+        }.forEach {
             it.first!!.body.translate(
                 it.second,
                 it.second.block,
@@ -340,6 +342,19 @@ class Java2Strudel(
 
     }
 
+    fun List<Pair<CallableDeclaration<*>?, IProcedure>>.findProcedure(
+        namespace: String?,
+        id: String,
+        paramTypes: List<ResolvedType>  // TODO param types in find procedure
+    ): IProcedureDeclaration? {
+        val find = find { (namespace == null || it.second.namespace == namespace) && it.second.id == id }
+        if (find != null)
+            return find.second
+
+        val findForeign =
+            foreignProcedures.find { it.namespace == namespace && it.id == id }
+        return findForeign
+    }
 
     fun Statement.translate(
         procedure: IProcedure,
@@ -347,22 +362,6 @@ class Java2Strudel(
         procedures: List<Pair<CallableDeclaration<*>?, IProcedure>>,
         types: MutableMap<String, IType>
     ) {
-
-        fun findProcedure(
-            namespace: String?,
-            id: String,
-            paramTypes: List<ResolvedType>  // TODO param types in find procedure
-        ): IProcedureDeclaration? {
-            val find =
-                procedures.find { (namespace == null || it.second.namespace == namespace) && it.second.id == id }
-            if (find != null)
-                return find.second
-
-            val findForeign =
-                foreignProcedures.find { it.namespace == namespace && it.id == id }
-            return findForeign
-        }
-
         if (this is EmptyStmt)
             return
         else if (this is BlockStmt) {
@@ -453,7 +452,7 @@ class Java2Strudel(
                 )
 
                 is ObjectCreationExpr -> {
-                    val const = findProcedure(
+                    val const = procedures.findProcedure(
                         exp.type.nameAsString,
                         "\$init",
                         emptyList()
@@ -496,34 +495,8 @@ class Java2Strudel(
                         }
                     }
                 }
-
-                is MethodCallExpr -> {
-                    //paramTypes = exp.arguments.map { it.calculateResolvedType() }
-                    val ns =
-                        if (exp.scope.isPresent && exp.scope.get() is NameExpr)
-                            exp.scope.get().toString()
-                        else
-                            null
-
-                    val m = findProcedure(
-                        ns,
-                        exp.nameAsString,
-                        emptyList()
-                    ) // TODO param types
-                        ?: unsupported("not found", exp)
-                    val args = exp.arguments.map { mapExpression(it) }
-                    if (exp.scope.isPresent) {
-                        // TODO check if namespace
-                        if (ns == null)
-                            callExpression(
-                                m,
-                                mapExpression(exp.scope.get()),
-                                *args.toTypedArray()
-                            )
-                        else
-                            callExpression(m, *args.toTypedArray())
-                    } else
-                        callExpression(m, *args.toTypedArray())
+                is MethodCallExpr ->  handleMethodCall(procedures, types, exp, ::mapExpression) { m, args ->
+                        ProcedureCall(NullBlock, m, arguments = args)
                 }
                 else -> unsupported("expression", exp)
             }.bind(exp)
@@ -621,6 +594,9 @@ class Java2Strudel(
                 unsupported("assignment", a)
         }
 
+
+
+
         fun handle(block: IBlock, s: Expression): IStatement =
             when (s) {
                 is AssignExpr -> handleAssign(block, s)
@@ -644,22 +620,9 @@ class Java2Strudel(
                         unsupported("expression statement", s)
 
                 is MethodCallExpr -> {
-                    // val paramTypes = s.arguments.map { it.calculateResolvedType() })
-                    val ns = if (s.scope.isPresent && s.scope.get() is NameExpr)
-                        s.scope.get().toString()
-                    else
-                        null
-
-                    val m = findProcedure(ns, s.nameAsString, emptyList())
-                        ?: unsupported("not found", s)
-                    val args = s.arguments.map { mapExpression(it) }
-                    if (s.scope.isPresent)
-                        if (ns == null)
-                            block.Call(m, mapExpression(s.scope.get()), *args.toTypedArray())
-                        else
-                            block.Call(m, *args.toTypedArray())
-                    else
-                        block.Call(m, *args.toTypedArray())
+                    handleMethodCall(procedures, types, s, ::mapExpression) { m, args ->
+                        ProcedureCall(block, m, arguments = args)
+                    }
                 }
                 else -> unsupported("expression statement", s)
             }
@@ -841,4 +804,34 @@ class Java2Strudel(
         }
 
 
+    private fun <T> handleMethodCall(procedures: List<Pair<CallableDeclaration<*>?, IProcedure>>,
+                                     types: Map<String, IType>,
+                                     exp: MethodCallExpr,
+                                     mapExpression: (Expression)->IExpression,
+                                     creator: (IProcedureDeclaration, List<IExpression>) -> T): T {
+        // val paramTypes = s.arguments.map { it.calculateResolvedType() })
+        val ns = if (exp.scope.isPresent &&
+            (exp.scope.get() is NameExpr && types.containsKey(
+                exp.scope.get().toString()
+            ) ||
+                    foreignProcedures.any {
+                        it.namespace == exp.scope.get().toString()
+                    }
+                    )
+        )
+            exp.scope.get().toString()
+        else
+            null
+
+        val m = procedures.findProcedure(ns, exp.nameAsString, emptyList())
+            ?: unsupported("not found", exp)
+        val args = exp.arguments.map { mapExpression(it) }
+        return if (exp.scope.isPresent)
+            if (ns == null)
+                creator(m, listOf(mapExpression(exp.scope.get())) + args)
+            else
+                creator(m, args)
+        else
+            creator(m, args)
+    }
 }

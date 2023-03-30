@@ -66,8 +66,11 @@ interface IModule : IModuleView {
     fun getConstant(match: (IConstantDeclaration) -> Boolean) : IConstantDeclaration?
         = members.filterIsInstance<IConstantDeclaration>().find {match(it)}
 
+    fun getProcedure(id: String, namespace: String? = null): IProcedure
+            = members.filterIsInstance<IProcedure>().find { it.id == id && (namespace == null || it.namespace == namespace)}!!
     fun getProcedure(match: (IProcedure) -> Boolean): IProcedure?
-        = members.filterIsInstance<IProcedure>().find { match(it) }
+        = members.filterIsInstance<IProcedure>().find { match(it) }!!
+
     fun findProcedures(match: (IProcedure) -> Boolean): List<IProcedure>
         = members.filterIsInstance<IProcedure>().filter { match(it) }
 

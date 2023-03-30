@@ -31,6 +31,10 @@ fun main() {
                 return next == elements.length;
             }
             
+            int get(int index) {
+                return elements[index];
+            }
+            
             void add(int e) {
                 this.elements[next] = e;
                 next = next + 1;
@@ -53,7 +57,8 @@ fun main() {
                 list.add(2);
                 list.add(3);
                 list.doubleCapacity();
-                println(list.size());
+                for(int i = 0; i < list.size(); i++)
+                    System.out.println(list.get(i));
             }
         }
         
@@ -68,7 +73,7 @@ fun main() {
 
     println(module)
     val vm = VirtualMachine()
-    val main = module.procedures.find { it.id == "main" }!!
+    val main = module.getProcedure("main", "Test")
     vm.execute(main)
 
 }
