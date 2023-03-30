@@ -6,7 +6,8 @@ import pt.iscte.strudel.vm.*
 internal open class VirtualMachine(
     override val callStackMaximum: Int = 1024,
     override val loopIterationMaximum: Int = 1000, // TODO
-    override val availableMemory: Int = 1000 // TODO,
+    override val availableMemory: Int = 1000, // TODO
+    override val throwExceptions: Boolean = false
 ) : IVirtualMachine {
     private val stack: ICallStack
     override val heapMemory: IHeapMemory
@@ -77,7 +78,10 @@ internal open class VirtualMachine(
         } catch (e: RuntimeError) {
             error = e
             listeners.forEach { it.executionError(e) }
-            null
+            if(throwExceptions)
+                throw e
+            else
+                null
         }
     }
 

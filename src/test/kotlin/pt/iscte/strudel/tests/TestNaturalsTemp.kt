@@ -9,7 +9,6 @@ import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class TestNaturalsTemp : pt.iscte.strudel.tests.BaseTest({
     Procedure(INT.array().reference(), "naturals") {

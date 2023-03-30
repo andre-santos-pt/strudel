@@ -5,7 +5,6 @@ import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*
-import pt.iscte.strudel.vm.impl.ForeignProcedure
 import pt.iscte.strudel.vm.impl.IForeignProcedure
 import pt.iscte.strudel.vm.impl.Value
 import kotlin.test.assertTrue

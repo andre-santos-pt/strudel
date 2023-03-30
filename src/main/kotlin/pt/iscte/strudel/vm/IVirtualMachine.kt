@@ -15,6 +15,7 @@ interface IVirtualMachine {
     val loopIterationMaximum: Int
     val availableMemory: Int
     val usedMemory: Int
+    val throwExceptions: Boolean
 
     val topFrame: IStackFrame get() = callStack.topFrame
 

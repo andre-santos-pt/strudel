@@ -399,6 +399,10 @@ class Java2Strudel(
                         target?.expression() ?: error("not found", exp)
                 } //UnboundVariableDeclaration(exp.nameAsString, procedure).expression()
 
+                is ThisExpr -> {
+                    procedure.thisParameter.expression()
+                }
+
                 is NullLiteralExpr -> NULL_LITERAL
 
                 // TODO String literal?
@@ -495,7 +499,7 @@ class Java2Strudel(
                         }
                     }
                 }
-                is MethodCallExpr ->  handleMethodCall(procedures, types, exp, ::mapExpression) { m, args ->
+                is MethodCallExpr ->  handleMethodCall(procedure, procedures, types, exp, ::mapExpression) { m, args ->
                         ProcedureCall(NullBlock, m, arguments = args)
                 }
                 else -> unsupported("expression", exp)
@@ -620,7 +624,7 @@ class Java2Strudel(
                         unsupported("expression statement", s)
 
                 is MethodCallExpr -> {
-                    handleMethodCall(procedures, types, s, ::mapExpression) { m, args ->
+                    handleMethodCall(procedure, procedures, types, s, ::mapExpression) { m, args ->
                         ProcedureCall(block, m, arguments = args)
                     }
                 }
@@ -804,7 +808,8 @@ class Java2Strudel(
         }
 
 
-    private fun <T> handleMethodCall(procedures: List<Pair<CallableDeclaration<*>?, IProcedure>>,
+    private fun <T> handleMethodCall(procedure: IProcedure,
+                                    procedures: List<Pair<CallableDeclaration<*>?, IProcedure>>,
                                      types: Map<String, IType>,
                                      exp: MethodCallExpr,
                                      mapExpression: (Expression)->IExpression,
@@ -831,6 +836,9 @@ class Java2Strudel(
                 creator(m, listOf(mapExpression(exp.scope.get())) + args)
             else
                 creator(m, args)
+        else if(m.parameters.isNotEmpty() && m.parameters[0].id == "\$this")
+            // TODO BUG this
+            creator(m, listOf(procedure.thisParameter.expression()) + args)
         else
             creator(m, args)
     }

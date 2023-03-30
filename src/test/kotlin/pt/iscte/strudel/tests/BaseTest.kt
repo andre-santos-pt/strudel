@@ -65,7 +65,10 @@ abstract class BaseTest {
 
     open fun fillCFG(procedure: IProcedure, cfg: IControlFlowGraph)  { }
 
-    fun call(vararg arguments: String) : IValue? = vm.execute(procedure, *arguments.map { vm.getValue(it) }.toTypedArray())
+    fun call(vararg arguments: String) : IValue? = vm.execute(
+        procedure,
+        *arguments.map { vm.getValue(it) }.toTypedArray()
+    )
 
 
     inner class TrackIntVar(val v : IVariableDeclaration<*>, vararg val vals: Int) : IVirtualMachine.IListener {

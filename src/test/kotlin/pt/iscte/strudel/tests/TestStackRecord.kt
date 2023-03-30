@@ -31,7 +31,7 @@ class TestStackRecord: pt.iscte.strudel.tests.BaseTest({
     fun `init`() {
         val ret = vm.execute(procedure, vm.getValue(10))
         val push = procedure("push")
-        vm.execute(push,vm.getValue(5))
-        vm.execute(push,vm.getValue(6))
+        vm.execute(push, vm.getValue(5))
+        vm.execute(push, vm.getValue(6))
     }
 }

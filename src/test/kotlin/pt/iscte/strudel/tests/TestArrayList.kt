@@ -39,7 +39,10 @@ class TestArrayList : BaseTest({
     @Test
     fun test() {
        // val list = vm.allocateRecord(module.recordTypes[0])
-        val list = vm.execute(module.procedures[0],  vm.allocateRecord(module.recordTypes[0]))!!
+        val list = vm.execute(
+            module.procedures[0],
+            vm.allocateRecord(module.recordTypes[0])
+        )!!
         vm.execute(module.procedures[2], list, vm.getValue(2))
         vm.execute(module.procedures[2], list, vm.getValue(3))
         val r = vm.execute(module.procedures[1], list)

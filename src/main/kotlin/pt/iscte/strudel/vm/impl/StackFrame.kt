@@ -4,7 +4,7 @@ import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.IVariableDeclaration
 import pt.iscte.strudel.vm.*
 
-internal class StackFrame(callStack: ICallStack, procedure: IProcedure, arguments: List<IValue>) :
+internal class StackFrame(callStack: ICallStack, procedure: IProcedure, override val arguments: List<IValue>) :
     IStackFrame {
     override val callStack: ICallStack
     override val procedure: IProcedure
@@ -13,7 +13,7 @@ internal class StackFrame(callStack: ICallStack, procedure: IProcedure, argument
 
 
     init {
-        require(procedure.parameters.size == arguments.size) { "number of arguments do not match"}
+        require(procedure.parameters.size == arguments.size) { "number of arguments do not match (${procedure.id})"}
         procedure.parameters.forEachIndexed {
             i, p ->
            require(p.type.isSame(arguments[i].type))
@@ -22,7 +22,7 @@ internal class StackFrame(callStack: ICallStack, procedure: IProcedure, argument
         this.procedure = procedure
         variables = LinkedHashMap()
         returnValue = null
-        procedure.parameters.forEachIndexed() {
+        procedure.parameters.forEachIndexed {
             i, p ->
             variables[p] = arguments[i].copy()
         }

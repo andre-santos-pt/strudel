@@ -30,12 +30,20 @@ class TestCharArrayCount : pt.iscte.strudel.tests.BaseTest({
 
     @Test
     fun `empty array`() {
-        assertTrue(vm.execute(procedure, vm.allocateArray(CHAR, 0), vm.getValue('a'))!!.toInt() == 0)
+        assertTrue(vm.execute(
+            procedure,
+            vm.allocateArray(CHAR, 0),
+            vm.getValue('a')
+        )!!.toInt() == 0)
     }
 
     @Test
     fun `no occurences`() {
-        assertTrue(vm.execute(procedure, vm.allocateArrayOf(CHAR, 'a', 'a', 'b', 'a'), vm.getValue('c'))!!.toInt() == 0)
+        assertTrue(vm.execute(
+            procedure,
+            vm.allocateArrayOf(CHAR, 'a', 'a', 'b', 'a'),
+            vm.getValue('c')
+        )!!.toInt() == 0)
     }
 
     @Test

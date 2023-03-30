@@ -9,6 +9,7 @@ import pt.iscte.strudel.model.IVariableDeclaration
 interface IStackFrame {
     val callStack: ICallStack
     val procedure: IProcedure
+    val arguments: List<IValue>
     val variables: MutableMap<IVariableDeclaration<*>, IValue>
     var returnValue : IValue?
 

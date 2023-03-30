@@ -3,6 +3,7 @@ package pt.iscte.strudel.examples
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.ANY
 import pt.iscte.strudel.model.VOID
+import pt.iscte.strudel.vm.*
 import pt.iscte.strudel.vm.impl.ForeignProcedure
 import pt.iscte.strudel.vm.impl.VirtualMachine
 
@@ -13,7 +14,7 @@ fun main() {
             int next;
             
             IntArrayList() {
-                elements = new int[10];
+                elements = new int[5];
                 next = 0;
             }
             
@@ -36,6 +37,9 @@ fun main() {
             }
             
             void add(int e) {
+                if(isFull())
+                    this.doubleCapacity();
+                    
                 this.elements[next] = e;
                 next = next + 1;
             }
@@ -53,10 +57,11 @@ fun main() {
         class Test {
             public static void main() {
                 IntArrayList list = new IntArrayList();
-                list.add(1);
-                list.add(2);
-                list.add(3);
-                list.doubleCapacity();
+                 for(int i = 1; i <= 10; i++) {
+                 
+                    list.add(i);
+                    }
+                    
                 for(int i = 0; i < list.size(); i++)
                     System.out.println(list.get(i));
             }
@@ -72,8 +77,25 @@ fun main() {
     )).load(javaCode)
 
     println(module)
-    val vm = VirtualMachine()
+    val vm = VirtualMachine(throwExceptions = true)
+    vm.addListener(object : IVirtualMachine.IListener {
+        override fun arrayAllocated(ref: IReference<IArray>) {
+            println(ref.target)
+            ref.target.addListener(object : IArray.IListener {
+                override fun elementChanged(index: Int, oldValue: IValue, newValue: IValue) {
+                    println(ref.target)
+                }
+            })
+        }
+    })
     val main = module.getProcedure("main", "Test")
-    vm.execute(main)
-
+    try {
+        vm.execute(main)
+    }
+    catch (e: RuntimeError) {
+       println(e)
+        vm.callStack.frames.reversed().forEach {
+            println(it.procedure.id + "(" + it.arguments.joinToString { it.toString() } + ")")
+        }
+    }
 }

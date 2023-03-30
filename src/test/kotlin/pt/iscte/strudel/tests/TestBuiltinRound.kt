@@ -7,7 +7,6 @@ import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.Param
 import pt.iscte.strudel.model.dsl.Procedure
 import pt.iscte.strudel.model.dsl.Return
-import pt.iscte.strudel.vm.impl.ForeignProcedure
 import pt.iscte.strudel.vm.impl.IForeignProcedure
 import kotlin.math.roundToInt
 import kotlin.test.assertEquals

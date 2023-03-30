@@ -2,7 +2,6 @@ package pt.iscte.strudel.examples
 
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.ILoop
-import pt.iscte.strudel.model.IModule
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.vm.IVirtualMachine

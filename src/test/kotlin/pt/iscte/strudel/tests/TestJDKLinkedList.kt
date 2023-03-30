@@ -7,7 +7,6 @@ import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.IValue
-import pt.iscte.strudel.vm.impl.ForeignProcedure
 import pt.iscte.strudel.vm.impl.IForeignProcedure
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*

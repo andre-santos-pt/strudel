@@ -165,6 +165,7 @@ class ProcedureExecution(
                 } else {
                     val call = ProcedureExecution(vm, s.procedure as IProcedure, *it.toTypedArray());
                     call.run()
+                    // TODO check error
                 }
                 return true
             }
@@ -260,6 +261,7 @@ class ProcedureExecution(
 
             is IProcedureCallExpression -> {
                 eval(*exp.arguments.reversed().toTypedArray())?.reversed()?.let {
+                    // TODO check error
                     if (exp.procedure.isForeign) {
                         val ret = (exp.procedure as ForeignProcedure).run(vm, it)
                         ret?.let {
