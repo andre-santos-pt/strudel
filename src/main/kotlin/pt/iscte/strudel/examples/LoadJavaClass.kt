@@ -41,12 +41,12 @@ fun main() {
                     this.doubleCapacity();
                     
                 this.elements[next] = e;
-                next = next + 1;
+                next++;
             }
             
             void doubleCapacity() {
                 int[] newElements = new int[elements.length*2];
-                for(int i = 0; i < next; i++)
+                for(int i = 0; i < next; ++i)
                     newElements[i] = elements[i];
                 elements = newElements;
             }

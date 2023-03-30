@@ -37,6 +37,8 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSol
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.ProcedureCall
+import pt.iscte.strudel.model.impl.RecordFieldExpression
+import pt.iscte.strudel.model.impl.VariableExpression
 import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
@@ -347,7 +349,8 @@ class Java2Strudel(
         id: String,
         paramTypes: List<ResolvedType>  // TODO param types in find procedure
     ): IProcedureDeclaration? {
-        val find = find { (namespace == null || it.second.namespace == namespace) && it.second.id == id }
+        val find =
+            find { (namespace == null || it.second.namespace == namespace) && it.second.id == id }
         if (find != null)
             return find.second
 
@@ -499,75 +502,38 @@ class Java2Strudel(
                         }
                     }
                 }
-                is MethodCallExpr ->  handleMethodCall(procedure, procedures, types, exp, ::mapExpression) { m, args ->
-                        ProcedureCall(NullBlock, m, arguments = args)
+                is MethodCallExpr -> handleMethodCall(
+                    procedure,
+                    procedures,
+                    types,
+                    exp,
+                    ::mapExpression
+                ) { m, args ->
+                    ProcedureCall(NullBlock, m, arguments = args)
                 }
                 else -> unsupported("expression", exp)
             }.bind(exp)
 
 
         fun handleAssign(block: IBlock, a: AssignExpr): IStatement {
-
             if (a.target is NameExpr) {
                 val target = findVariable(a.target.toString())
-                    ?: error(
-                        "not found",
-                        a
-                    ) // UnboundVariableDeclaration(a.target.toString(), block)
+                    ?: error("not found", a) // UnboundVariableDeclaration(a.target.toString(), block)
 
-                return when (a.operator) {
-                    AssignExpr.Operator.ASSIGN ->
-                        if (target.isField)
-                            block.FieldSet(
-                                procedure.thisParameter.expression(),
-                                target as IVariableDeclaration<IRecordType>,
-                                mapExpression(a.value)
-                            )
-                        else
-                            block.Assign(target, mapExpression(a.value))
-
-
-                    // TODO compound assignment operators
-
-
-                    AssignExpr.Operator.PLUS -> block.Assign(
-                        target,
-                        ArithmeticOperator.ADD.on(
-                            mapExpression(a.target),
-                            mapExpression(a.value)
-                        )
-                    )
-
-                    AssignExpr.Operator.MINUS -> block.Assign(
-                        target,
-                        ArithmeticOperator.SUB.on(
-                            mapExpression(a.target),
-                            mapExpression(a.value)
-                        )
-                    )
-                    AssignExpr.Operator.MULTIPLY -> block.Assign(
-                        target,
-                        ArithmeticOperator.MUL.on(
-                            mapExpression(a.target),
-                            mapExpression(a.value)
-                        )
-                    )
-                    AssignExpr.Operator.DIVIDE -> block.Assign(
-                        target,
-                        ArithmeticOperator.DIV.on(
-                            mapExpression(a.target),
-                            mapExpression(a.value)
-                        )
-                    )
-                    AssignExpr.Operator.REMAINDER -> block.Assign(
-                        target,
-                        ArithmeticOperator.MOD.on(
-                            mapExpression(a.target),
-                            mapExpression(a.value)
-                        )
-                    )
-                    else -> unsupported("assign operator ${a.operator}", a)
+                val value = when (a.operator) {
+                    AssignExpr.Operator.ASSIGN -> mapExpression(a.value)
+                    else -> a.operator.map().on(mapExpression(a.target), mapExpression(a.value))
                 }
+
+                return if (target.isField)
+                    block.FieldSet(
+                        procedure.thisParameter.expression(),
+                        target as IVariableDeclaration<IRecordType>,
+                        value
+                    )
+                else
+                    block.Assign(target, value)
+
             } else if (a.target is ArrayAccessExpr) {
                 return when (a.operator) { // TODO compound assignment operators
                     AssignExpr.Operator.ASSIGN ->
@@ -599,32 +565,39 @@ class Java2Strudel(
         }
 
 
-
-
         fun handle(block: IBlock, s: Expression): IStatement =
             when (s) {
                 is AssignExpr -> handleAssign(block, s)
 
                 is UnaryExpr ->
+                    // TODO array ++ --
                     if (s.operator == UnaryExpr.Operator.PREFIX_INCREMENT || s.operator == UnaryExpr.Operator.POSTFIX_INCREMENT) {
-                        val dec = findVariable(s.expression.toString())
-                            ?: unsupported(
-                                "cannot find variable",
-                                s.expression
-                            )
-                        block.Assign(dec, dec + lit(1))
+                        val varExp = mapExpression(s.expression)
+                        if(varExp is VariableExpression)
+                            block.Assign(varExp.variable, varExp + lit(1))
+                        else if(varExp is RecordFieldExpression)
+                            block.FieldSet(varExp.target, varExp.field, varExp + lit(1))
+                        else
+                            unsupported("${s.operator} on ${s.expression}", s)
                     } else if (s.operator == UnaryExpr.Operator.PREFIX_DECREMENT || s.operator == UnaryExpr.Operator.POSTFIX_DECREMENT) {
-                        val dec = findVariable(s.expression.toString())
-                            ?: unsupported(
-                                "cannot find variable",
-                                s.expression
-                            )
-                        block.Assign(dec, dec - lit(1))
+                        val varExp = mapExpression(s.expression)
+                        if(varExp is VariableExpression)
+                            block.Assign(varExp.variable, varExp + lit(1))
+                        else if(varExp is RecordFieldExpression)
+                            block.FieldSet(varExp.target, varExp.field, varExp - lit(1))
+                        else
+                            unsupported("${s.operator} on ${s.expression}", s)
                     } else
-                        unsupported("expression statement", s)
+                        unsupported("unary expression statement", s)
 
                 is MethodCallExpr -> {
-                    handleMethodCall(procedure, procedures, types, s, ::mapExpression) { m, args ->
+                    handleMethodCall(
+                        procedure,
+                        procedures,
+                        types,
+                        s,
+                        ::mapExpression
+                    ) { m, args ->
                         ProcedureCall(block, m, arguments = args)
                     }
                 }
@@ -807,13 +780,24 @@ class Java2Strudel(
             else -> unsupported("binary operator", exp)
         }
 
+    fun AssignExpr.Operator.map(): IBinaryOperator =
+        when (this) {
+        AssignExpr.Operator.PLUS -> ArithmeticOperator.ADD
+        AssignExpr.Operator.MINUS -> ArithmeticOperator.SUB
+        AssignExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
+        AssignExpr.Operator.DIVIDE -> ArithmeticOperator.DIV
+        AssignExpr.Operator.REMAINDER -> ArithmeticOperator.MOD
+            else -> unsupported("asign operator", this)
+    }
 
-    private fun <T> handleMethodCall(procedure: IProcedure,
-                                    procedures: List<Pair<CallableDeclaration<*>?, IProcedure>>,
-                                     types: Map<String, IType>,
-                                     exp: MethodCallExpr,
-                                     mapExpression: (Expression)->IExpression,
-                                     creator: (IProcedureDeclaration, List<IExpression>) -> T): T {
+    private fun <T> handleMethodCall(
+        procedure: IProcedure,
+        procedures: List<Pair<CallableDeclaration<*>?, IProcedure>>,
+        types: Map<String, IType>,
+        exp: MethodCallExpr,
+        mapExpression: (Expression) -> IExpression,
+        creator: (IProcedureDeclaration, List<IExpression>) -> T
+    ): T {
         // val paramTypes = s.arguments.map { it.calculateResolvedType() })
         val ns = if (exp.scope.isPresent &&
             (exp.scope.get() is NameExpr && types.containsKey(
@@ -836,8 +820,8 @@ class Java2Strudel(
                 creator(m, listOf(mapExpression(exp.scope.get())) + args)
             else
                 creator(m, args)
-        else if(m.parameters.isNotEmpty() && m.parameters[0].id == "\$this")
-            // TODO BUG this
+        else if (m.parameters.isNotEmpty() && m.parameters[0].id == "\$this")
+        // TODO BUG this
             creator(m, listOf(procedure.thisParameter.expression()) + args)
         else
             creator(m, args)
