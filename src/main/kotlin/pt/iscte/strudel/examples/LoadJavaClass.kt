@@ -18,11 +18,10 @@ fun main() {
                 next = 0;
             }
             
-             IntArrayList(int cap) {
+            IntArrayList(int cap) {
                 elements = new int[cap];
                 next = 0;
             }
-            
             
             int size() {
                 return next;
@@ -62,19 +61,15 @@ fun main() {
                     list.add(i);
                     }
                     
-                for(int i = 0; i < list.size(); i++)
-                    System.out.println(list.get(i));
+                for(int j = 0; j < list.size(); j++)
+                    System.out.println(list.get(j));
             }
         }
         
     """.trimIndent()
 
 
-    val module = Java2Strudel(foreignProcedures = listOf(
-        ForeignProcedure("System.out", "println", VOID, ANY) {
-                m, args -> println(args[0])
-        }
-    )).load(javaCode)
+    val module = Java2Strudel().load(javaCode)
 
     println(module)
     val vm = VirtualMachine(throwExceptions = true)
