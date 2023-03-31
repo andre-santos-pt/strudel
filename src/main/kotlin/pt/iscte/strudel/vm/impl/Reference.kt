@@ -21,7 +21,7 @@ internal class Reference<T: IValue>(override var target: T) : IReference<T> {
     }
 
     override fun toString(): String {
-        return "->$target"
+        return "$target"
     }
 
     override val isTrue: Boolean = false

@@ -22,6 +22,7 @@ import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.model.util.UnaryOperator
 import java.io.File
+import kotlin.jvm.optionals.getOrNull
 
 
 const val JP = "JP"
@@ -33,8 +34,9 @@ const val TYPE_LOC = "TYPE_LOC"
 const val OPERATOR_LOC = "OPERATOR_LOC"
 
 private const val THIS_PARAM = "\$this"
-
 private const val INIT = "\$init"
+private const val IT = "\$it"
+
 
 
 fun MutableMap<String, IType>.mapType(t: String): IType =
@@ -83,7 +85,6 @@ fun typeSolver(): TypeSolver {
 }
 
 val jpFacade = JavaParserFacade.get(typeSolver())
-
 
 
 
@@ -352,7 +353,7 @@ class Java2Strudel(
                         )
                     }
 
-        fun mapExpression(exp: Expression): IExpression =
+        fun mapExpression(exp: Expression, currentBlock: IBlock = block): IExpression =
             when (exp) {
                 is IntegerLiteralExpr -> lit(exp.value.toInt())
                 is DoubleLiteralExpr -> lit(exp.value.toDouble())
@@ -374,7 +375,7 @@ class Java2Strudel(
                 is NullLiteralExpr -> NULL_LITERAL
 
                 is StringLiteralExpr -> {
-                    foreignProcedures.find { it.id == "\$newString" }!!
+                    foreignProcedures.find { it.id == NEW_STRING }!!
                         .expression(
                             CHAR.array().heapAllocationWith(exp.value.map {
                                 CHAR.literal(it)
@@ -419,9 +420,36 @@ class Java2Strudel(
 
                 is CastExpr -> UnaryOperator.TRUNCATE.on(mapExpression(exp.expression)) //TODO other casts
 
-                is ArrayCreationExpr -> types.mapType(exp.elementType.asString())
-                    .array()
-                    .heapAllocation(exp.levels.map { mapExpression(it.dimension.get()) }) // TODO multi level
+                // TODO multi level
+                is ArrayCreationExpr -> {
+                    if (exp.levels.size > 1)
+                        unsupported("multi-dimension array initialization", exp)
+
+                    val arrayType =
+                        types.mapType(exp.elementType.asString()).array()
+
+                    if (exp.levels[0].dimension.isPresent)
+                        arrayType.heapAllocation(exp.levels.map {
+                            mapExpression(
+                                it.dimension.get()
+                            )
+                        })
+                    else
+                        mapExpression(exp.initializer.get())
+                }
+
+                is ArrayInitializerExpr -> {
+                    val values = exp.values.map { mapExpression(it) }
+                    val baseType =
+                        if (exp.parentNode.getOrNull() is ArrayCreationExpr)
+                            types.mapType((exp.parentNode.get() as ArrayCreationExpr).elementType)
+                        else if (exp.parentNode.getOrNull() is VariableDeclarator)
+                            types.mapType((exp.parentNode.get() as VariableDeclarator).typeAsString)
+                        else
+                            unsupported("array initializer", exp)
+
+                    baseType.array().heapAllocationWith(values)
+                }
 
                 is ArrayAccessExpr -> mapExpression(exp.name).element(
                     mapExpression(exp.index)
@@ -618,6 +646,8 @@ class Java2Strudel(
                 initialization.forEach { i ->
                     if (i.isVariableDeclarationExpr) {
                         i.asVariableDeclarationExpr().variables.forEach { v ->
+                            if(procedure.variables.any { it.id == v.nameAsString })
+                                unsupported("variables with same identifiers within the same procedure", i)
                             val varDec =
                                 addVariable(types.mapType(v.type)).apply {
                                     id = v.nameAsString
@@ -638,8 +668,7 @@ class Java2Strudel(
                     } else
                         handle(this, i).bind(i)
                 }
-                val guard =
-                    if (compare.isPresent) mapExpression(compare.get()) else True
+                val guard = if (compare.isPresent) mapExpression(compare.get()) else True
                 While(guard) {
                     body.translate(procedure, this, procedures, types)
                     update.forEach { u ->
@@ -654,6 +683,9 @@ class Java2Strudel(
             }
 
             is ForEachStmt -> block.Block(EFOR) {
+                if(procedure.variables.any { it.id == variable.variables[0].nameAsString })
+                    unsupported("variables with same identifiers within the same procedure", variable)
+
                 val itVar =
                     addVariable(types.mapType(variable.elementType)).apply {
                         val v = variable.variables[0]
@@ -664,7 +696,7 @@ class Java2Strudel(
                         bind(v.type, TYPE_LOC)
                     }
                 val indexVar = addVariable(INT).apply {
-                    id = "\$index" // TODO id clash
+                    id = IT + this@Block.depth
                     setFlag(EFOR)
                     bind(variable)
                 }
@@ -709,6 +741,9 @@ class Java2Strudel(
                     if (type == null)
                         unsupported("type", expression)
                     else {
+                        if(procedure.variables.any { it.id == dec.nameAsString })
+                            unsupported("variables with same identifiers within the same procedure", expression)
+
                         val varDec = block.Var(type, dec.nameAsString)
                         if (dec.initializer.isPresent) {
                             block.Assign(
