@@ -10,10 +10,9 @@ internal class PredefinedArrayAllocation(
     override val elements: List<IExpression>,
 ) : Expression(), IPredefinedArrayAllocation {
 
-
     override val parts: List<IExpression>
         get() = elements
 
-    override fun toString(): String = "{" + elements.joinToString(separator = ", "){ "$it" }
+    override fun toString(): String = elements.joinToString(prefix = "new ${componentType.id}[] {", separator = ", ", postfix = "}"){ "$it" }
 
 }

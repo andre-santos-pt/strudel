@@ -12,9 +12,9 @@ repositories {
 }
 
 dependencies {
-    api("com.github.javaparser:javaparser-symbol-solver-core:3.24.8")
-    testApi("org.junit.jupiter:junit-jupiter-api:5.9.0")
-    testApi("org.junit.platform:junit-platform-suite:1.9.1")
+    api("com.github.javaparser:javaparser-symbol-solver-core:3.25.1")
+    testApi("org.junit.jupiter:junit-jupiter-api:5.9.2")
+    testApi("org.junit.platform:junit-platform-suite:1.9.2")
     testImplementation(kotlin("test"))
     testApi(kotlin("reflect"))
 }

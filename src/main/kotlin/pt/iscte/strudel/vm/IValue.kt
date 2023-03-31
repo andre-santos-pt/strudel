@@ -52,6 +52,10 @@ interface IValue {
         //check(type is BOOLEAN)
         return value as Boolean
     }
+
+    fun toChar() : Char {
+        return value as Char
+    }
 }
 
 interface IMemory : IValue

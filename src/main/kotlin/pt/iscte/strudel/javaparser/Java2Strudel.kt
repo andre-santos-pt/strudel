@@ -3,36 +3,14 @@ package pt.iscte.strudel.javaparser
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.Modifier
 import com.github.javaparser.ast.Node
-import com.github.javaparser.ast.body.CallableDeclaration
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
-import com.github.javaparser.ast.body.ConstructorDeclaration
-import com.github.javaparser.ast.body.MethodDeclaration
-import com.github.javaparser.ast.body.VariableDeclarator
-import com.github.javaparser.ast.expr.ArrayAccessExpr
-import com.github.javaparser.ast.expr.ArrayCreationExpr
-import com.github.javaparser.ast.expr.AssignExpr
-import com.github.javaparser.ast.expr.BinaryExpr
-import com.github.javaparser.ast.expr.BooleanLiteralExpr
-import com.github.javaparser.ast.expr.CastExpr
-import com.github.javaparser.ast.expr.CharLiteralExpr
-import com.github.javaparser.ast.expr.DoubleLiteralExpr
-import com.github.javaparser.ast.expr.EnclosedExpr
-import com.github.javaparser.ast.expr.Expression
-import com.github.javaparser.ast.expr.FieldAccessExpr
-import com.github.javaparser.ast.expr.IntegerLiteralExpr
-import com.github.javaparser.ast.expr.MethodCallExpr
-import com.github.javaparser.ast.expr.NameExpr
-import com.github.javaparser.ast.expr.NullLiteralExpr
-import com.github.javaparser.ast.expr.ObjectCreationExpr
-import com.github.javaparser.ast.expr.ThisExpr
-import com.github.javaparser.ast.expr.UnaryExpr
-import com.github.javaparser.ast.expr.VariableDeclarationExpr
+import com.github.javaparser.ast.body.*
+import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.type.Type
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
+import com.github.javaparser.resolution.TypeSolver
 import com.github.javaparser.resolution.types.ResolvedType
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade
-import com.github.javaparser.symbolsolver.model.resolution.TypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
@@ -54,34 +32,10 @@ const val ID_LOC = "ID_LOC"
 const val TYPE_LOC = "TYPE_LOC"
 const val OPERATOR_LOC = "OPERATOR_LOC"
 
-val defaultTypes = mapOf(
-    "void" to VOID,
+private const val THIS_PARAM = "\$this"
 
-    //"Object" to ANY,
+private const val INIT = "\$init"
 
-    "int" to INT,
-    "double" to DOUBLE,
-    "char" to CHAR,
-    "boolean" to BOOLEAN,
-
-    "int[]" to INT.array().reference(),
-    "double[]" to DOUBLE.array().reference(),
-    "char[]" to CHAR.array().reference(),
-    "boolean[]" to BOOLEAN.array().reference(),
-
-    "int[][]" to INT.array().reference().array().reference(),
-    "double[][]" to DOUBLE.array().reference().array().reference(),
-    "char[][]" to CHAR.array().reference().array().reference(),
-    "boolean[][]" to BOOLEAN.array().reference().array().reference(),
-
-    String::class.java.simpleName to JavaType(String::class.java),
-    String::class.java.simpleName + "[]" to JavaType(String::class.java).array()
-        .reference()
-
-    //  "String" to JavaType(String::class.java),
-//    "String[]" to JavaType(String::class.java).array(),
-//    "String[][]" to JavaType(String::class.java).array().reference().array()
-)
 
 fun MutableMap<String, IType>.mapType(t: String): IType =
     if (containsKey(t))
@@ -122,20 +76,23 @@ val CallableDeclaration<*>.body: BlockStmt
 
 fun typeSolver(): TypeSolver {
     val combinedTypeSolver = CombinedTypeSolver()
-//        combinedTypeSolver.add(JreTypeSolver())
+//    combinedTypeSolver.add(JreTypeSolver())
 //        combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-core")))
 //        combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-generated-sources")))
     return combinedTypeSolver
 }
 
+val jpFacade = JavaParserFacade.get(typeSolver())
+
+
+
+
 class Java2Strudel(
     val foreignTypes: List<IType> = emptyList(),
-    val foreignProcedures: List<IProcedureDeclaration> = emptyList(),
+    val foreignProcedures: List<IProcedureDeclaration> = defaultForeignProcedures,
     val bindSource: Boolean = true,
     val bindJavaParser: Boolean = true
 ) {
-
-    val jpFacade = JavaParserFacade.get(typeSolver())
 
     private fun <T : IProgramElement> T.bind(
         node: Node,
@@ -206,7 +163,7 @@ class Java2Strudel(
         return list
     }
 
-    val supportedModifiers = listOf(
+    private val supportedModifiers = listOf(
         Modifier.Keyword.STATIC,
         Modifier.Keyword.PUBLIC,
         Modifier.Keyword.PRIVATE,
@@ -221,6 +178,14 @@ class Java2Strudel(
 
             if (c.implementedTypes.isNotEmpty())
                 unsupported("implements", c)
+
+            if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 })
+                unsupported(
+                    "method name overload",
+                    c.methods.groupBy { it.nameAsString }
+                        .filter { it.value.size > 1 })
+
+            //replaceStringConcat(c)
 
             val type = Record(c.nameAsString) {
                 bind(c.name, ID_LOC)
@@ -265,7 +230,7 @@ class Java2Strudel(
 
                 if (!modifiers.contains(Modifier.staticModifier()))
                     addParameter(types.mapType((parentNode.get() as ClassOrInterfaceDeclaration))).apply {
-                        id = "\$this"
+                        id = THIS_PARAM
                     }
                 this@translateMethod.parameters.forEach { p ->
                     addParameter(types.mapType(p.type)).apply {
@@ -283,7 +248,7 @@ class Java2Strudel(
         fun ConstructorDeclaration.translateConstructor(namespace: String) =
             Procedure(
                 types.mapType(this.nameAsString),
-                "\$init"
+                INIT
             ).apply {
                 if (modifiers.any { !supportedModifiers.contains(it.keyword) })
                     unsupported("modifiers", modifiers)
@@ -291,7 +256,7 @@ class Java2Strudel(
                 setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
 
                 addParameter(this.returnType).apply {
-                    id = "\$this"
+                    id = THIS_PARAM
                 }
                 this@translateConstructor.parameters.forEach { p ->
                     addParameter(types.mapType(p.type)).apply {
@@ -309,7 +274,7 @@ class Java2Strudel(
         fun createDefaultConstructor(type: ClassOrInterfaceDeclaration) =
             Procedure(
                 types.mapType(type.nameAsString),
-                "\$init"
+                INIT
             ).apply {
                 var instance = addParameter(returnType).apply {
                     id = "instance"
@@ -319,7 +284,7 @@ class Java2Strudel(
             }
 
         val procedures: List<Pair<CallableDeclaration<*>?, IProcedure>> =
-            classes.filter { it.constructors.isEmpty() && it.methods.none { it.nameAsString == "\$init" } }
+            classes.filter { it.constructors.isEmpty() && it.methods.none { it.nameAsString == INIT } }
                 .map {
                     null to createDefaultConstructor(it)
                 } + classes.map { it.constructors }.flatten().map {
@@ -380,7 +345,7 @@ class Java2Strudel(
 
         fun findVariable(id: String): IVariableDeclaration<*>? =
             procedure.variables.find { it.id == id }
-                ?: procedure.parameters.find { it.id == "\$this" }
+                ?: procedure.parameters.find { it.id == THIS_PARAM }
                     ?.let { p ->
                         ((p.type as IReferenceType).target as IRecordType).getField(
                             id
@@ -400,7 +365,7 @@ class Java2Strudel(
                         procedure.thisParameter.field(target as IVariableDeclaration<IRecordType>)
                     else
                         target?.expression() ?: error("not found", exp)
-                } //UnboundVariableDeclaration(exp.nameAsString, procedure).expression()
+                }
 
                 is ThisExpr -> {
                     procedure.thisParameter.expression()
@@ -408,10 +373,14 @@ class Java2Strudel(
 
                 is NullLiteralExpr -> NULL_LITERAL
 
-                // TODO String literal?
-//                is StringLiteralExpr -> {
-//
-//                }
+                is StringLiteralExpr -> {
+                    foreignProcedures.find { it.id == "\$newString" }!!
+                        .expression(
+                            CHAR.array().heapAllocationWith(exp.value.map {
+                                CHAR.literal(it)
+                            })
+                        )
+                }
 
                 is UnaryExpr -> mapUnOperator(exp).on(mapExpression(exp.expression))
                     .apply {
@@ -461,7 +430,7 @@ class Java2Strudel(
                 is ObjectCreationExpr -> {
                     val const = procedures.findProcedure(
                         exp.type.nameAsString,
-                        "\$init",
+                        INIT,
                         emptyList()
                     ) // TODO params
                         ?: unsupported("not found", exp)
@@ -479,7 +448,7 @@ class Java2Strudel(
                     } else {
                         if (exp.scope is ThisExpr) {
                             val thisParam =
-                                procedure.parameters.find { it.id == "\$this" }!!
+                                procedure.parameters.find { it.id == THIS_PARAM }!!
                             val thisType =
                                 (thisParam.type as IReferenceType).target as IRecordType
                             thisParam.field(thisType.getField(exp.nameAsString)!!)
@@ -518,11 +487,15 @@ class Java2Strudel(
         fun handleAssign(block: IBlock, a: AssignExpr): IStatement {
             if (a.target is NameExpr) {
                 val target = findVariable(a.target.toString())
-                    ?: error("not found", a) // UnboundVariableDeclaration(a.target.toString(), block)
+                    ?: error(
+                        "not found",
+                        a
+                    ) // UnboundVariableDeclaration(a.target.toString(), block)
 
                 val value = when (a.operator) {
                     AssignExpr.Operator.ASSIGN -> mapExpression(a.value)
-                    else -> a.operator.map().on(mapExpression(a.target), mapExpression(a.value))
+                    else -> a.operator.map()
+                        .on(mapExpression(a.target), mapExpression(a.value))
                 }
 
                 return if (target.isField)
@@ -573,18 +546,26 @@ class Java2Strudel(
                     // TODO array ++ --
                     if (s.operator == UnaryExpr.Operator.PREFIX_INCREMENT || s.operator == UnaryExpr.Operator.POSTFIX_INCREMENT) {
                         val varExp = mapExpression(s.expression)
-                        if(varExp is VariableExpression)
+                        if (varExp is VariableExpression)
                             block.Assign(varExp.variable, varExp + lit(1))
-                        else if(varExp is RecordFieldExpression)
-                            block.FieldSet(varExp.target, varExp.field, varExp + lit(1))
+                        else if (varExp is RecordFieldExpression)
+                            block.FieldSet(
+                                varExp.target,
+                                varExp.field,
+                                varExp + lit(1)
+                            )
                         else
                             unsupported("${s.operator} on ${s.expression}", s)
                     } else if (s.operator == UnaryExpr.Operator.PREFIX_DECREMENT || s.operator == UnaryExpr.Operator.POSTFIX_DECREMENT) {
                         val varExp = mapExpression(s.expression)
-                        if(varExp is VariableExpression)
+                        if (varExp is VariableExpression)
                             block.Assign(varExp.variable, varExp + lit(1))
-                        else if(varExp is RecordFieldExpression)
-                            block.FieldSet(varExp.target, varExp.field, varExp - lit(1))
+                        else if (varExp is RecordFieldExpression)
+                            block.FieldSet(
+                                varExp.target,
+                                varExp.field,
+                                varExp - lit(1)
+                            )
                         else
                             unsupported("${s.operator} on ${s.expression}", s)
                     } else
@@ -782,13 +763,13 @@ class Java2Strudel(
 
     fun AssignExpr.Operator.map(): IBinaryOperator =
         when (this) {
-        AssignExpr.Operator.PLUS -> ArithmeticOperator.ADD
-        AssignExpr.Operator.MINUS -> ArithmeticOperator.SUB
-        AssignExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
-        AssignExpr.Operator.DIVIDE -> ArithmeticOperator.DIV
-        AssignExpr.Operator.REMAINDER -> ArithmeticOperator.MOD
+            AssignExpr.Operator.PLUS -> ArithmeticOperator.ADD
+            AssignExpr.Operator.MINUS -> ArithmeticOperator.SUB
+            AssignExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
+            AssignExpr.Operator.DIVIDE -> ArithmeticOperator.DIV
+            AssignExpr.Operator.REMAINDER -> ArithmeticOperator.MOD
             else -> unsupported("asign operator", this)
-    }
+        }
 
     private fun <T> handleMethodCall(
         procedure: IProcedure,
@@ -812,6 +793,7 @@ class Java2Strudel(
         else
             null
 
+
         val m = procedures.findProcedure(ns, exp.nameAsString, emptyList())
             ?: unsupported("not found", exp)
         val args = exp.arguments.map { mapExpression(it) }
@@ -820,8 +802,7 @@ class Java2Strudel(
                 creator(m, listOf(mapExpression(exp.scope.get())) + args)
             else
                 creator(m, args)
-        else if (m.parameters.isNotEmpty() && m.parameters[0].id == "\$this")
-        // TODO BUG this
+        else if (m.parameters.isNotEmpty() && m.parameters[0].id == THIS_PARAM)
             creator(m, listOf(procedure.thisParameter.expression()) + args)
         else
             creator(m, args)

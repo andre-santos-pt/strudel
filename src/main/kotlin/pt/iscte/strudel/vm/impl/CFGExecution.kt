@@ -4,6 +4,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.IBranchNode
 import pt.iscte.strudel.model.cfg.IStatementNode
 import pt.iscte.strudel.model.cfg.createCFG
+import pt.iscte.strudel.model.impl.PredefinedArrayAllocation
 import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
@@ -175,9 +176,7 @@ class ProcedureExecution(
             }
 
             else -> {
-                System.err.println("not handled: $s")
-                //vm.listeners.forEach { it.statementExecution(s) }
-                return true
+                throw RuntimeError(RuntimeErrorType.UNSUPPORTED, s, "not handled")
             }
         }
         return false
@@ -204,6 +203,15 @@ class ProcedureExecution(
                     valStack.push(v)
             }
 
+            // TODO only works for 1 dim
+            is PredefinedArrayAllocation -> eval(exp.elements)?.let {
+                val arrayRef = vm.allocateArray(exp.componentType, exp.elements.size)
+                it.reversed().forEachIndexed { index, e ->
+                    arrayRef.target.setElement(index, e)
+                }
+                valStack.push(arrayRef)
+            }
+
             is IArrayAllocation -> eval(exp.dimensions)?.let { dims ->
                 dims.forEachIndexed { i, d ->
                     if (d.toInt() < 0)
@@ -221,7 +229,7 @@ class ProcedureExecution(
                 // TODO other dims? only works for 1 and 2
                 for (d in dims.drop(1)) {
                     for (i in 0 until dim) {
-                        (arrayRef.target as IArray).setElement(i, vm.allocateArray(exp.componentType, d.toInt()))
+                        arrayRef.target.setElement(i, vm.allocateArray(exp.componentType, d.toInt()))
                     }
                 }
 

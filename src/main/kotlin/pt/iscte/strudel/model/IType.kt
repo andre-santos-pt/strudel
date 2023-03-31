@@ -1,6 +1,7 @@
 package pt.iscte.strudel.model
 
 import pt.iscte.strudel.model.impl.ArrayType
+import pt.iscte.strudel.model.impl.RecordAllocation
 import pt.iscte.strudel.model.impl.ReferenceType
 
 
@@ -133,4 +134,6 @@ class JavaType(val type: Class<*>) : IType {
     override fun isSame(e: IProgramElement): Boolean {
         return e is JavaType && e.type === type
     }
+
+
 }
