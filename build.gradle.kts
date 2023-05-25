@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.8.10"
+    kotlin("jvm") version "1.8.20"
 }
 
 group = "pt.iscte"
@@ -17,6 +17,7 @@ dependencies {
     testApi("org.junit.platform:junit-platform-suite:1.9.2")
     testImplementation(kotlin("test"))
     testApi(kotlin("reflect"))
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.test {
@@ -49,4 +50,12 @@ tasks {
                 sourcesMain.output
         from(contents)
     }
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

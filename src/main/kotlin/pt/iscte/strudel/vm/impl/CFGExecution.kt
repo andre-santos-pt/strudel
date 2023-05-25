@@ -151,12 +151,12 @@ class ProcedureExecution(
                     e?.let {
                         returnValue = it
                         vm.callStack.topFrame.returnValue = it
-                        vm.listeners.forEach { l -> l.returnCall(s) }
+                        vm.listeners.forEach { l -> l.returnCall(s, returnValue) }
                     }
                     return e != null
                 } else {
                     vm.callStack.topFrame.returnValue = NULL
-                    vm.listeners.forEach { it.returnCall(s) }
+                    vm.listeners.forEach { it.returnCall(s, returnValue) }
                     return true
                 }
 

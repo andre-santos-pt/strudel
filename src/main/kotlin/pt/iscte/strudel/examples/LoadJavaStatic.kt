@@ -38,7 +38,7 @@ fun main() {
 
 
 private fun runSearch(procedure: IProcedure) {
-    val vm = VirtualMachine()
+    val vm = IVirtualMachine.create()
     var iterations = 0
     vm.addListener(object : IVirtualMachine.IListener {
         override fun loopIteration(loop: ILoop) {

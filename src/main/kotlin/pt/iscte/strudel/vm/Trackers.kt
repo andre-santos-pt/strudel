@@ -29,8 +29,8 @@ interface IVariableTracker {
 
 fun IVirtualMachine.addVariableTracker(): IVariableTracker {
     val map = mutableMapOf<IVariableDeclaration<*>, List<IValue>>()
-    val counter = object : IVariableTracker {
-        override fun get(v: IVariableDeclaration<*>): List<IValue>? = map[v]
+    val tracker = object : IVariableTracker {
+        override fun get(v: IVariableDeclaration<*>): List<IValue>? = map[v] ?: emptyList()
     }
     addListener(object : IVirtualMachine.IListener {
         override fun variableAssignment(a: IVariableAssignment, value: IValue) {
@@ -38,7 +38,7 @@ fun IVirtualMachine.addVariableTracker(): IVariableTracker {
             else (map[a.target] as MutableList).add(value)
         }
     } )
-    return counter
+    return tracker
 }
 
 interface IAllocationTracker {

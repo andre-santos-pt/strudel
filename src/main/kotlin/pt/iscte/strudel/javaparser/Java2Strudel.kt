@@ -111,7 +111,7 @@ class Java2Strudel(
             else
                 setProperty(prop, sourceLocation)
         }
-        if (bindJavaParser)
+        if (bindJavaParser && prop == null)
             setProperty(JP, node)
         return this
     }

@@ -108,7 +108,7 @@ interface IVirtualMachine {
     interface IListener {
         fun procedureCall(s: IProcedureDeclaration, args: List<IValue>) {}
         fun procedureEnd(p: IProcedureDeclaration, args: List<IValue>, result: IValue?) {}
-        fun returnCall(s: IReturn) {}
+        fun returnCall(s: IReturn, returnValue: IValue?) { }
         fun variableAssignment(a: IVariableAssignment, value: IValue) {}
         fun arrayElementAssignment(a: IArrayElementAssignment, index: Int, value: IValue) {}
         fun loopIteration(loop: ILoop) {}
@@ -122,9 +122,10 @@ interface IVirtualMachine {
         fun create(
             callStackMaximum: Int = 1024,
             loopIterationMaximum: Int = 1000000,
-            availableMemory: Int = 1024
+            availableMemory: Int = 1024,
+            throwExceptions: Boolean = true
         ): IVirtualMachine =
-            VirtualMachine(callStackMaximum, loopIterationMaximum, availableMemory)
+            VirtualMachine(callStackMaximum, loopIterationMaximum, availableMemory, throwExceptions)
     }
 }
 

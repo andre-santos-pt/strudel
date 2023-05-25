@@ -72,12 +72,16 @@ fun main() {
     val module = Java2Strudel().load(javaCode)
 
     println(module)
-    val vm = VirtualMachine(throwExceptions = true)
+    val vm = IVirtualMachine.create()
     vm.addListener(object : IVirtualMachine.IListener {
         override fun arrayAllocated(ref: IReference<IArray>) {
             println(ref.target)
             ref.target.addListener(object : IArray.IListener {
-                override fun elementChanged(index: Int, oldValue: IValue, newValue: IValue) {
+                override fun elementChanged(
+                    index: Int,
+                    oldValue: IValue,
+                    newValue: IValue
+                ) {
                     println(ref.target)
                 }
             })
@@ -86,9 +90,8 @@ fun main() {
     val main = module.getProcedure("main", "Test")
     try {
         vm.execute(main)
-    }
-    catch (e: RuntimeError) {
-       println(e)
+    } catch (e: RuntimeError) {
+        println(e)
         vm.callStack.frames.reversed().forEach {
             println(it.procedure.id + "(" + it.arguments.joinToString { it.toString() } + ")")
         }

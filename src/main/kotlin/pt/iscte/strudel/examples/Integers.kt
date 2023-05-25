@@ -2,7 +2,7 @@ package pt.iscte.strudel.examples
 
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.vm.NULL
-import pt.iscte.strudel.vm.impl.VirtualMachine
+import pt.iscte.strudel.vm.IVirtualMachine
 
 fun main() {
     val javaCode = """
@@ -26,7 +26,7 @@ fun main() {
     """.trimIndent()
     val module = Java2Strudel().load(javaCode)
     println(module)
-    val vm = VirtualMachine(throwExceptions = true)
+    val vm = IVirtualMachine.create()
     vm.execute(module.getProcedure("main"), NULL)
 
 }

@@ -7,7 +7,7 @@ internal open class VirtualMachine(
     override val callStackMaximum: Int = 1024,
     override val loopIterationMaximum: Int = 1000, // TODO
     override val availableMemory: Int = 1000, // TODO
-    override val throwExceptions: Boolean = false
+    override val throwExceptions: Boolean = true
 ) : IVirtualMachine {
     private val stack: ICallStack
     override val heapMemory: IHeapMemory
