@@ -35,7 +35,7 @@ abstract class BaseTest {
         }
         println(tmp)
         module = Java2Strudel(foreignProcedures = foreignProcedures).load(tmp.toString())
-        vm = IVirtualMachine.create(callStackMaximum = callStackMaximum)
+        vm = IVirtualMachine.create(callStackMaximum = callStackMaximum, throwExceptions = false)
         //conf(module)
         //module.members.addAll(imports)
 //        println(Strudel2Java().translate(module))

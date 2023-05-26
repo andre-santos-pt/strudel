@@ -33,7 +33,6 @@ class TestAvgInvoke : pt.iscte.strudel.tests.BaseTest({
     @Test
     fun `result`() {
         val a = vm.allocateArrayOf(DOUBLE, 14.2, 14.4, 14.6)
-        vm.execute(procedure, a)
         assertTrue(vm.execute(procedure, a)!!.toDouble() == 14.4)
     }
 

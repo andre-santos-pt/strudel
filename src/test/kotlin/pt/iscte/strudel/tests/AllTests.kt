@@ -1,8 +1,8 @@
 package pt.iscte.strudel.tests
 
 import org.junit.platform.suite.api.SelectClasses
-import org.junit.platform.suite.api.SelectPackages
 import org.junit.platform.suite.api.Suite
+import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
 
 @Suite
 @SelectClasses(
@@ -42,7 +42,7 @@ import org.junit.platform.suite.api.Suite
 
     // matrix functions
     TestMatrixSum::class,
-    TestMatrixIndentity::class,
+    TestMatrixIdentity::class,
     //	TestMatrixTranspose.class,
     // multiplication
 
@@ -59,6 +59,9 @@ import org.junit.platform.suite.api.Suite
     TestUnboundType::class,
     TestBuiltinRound::class,
     TestJDKLinkedList::class,
-    TestBuiltinString::class
+    TestBuiltinString::class,
+
+    //--- direct source
+    TestSortingAlgorithms::class
 )
 class AllTests

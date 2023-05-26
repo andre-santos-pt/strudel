@@ -353,7 +353,7 @@ class Java2Strudel(
                         )
                     }
 
-        fun mapExpression(exp: Expression, currentBlock: IBlock = block): IExpression =
+        fun mapExpression(exp: Expression): IExpression =
             when (exp) {
                 is IntegerLiteralExpr -> lit(exp.value.toInt())
                 is DoubleLiteralExpr -> lit(exp.value.toDouble())
@@ -422,8 +422,8 @@ class Java2Strudel(
 
                 // TODO multi level
                 is ArrayCreationExpr -> {
-                    if (exp.levels.size > 1)
-                        unsupported("multi-dimension array initialization", exp)
+                    if(exp.levels.any { !it.dimension.isPresent })
+                        unsupported("multi-dimension array initialization with partial dimensions", exp)
 
                     val arrayType =
                         types.mapType(exp.elementType.asString()).array()
@@ -587,7 +587,7 @@ class Java2Strudel(
                     } else if (s.operator == UnaryExpr.Operator.PREFIX_DECREMENT || s.operator == UnaryExpr.Operator.POSTFIX_DECREMENT) {
                         val varExp = mapExpression(s.expression)
                         if (varExp is VariableExpression)
-                            block.Assign(varExp.variable, varExp + lit(1))
+                            block.Assign(varExp.variable, varExp - lit(1))
                         else if (varExp is RecordFieldExpression)
                             block.FieldSet(
                                 varExp.target,

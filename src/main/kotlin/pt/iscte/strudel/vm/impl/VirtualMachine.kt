@@ -33,10 +33,11 @@ internal open class VirtualMachine(
         get() = 0 //stack.memory + heapMemory.memory
 
 
-    var call: ProcedureExecution? = null
+    var call: ProcedureInterpreter? = null
 
     override val instructionPointer: IProgramElement?
-        get() = call?.instructionPointer
+    //get() = call?.instructionPointer
+get() = TODO("ip")
 
     private val VALUE_TYPES = listOf<IValueType<*>>(INT, DOUBLE, BOOLEAN, CHAR)
 
@@ -72,7 +73,7 @@ internal open class VirtualMachine(
             "number of arguments (${arguments.size}) do not match ${procedure.id}(${procedure.parameters.size})"
         }
         return try {
-            call = ProcedureExecution(this, procedure, *arguments)
+            call = ProcedureInterpreter(this, procedure, *arguments)
             call?.run()
             call?.returnValue
         } catch (e: RuntimeError) {

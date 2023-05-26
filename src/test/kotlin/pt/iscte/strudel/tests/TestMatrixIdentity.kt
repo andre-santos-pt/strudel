@@ -7,7 +7,7 @@ import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import kotlin.test.assertEquals
 
-class TestMatrixIndentity : pt.iscte.strudel.tests.BaseTest({
+class TestMatrixIdentity : pt.iscte.strudel.tests.BaseTest({
     Procedure(INT.array(2).reference(), "identity") {
         val n = Param(INT, "n")
         val id = Var(INT.array(2).reference(), "id")

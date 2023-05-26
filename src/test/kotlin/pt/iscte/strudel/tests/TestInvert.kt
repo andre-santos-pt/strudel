@@ -9,7 +9,7 @@ import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertTrue
 
-class TestInvert : pt.iscte.strudel.tests.BaseTest({
+class TestInvert : BaseTest({
     val swap = Procedure(VOID, "swap") {
         val a = Param(array(INT), "a")
         val i = Param(INT, "i")

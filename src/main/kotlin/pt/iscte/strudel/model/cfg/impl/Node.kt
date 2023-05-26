@@ -18,10 +18,10 @@ open class Node : INode {
 
     internal  fun text(e: IProgramElement?) =
         when(e){
-            is ILoop -> "loop(" + Translator.translate(e.guard) +")"
-            is ISelection -> "if(" + Translator.translate(e.guard) +")"
-            is IStatement -> Translator.translate(e)
-            is IExpression -> Translator.translate(e)
+            is ILoop -> "loop(" + e.guard.toString() +")"
+            is ISelection -> "if(" + e.guard.toString() +")"
+            is IStatement -> e.toString()
+            is IExpression -> e.toString()
             else -> e.toString()
         }
 
