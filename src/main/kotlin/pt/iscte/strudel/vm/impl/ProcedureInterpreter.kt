@@ -2,10 +2,7 @@ package pt.iscte.strudel.vm.impl
 
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.PredefinedArrayAllocation
-import pt.iscte.strudel.model.util.ArithmeticOperator
-import pt.iscte.strudel.model.util.LogicalOperator
-import pt.iscte.strudel.model.util.RelationalOperator
-import pt.iscte.strudel.model.util.UnaryOperator
+import pt.iscte.strudel.model.util.*
 import pt.iscte.strudel.vm.*
 
 
@@ -40,13 +37,15 @@ class ProcedureInterpreter(
     val expStack = mutableListOf<IExpression>()
     val valStack = mutableListOf<IValue>()
     val blockStack = mutableListOf<BlockExec>()
-
+    val loopCount = procedure.findAll(ILoop::class).associateWith { 0 }.toMutableMap()
     fun isOver() = blockStack.isEmpty()
 
     fun init() {
         vm.callStack.newFrame(procedure, arguments.toList())
         blockStack.add(BlockExec(procedure.block,false))
+
     }
+
     fun run(): IValue? {
         init()
         val args = arguments.toList()
@@ -81,10 +80,17 @@ class ProcedureInterpreter(
                     else {
                         if (valStack.pop().isTrue) {
                             blockStack.push(BlockExec(next.block, true))
-                            vm.listeners.forEach { it.loopIteration(next) }
+                            if(loopCount[next] == vm.loopIterationMaximum)
+                                throw RuntimeError(RuntimeErrorType.LOOP_MAX,next,"Loop reached the maximum number of iterations (${vm.loopIterationMaximum}).")
+                            loopCount[next] = (loopCount[next] ?: 0) + 1
+                            vm.listeners.forEach {
+                                it.loopIteration(next)
+                            }
                         }
-                        else
+                        else {
                             index++
+                            loopCount[next] = 0
+                        }
                     }
                 }
                 is ISelection -> {

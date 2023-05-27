@@ -7,6 +7,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.IControlFlowGraph
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.module
+import pt.iscte.strudel.tests.javaparser.TestLoopIterationMax
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IValue
@@ -24,7 +25,7 @@ abstract class BaseTest {
         vm = IVirtualMachine.create()
     }
 
-    constructor(conf: IModule.() -> Unit = {}, foreignProcedures: List<IProcedureDeclaration> = emptyList(), callStackMaximum: Int = 1024) {
+    constructor(conf: IModule.() -> Unit = {}, foreignProcedures: List<IProcedureDeclaration> = emptyList(), callStackMaximum: Int = 1024, loopIterationMax: Int = 1000000) {
 //        module = module { id = this::class.simpleName }
         val tmp = module {
             id = this::class.simpleName
@@ -35,7 +36,7 @@ abstract class BaseTest {
         }
         println(tmp)
         module = Java2Strudel(foreignProcedures = foreignProcedures).load(tmp.toString())
-        vm = IVirtualMachine.create(callStackMaximum = callStackMaximum, throwExceptions = false)
+        vm = IVirtualMachine.create(callStackMaximum = callStackMaximum, loopIterationMaximum = loopIterationMax, throwExceptions = false)
         //conf(module)
         //module.members.addAll(imports)
 //        println(Strudel2Java().translate(module))

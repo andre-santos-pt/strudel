@@ -25,7 +25,6 @@ class TestJDKLinkedList : pt.iscte.strudel.tests.BaseTest({
 
     @Test
     fun test() {
-        procedure.createCFG().display()
         val r = vm.execute(procedure)
         val list = r!!.value as List<*>
         assertTrue(3 == list.size)

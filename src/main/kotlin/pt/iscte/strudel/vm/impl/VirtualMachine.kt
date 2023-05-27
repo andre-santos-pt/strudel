@@ -183,7 +183,7 @@ internal open class VirtualMachine(
             for ((key, value1) in fields) {
                 text += """$key = $value1\n"""
             }
-            return if (text.isEmpty()) type.id.toString() else text
+            return text.ifEmpty { type.id.toString() }
         }
 
 

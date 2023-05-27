@@ -2,6 +2,7 @@ package pt.iscte.strudel.tests
 
 import org.junit.platform.suite.api.SelectClasses
 import org.junit.platform.suite.api.Suite
+import pt.iscte.strudel.tests.javaparser.TestLoopIterationMax
 import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
 
 @Suite
@@ -39,6 +40,8 @@ import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
 
     // array errors
     TestArrayIndexOutOfBounds::class,
+
+    TestLoopIterationMax::class,
 
     // matrix functions
     TestMatrixSum::class,
