@@ -36,8 +36,7 @@ internal open class VirtualMachine(
     var call: ProcedureInterpreter? = null
 
     override val instructionPointer: IProgramElement?
-    //get() = call?.instructionPointer
-get() = TODO("ip")
+        get() = call?.instructionPointer
 
     private val VALUE_TYPES = listOf<IValueType<*>>(INT, DOUBLE, BOOLEAN, CHAR)
 

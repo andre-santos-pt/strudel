@@ -43,9 +43,12 @@ class ProcedureInterpreter(
 
     fun isOver() = blockStack.isEmpty()
 
-    fun run(): IValue? {
+    fun init() {
         vm.callStack.newFrame(procedure, arguments.toList())
         blockStack.add(BlockExec(procedure.block,false))
+    }
+    fun run(): IValue? {
+        init()
         val args = arguments.toList()
         vm.listeners.forEach { it.procedureCall(procedure, args) }
         while (!isOver())
@@ -54,8 +57,6 @@ class ProcedureInterpreter(
         vm.callStack.terminateTopFrame()
         return returnValue
     }
-
-
 
 
     inner class BlockExec(val block: IBlock, val isLoop: Boolean, var index: Int = 0) {
@@ -78,8 +79,10 @@ class ProcedureInterpreter(
                     if (valStack.isEmpty())
                         evaluateStep(next.guard)
                     else {
-                        if (valStack.pop().isTrue)
+                        if (valStack.pop().isTrue) {
                             blockStack.push(BlockExec(next.block, true))
+                            vm.listeners.forEach { it.loopIteration(next) }
+                        }
                         else
                             index++
                     }

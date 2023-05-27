@@ -7,17 +7,28 @@ import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.*
-import pt.iscte.strudel.vm.impl.ForeignProcedure
-import pt.iscte.strudel.vm.impl.ProcedureExecution
-import pt.iscte.strudel.vm.impl.Value
-import pt.iscte.strudel.vm.impl.VirtualMachine
+import pt.iscte.strudel.vm.impl.*
 import java.io.File
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TestsPaper {
-
+    val binarySearchCode = """
+        class Example {
+        static boolean binarySearch(int[] a, int e) { 
+          int l = 0;
+          int r = a - 1; 
+          while(l <= r) { 
+            int m = l + ((r-l) / 2); 
+            if(a[m] == e) return true; 
+            if(a[m] < e) l = m + 1;
+            else r = m - 1;
+          } 
+          return false;
+        }
+        }
+        """
     fun checkMissingReturns(procedure: IProcedure): Boolean {
         require(procedure.returnType != VOID)
         val cfg = procedure.createCFG()
@@ -57,26 +68,11 @@ class TestsPaper {
     }
 
 
-    val code = """
-        class Example {
-        static boolean binarySearch(int[] a, int e) { 
-          int l = 0;
-          int r = a - 1; 
-          while(l <= r) { 
-            int m = l + ((r-l) / 2); 
-            if(a[m] == e) return true; 
-            if(a[m] < e) l = m + 1;
-            else r = m - 1;
-          } 
-          return false;
-        }
-        }
-        """
+
 
     @Test
     fun testRun() {
-        val file = File("BinarySearch.java")
-        val binarySearch = Java2Strudel().load(file).procedures[0]
+        val binarySearch = Java2Strudel().load(binarySearchCode).getProcedure("binarySearch")
         val vm = VirtualMachine(
             callStackMaximum = 1024,
             loopIterationMaximum = 100000,
@@ -94,14 +90,13 @@ class TestsPaper {
 
     @Test
     fun testDebug() {
-        val file = File("BinarySearch.java")
-        val binarySearch = Java2Strudel().load(code).procedures[0]
+        val binarySearch = Java2Strudel().load(binarySearchCode).getProcedure("binarySearch")
         val vm = VirtualMachine()
         val array = vm.allocateArrayOf(INT,
             1, 2, 4, 5, 7, 7, 9, 10, 10, 11, 14, 15, 15, 17, 20, 21, 22
         )
         val e: IValue = vm.getValue(20)
-        val process = ProcedureExecution(vm, binarySearch, array, e)
+        val process = ProcedureInterpreter(vm, binarySearch, array, e)
         process.init()
         while (!process.isOver())
             process.step()
@@ -134,15 +129,19 @@ class TestsPaper {
                 }
             }
         """
-        val vm = VirtualMachine()
-        val proc = Java2Strudel().load(code).procedures[0]
+        val vm = VirtualMachine(throwExceptions = false)
+        val proc = Java2Strudel().load(code).getProcedure("test")
         vm.execute(proc)
         val error = vm.error as ArrayIndexError
 
         val inst = vm.instructionPointer // b[0] = a[b.length];
+        assertEquals("b[0] = a[b.length];", vm.instructionPointer.toString().trim())
         val array = error.target // a
+        assertEquals("a", error.target.toString())
         val index = error.invalidIndex // 10
+        assertEquals(10, error.invalidIndex)
         val exp = error.indexExpression // b.length
+        assertEquals("b.length", exp.toString())
     }
 
     @Test
@@ -159,7 +158,7 @@ class TestsPaper {
             println(args[0])
         }
         val loader = Java2Strudel(foreignProcedures = listOf(print))
-        val proc = loader.load(code).procedures[0]
+        val proc = loader.load(code).getProcedure("display")
         val arg = vm.getValue(1)
         vm.execute(proc, arg)
     }
@@ -216,7 +215,7 @@ class TestsPaper {
     fun testAllocations() {
         val code = """
             class Test {
-                static void t() {
+                static void test() {
                     Test[] array = new Test[20];
                     
                     for(int i = 0; i < 10; i++) {
@@ -228,7 +227,7 @@ class TestsPaper {
         val vm = VirtualMachine()
         val module = Java2Strudel().load(code)
         val tracker = vm.addAllocationTracker()
-        vm.execute(module.procedures[0])
+        vm.execute(module.getProcedure("test"))
         assertEquals(10, tracker[module.getType("Test")].size)
         assertEquals(1, tracker[module.getType("Test[]")].size)
     }
@@ -254,7 +253,7 @@ class TestsPaper {
     @Test
     fun testJVMfact() {
         val time = System.currentTimeMillis()
-        println(fact(10000))
+        println(fact(1000))
         println(System.currentTimeMillis() - time)
     }
 
@@ -284,7 +283,7 @@ class TestsPaper {
             }
         })
 
-        vm.execute(module.procedures[0])
+        vm.execute(module.getProcedure("test"))
         println(i)
         println(System.currentTimeMillis() - time)
     }

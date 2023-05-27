@@ -6,13 +6,13 @@ import pt.iscte.strudel.model.IVariableAssignment
 import pt.iscte.strudel.model.IVariableDeclaration
 
 interface ILoopCounter {
-    operator fun get(loop: ILoop): Int?
+    operator fun get(loop: ILoop): Int
 }
 
 fun IVirtualMachine.addLoopCounter(): ILoopCounter {
     val map = mutableMapOf<ILoop, Int>()
     val counter = object : ILoopCounter {
-        override fun get(loop: ILoop): Int? = map[loop]
+        override fun get(loop: ILoop): Int = map[loop] ?: 0
     }
     addListener(object : IVirtualMachine.IListener {
         override fun loopIteration(loop: ILoop) {
@@ -24,13 +24,13 @@ fun IVirtualMachine.addLoopCounter(): ILoopCounter {
 
 
 interface IVariableTracker {
-    operator fun get(v: IVariableDeclaration<*>): List<IValue>?
+    operator fun get(v: IVariableDeclaration<*>): List<IValue>
 }
 
 fun IVirtualMachine.addVariableTracker(): IVariableTracker {
     val map = mutableMapOf<IVariableDeclaration<*>, List<IValue>>()
     val tracker = object : IVariableTracker {
-        override fun get(v: IVariableDeclaration<*>): List<IValue>? = map[v] ?: emptyList()
+        override fun get(v: IVariableDeclaration<*>): List<IValue> = map[v] ?: emptyList()
     }
     addListener(object : IVirtualMachine.IListener {
         override fun variableAssignment(a: IVariableAssignment, value: IValue) {

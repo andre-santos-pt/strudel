@@ -62,6 +62,9 @@ import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
     TestBuiltinString::class,
 
     //--- direct source
-    TestSortingAlgorithms::class
+    TestSortingAlgorithms::class,
+
+
+    TestsPaper::class
 )
 class AllTests
