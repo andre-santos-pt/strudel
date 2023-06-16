@@ -49,7 +49,7 @@ class ProcedureInterpreter(
     fun run(): IValue? {
         init()
         val args = arguments.toList()
-        vm.listeners.forEach { it.procedureCall(procedure, args) }
+        vm.listeners.forEach { it.procedureCall(procedure, args, vm.callStack.previousFrame?.procedure) }
         while (!isOver())
             step()
         vm.listeners.forEach { it.procedureEnd(procedure, args, returnValue) }

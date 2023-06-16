@@ -54,7 +54,11 @@ class TestInvert : BaseTest({
         val l = object : IVirtualMachine.IListener {
             var depth = 0
             var maxDepth = 0
-            override fun procedureCall(p: IProcedureDeclaration, args: List<IValue>) {
+            override fun procedureCall(
+                p: IProcedureDeclaration,
+                args: List<IValue>,
+                caller: IProcedureDeclaration?
+            ) {
                 depth++
                 if(depth > maxDepth)
                     maxDepth = depth

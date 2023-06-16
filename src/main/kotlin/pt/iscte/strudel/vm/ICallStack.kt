@@ -10,6 +10,7 @@ interface ICallStack {
     val virtualMachine: IVirtualMachine
     val frames: List<IStackFrame>
     val topFrame: IStackFrame
+    val previousFrame: IStackFrame?
 
     val lastTerminatedFrame: IStackFrame?
     val isEmpty: Boolean

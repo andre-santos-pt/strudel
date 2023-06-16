@@ -106,16 +106,16 @@ interface IVirtualMachine {
 
 
     interface IListener {
-        fun procedureCall(s: IProcedureDeclaration, args: List<IValue>) {}
-        fun procedureEnd(p: IProcedureDeclaration, args: List<IValue>, result: IValue?) {}
+        fun procedureCall(procedure: IProcedureDeclaration, args: List<IValue>, caller: IProcedureDeclaration?) { }
+        fun procedureEnd(procedure: IProcedureDeclaration, args: List<IValue>, result: IValue?) { }
         fun returnCall(s: IReturn, returnValue: IValue?) { }
-        fun variableAssignment(a: IVariableAssignment, value: IValue) {}
-        fun arrayElementAssignment(a: IArrayElementAssignment, index: Int, value: IValue) {}
-        fun loopIteration(loop: ILoop) {}
-        fun arrayAllocated(ref: IReference<IArray>) {}
-        fun recordAllocated(ref: IReference<IRecord>) {}
-        fun fieldAssignment(a: IRecordFieldAssignment, value: IValue) {}
-        fun executionError(e: RuntimeError) {}
+        fun variableAssignment(a: IVariableAssignment, value: IValue) { }
+        fun arrayElementAssignment(a: IArrayElementAssignment, index: Int, value: IValue) { }
+        fun loopIteration(loop: ILoop) { }
+        fun arrayAllocated(ref: IReference<IArray>) { }
+        fun recordAllocated(ref: IReference<IRecord>) { }
+        fun fieldAssignment(a: IRecordFieldAssignment, value: IValue) { }
+        fun executionError(e: RuntimeError) { }
     }
 
     companion object {
