@@ -4,6 +4,10 @@ import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.Modifier
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.*
+import com.github.javaparser.ast.comments.BlockComment
+import com.github.javaparser.ast.comments.Comment
+import com.github.javaparser.ast.comments.JavadocComment
+import com.github.javaparser.ast.comments.LineComment
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.type.Type
@@ -22,6 +26,7 @@ import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.model.util.UnaryOperator
 import java.io.File
+import java.util.*
 import kotlin.jvm.optionals.getOrNull
 
 
@@ -220,9 +225,16 @@ class Java2Strudel(
             }
         }
 
+        fun Optional<Comment>.translateComment() =
+            if (isPresent) {
+                val comment = get()
+                val str = comment.asString()
+                str.substring(comment.header?.length ?: 0, str.length - (comment.footer?.length ?: 0)).trim()
+            }
+            else null
 
         fun MethodDeclaration.translateMethod(namespace: String) =
-            Procedure(types.mapType(type), nameAsString).apply {
+            Procedure(types.mapType(type), nameAsString, comment.translateComment()).apply {
 
                 if (modifiers.any { !supportedModifiers.contains(it.keyword) })
                     unsupported("modifiers", modifiers)
@@ -249,7 +261,8 @@ class Java2Strudel(
         fun ConstructorDeclaration.translateConstructor(namespace: String) =
             Procedure(
                 types.mapType(this.nameAsString),
-                INIT
+                INIT,
+                comment.translateComment()
             ).apply {
                 if (modifiers.any { !supportedModifiers.contains(it.keyword) })
                     unsupported("modifiers", modifiers)

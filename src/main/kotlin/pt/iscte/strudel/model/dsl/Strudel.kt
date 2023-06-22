@@ -40,17 +40,17 @@ fun IRecordType.Field(type: IType, id: String? = null): IField {
 }
 
 @JvmOverloads
-fun IModule.Procedure(returnType: IType, id: String? = null, configure: IBlock.() -> Unit = {}
+fun IModule.Procedure(returnType: IType, id: String? = null, comment: String? = null, configure: IBlock.() -> Unit = {}
 ): IProcedure {
-    val p = Procedure(this, returnType)
+    val p = Procedure(this, returnType, comment)
     id?.let { p.id = id }
     configure(p.block)
     return p
 }
 
-fun Procedure(returnType: IType, id: String? = null, configure: IBlock.() -> Unit = {}
+fun Procedure(returnType: IType, id: String? = null, comment: String? = null, configure: IBlock.() -> Unit = {}
 ): IProcedure {
-    val p = Procedure(Module(), returnType)
+    val p = Procedure(Module(), returnType, comment)
     id?.let { p.id = id }
     configure(p.block)
     return p

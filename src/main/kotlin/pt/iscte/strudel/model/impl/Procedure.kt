@@ -4,7 +4,8 @@ import pt.iscte.strudel.model.*
 
 internal open class Procedure(
     override val module: IModule,
-    override var returnType: IType
+    override var returnType: IType,
+    override val comment: String? = null
 ) : ProgramElement(), IProcedure {
 
     init {

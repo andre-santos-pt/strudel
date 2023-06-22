@@ -7,7 +7,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.IControlFlowGraph
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.module
-import pt.iscte.strudel.tests.javaparser.TestLoopIterationMax
+//import pt.iscte.strudel.tests.javaparser.TestLoopIterationMax
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IValue
