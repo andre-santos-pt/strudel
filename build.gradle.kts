@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.8.20"
+    kotlin("jvm") version "1.6.10"
 }
 
 group = "pt.iscte"
@@ -26,9 +26,9 @@ tasks.test {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
-    compilerOptions {
-        freeCompilerArgs.add("-Xjvm-default=all")
-    }
+    //compilerOptions {
+    //    freeCompilerArgs.add("-Xjvm-default=all")
+    //}
 }
 
 tasks {

@@ -43,7 +43,8 @@ class TestAvgInvoke : pt.iscte.strudel.tests.BaseTest({
         val a = vm.allocateArrayOf(DOUBLE, 14.2, 14.4, 14.6)
         vm.addListener(object : IVirtualMachine.IListener {
             var stack = 0
-            override fun procedureCall(p: IProcedureDeclaration, args: List<IValue>) {
+
+            override fun procedureCall(p: IProcedureDeclaration, args: List<IValue>, caller: IProcedureDeclaration?) {
                 if(stack == 0)
                     assertEquals(module.procedures.find { it.id == "avg" }!!, p)
                 else if(stack == 1)

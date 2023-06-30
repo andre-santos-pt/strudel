@@ -1,9 +1,7 @@
 package pt.iscte.strudel.model
 
 import pt.iscte.strudel.model.impl.ArrayType
-import pt.iscte.strudel.model.impl.RecordAllocation
 import pt.iscte.strudel.model.impl.ReferenceType
-
 
 interface IType : IProgramElement {
     val isVoid: Boolean
@@ -27,11 +25,25 @@ interface IType : IProgramElement {
     val asRecordType: IRecordType
         get() = (this as IReferenceType).target as IRecordType
 
-    fun reference(): IReferenceType = ReferenceType(this)
+    fun reference(): IReferenceType =
+        if(TypeCache.reference.containsKey(this))
+            TypeCache.reference[this]!!
+        else {
+            val t = ReferenceType(this)
+            TypeCache.reference[this] = t
+            t
+        }
 
     val defaultExpression: IExpression
 
-    fun array(): IArrayType = ArrayType(this)
+    fun array(): IArrayType =
+        if(TypeCache.array.containsKey(this))
+            TypeCache.array[this]!!
+        else {
+            val t = ArrayType(this)
+            TypeCache.array[this] = t
+            t
+        }
 
     fun array(n: Int): IArrayType {
         var a = array()
@@ -40,7 +52,12 @@ interface IType : IProgramElement {
         }
         return a
     }
+}
 
+
+private object TypeCache {
+    val array = mutableMapOf<IType, IArrayType>()
+    val reference = mutableMapOf<IType, IReferenceType>()
 }
 
 object VOID : IType {
@@ -105,7 +122,7 @@ class UnboundType(override val defaultExpression: IExpression = NULL_LITERAL) : 
 
 class JavaType(val type: Class<*>) : IType {
     override fun reference(): IReferenceType {
-        return ReferenceType(this)
+        return this.reference()
     }
 
     override val defaultExpression: IExpression

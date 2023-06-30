@@ -22,7 +22,7 @@ import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.model.util.UnaryOperator
 import java.io.File
-import kotlin.jvm.optionals.getOrNull
+import java.util.Optional
 
 
 const val JP = "JP"
@@ -38,6 +38,8 @@ private const val INIT = "\$init"
 private const val IT = "\$it"
 
 
+val <T> Optional<T>.getOrNull: T? get() =
+    if(isPresent) this.get() else null
 
 fun MutableMap<String, IType>.mapType(t: String): IType =
     if (containsKey(t))
@@ -340,9 +342,18 @@ class Java2Strudel(
             return
         }
 
-        fun getType(type: Type) =
-            if (type.isArrayType) types[type.elementType.asString()]!!.array()
-            else types[type.asString()]
+        fun getType(type: Type): IType =
+//            if (type.isArrayType)
+
+//                if(types.containsKey(type.asString()))
+//                    types[type.asString()]!!
+//                else {
+//                    val t = getType(type.elementType).array()
+//                    types[type.elementType.asString() + "[]"] = t
+//                    t
+//                }
+//            else
+                types[type.asString()]!!
 
         fun findVariable(id: String): IVariableDeclaration<*>? =
             procedure.variables.find { it.id == id }
@@ -441,9 +452,9 @@ class Java2Strudel(
                 is ArrayInitializerExpr -> {
                     val values = exp.values.map { mapExpression(it) }
                     val baseType =
-                        if (exp.parentNode.getOrNull() is ArrayCreationExpr)
+                        if (exp.parentNode.getOrNull is ArrayCreationExpr)
                             types.mapType((exp.parentNode.get() as ArrayCreationExpr).elementType)
-                        else if (exp.parentNode.getOrNull() is VariableDeclarator)
+                        else if (exp.parentNode.getOrNull is VariableDeclarator)
                             types.mapType((exp.parentNode.get() as VariableDeclarator).typeAsString)
                         else
                             unsupported("array initializer", exp)

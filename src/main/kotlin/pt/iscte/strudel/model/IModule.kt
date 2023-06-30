@@ -15,14 +15,6 @@ interface IModuleView : IProgramElement {
 
 interface IModule : IModuleView {
 
-    fun addProcedure(retType: IType, configure: (IProcedure) -> Unit = {}) : IProcedure {
-        val p = Procedure(this, retType)
-        configure(p)
-        return p
-    }
-
-    //fun removeProcedure(procedure: IProcedure)
-
     val members : MutableCollection<IModuleMember>
 
     fun add(member: IModuleMember)
@@ -46,11 +38,11 @@ interface IModule : IModuleView {
         list.addAll(recordTypes)
 
         procedures.forEach {
-            list.addAll(it.parameters.map {p -> p.type })
-            it.accept(object : IBlock.IVisitor {
-                override fun visit(variable: IVariableDeclaration<IBlock>) {
-                    list.add(variable.type)
-                }
+            list.addAll(it.variables.map { it ->
+                if (it.type.isReference)
+                    (it.type as IReferenceType).resolveTarget()
+                else
+                    it.type
             })
         }
         return list

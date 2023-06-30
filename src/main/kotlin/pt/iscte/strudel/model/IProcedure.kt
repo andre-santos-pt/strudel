@@ -58,10 +58,7 @@ interface IProcedure : IProcedureDeclaration, IBlockHolder {
             return !v.found
         }
 
-    fun getVariable(id: String): IVariableDeclaration<*>? {
-        for (v in variables) if (id == v.id) return v
-        return null
-    }
+    fun getVariable(id: String): IVariableDeclaration<*> = variables.find { it.id == id }!!
 
     fun accept(visitor: IBlock.IVisitor) {
         block.accept(visitor)

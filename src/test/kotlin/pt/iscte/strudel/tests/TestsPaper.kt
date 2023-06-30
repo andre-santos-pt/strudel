@@ -49,12 +49,12 @@ class TestsPaper {
     }
 
     val bsearch = Procedure(BOOLEAN) {
-        val a = Param(array(INT))
-        val e = Param(INT)
-        val l = Var(INT, 0)
-        val r = Var(INT, a.length() - 1)
+        val a = Param(array(INT), "a")
+        val e = Param(INT,"e")
+        val l = Var(INT, "l",0)
+        val r = Var(INT, "r", a.length() - 1)
         While(l smallerEq r) {
-            val m = Var(INT, l + (r - l) / 2)
+            val m = Var(INT, "m",l + (r - l) / 2)
             If(a[m] equal e) {
                 Return(True)
             }
@@ -183,7 +183,7 @@ class TestsPaper {
         val loader = Java2Strudel(
             foreignProcedures = listOf(print)
         )
-        val proc = loader.load(code).procedures[0]
+        val proc = loader.load(code).procedures[1]
         val arg = vm.getValue(1)
         vm.execute(proc, arg)
     }
@@ -259,15 +259,15 @@ class TestsPaper {
         val result = vm.execute(bsearch, a, e)
         assertTrue(result?.toBoolean() == false)
         assertEquals(listOf(a),
-            tracker[bsearch.variables[0]]) // a, immutable
+            tracker[bsearch.getVariable("a")])
         assertEquals(listOf(3),
-            tracker[bsearch.variables[1]].map { it.toInt() }) // e, immutable
+            tracker[bsearch.getVariable("e")].map { it.toInt() })
         assertEquals(listOf(0, 2),
-            tracker[bsearch.variables[2]].map { it.toInt() }) // l
+            tracker[bsearch.getVariable("l")].map { it.toInt() })
         assertEquals(listOf(16, 7, 2, 1),
-            tracker[bsearch.variables[3]].map { it.toInt() }) // r
+            tracker[bsearch.getVariable("r")].map { it.toInt() })
         assertEquals(listOf(8, 3, 1, 2),
-            tracker[bsearch.variables[4]].map { it.toInt() }) // m
+            tracker[bsearch.getVariable("m")].map { it.toInt() })
     }
 
     @Test

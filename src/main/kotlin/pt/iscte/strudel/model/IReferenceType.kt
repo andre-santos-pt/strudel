@@ -7,7 +7,7 @@ interface IReferenceType : IType {
         return e is IReferenceType && target.isSame(e.target)
     }
 
-    fun resolveTarget(): IType? {
+    fun resolveTarget(): IType {
         var t = target
         while (t is IReferenceType) t = t.target
         return t
