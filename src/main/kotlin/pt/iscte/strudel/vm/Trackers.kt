@@ -1,9 +1,6 @@
 package pt.iscte.strudel.vm
 
-import pt.iscte.strudel.model.ILoop
-import pt.iscte.strudel.model.IType
-import pt.iscte.strudel.model.IVariableAssignment
-import pt.iscte.strudel.model.IVariableDeclaration
+import pt.iscte.strudel.model.*
 
 interface ILoopCounter {
     operator fun get(loop: ILoop): Int
@@ -33,6 +30,17 @@ fun IVirtualMachine.addVariableTracker(): IVariableTracker {
         override fun get(v: IVariableDeclaration<*>): List<IValue> = map[v] ?: emptyList()
     }
     addListener(object : IVirtualMachine.IListener {
+        override fun procedureCall(
+            s: IProcedureDeclaration,
+            args: List<IValue>,
+            caller: IProcedureDeclaration?
+        ) {
+            s.parameters.forEachIndexed {i, p ->
+                if(!map.containsKey(p)) map[p] = mutableListOf(args[i])
+                else (map[p] as MutableList).add(args[i])
+            }
+
+        }
         override fun variableAssignment(a: IVariableAssignment, value: IValue) {
             if(!map.containsKey(a.target)) map[a.target] = mutableListOf(value)
             else (map[a.target] as MutableList).add(value)

@@ -15,6 +15,13 @@ internal class Stack<E> {
         return stack[next - 1]
     }
 
+    fun peekPrevious(): E? {
+        return if(next > 1)
+            stack[next - 2]
+        else
+            null
+    }
+
     fun pop(): E {
         check(!isEmpty) { "empty stack" }
         return stack.get(--next)

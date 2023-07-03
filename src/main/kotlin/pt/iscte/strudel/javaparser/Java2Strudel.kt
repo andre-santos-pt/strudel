@@ -4,10 +4,6 @@ import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.Modifier
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.*
-import com.github.javaparser.ast.comments.BlockComment
-import com.github.javaparser.ast.comments.Comment
-import com.github.javaparser.ast.comments.JavadocComment
-import com.github.javaparser.ast.comments.LineComment
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.type.Type
@@ -26,8 +22,7 @@ import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.model.util.UnaryOperator
 import java.io.File
-import java.util.*
-import kotlin.jvm.optionals.getOrNull
+import java.util.Optional
 
 
 const val JP = "JP"
@@ -43,6 +38,8 @@ private const val INIT = "\$init"
 private const val IT = "\$it"
 
 
+val <T> Optional<T>.getOrNull: T? get() =
+    if(isPresent) this.get() else null
 
 fun MutableMap<String, IType>.mapType(t: String): IType =
     if (containsKey(t))
@@ -225,16 +222,9 @@ class Java2Strudel(
             }
         }
 
-        fun Optional<Comment>.translateComment() =
-            if (isPresent) {
-                val comment = get()
-                val str = comment.asString()
-                str.substring(comment.header?.length ?: 0, str.length - (comment.footer?.length ?: 0)).trim()
-            }
-            else null
 
         fun MethodDeclaration.translateMethod(namespace: String) =
-            Procedure(types.mapType(type), nameAsString, comment.translateComment()).apply {
+            Procedure(types.mapType(type), nameAsString).apply {
 
                 if (modifiers.any { !supportedModifiers.contains(it.keyword) })
                     unsupported("modifiers", modifiers)
@@ -261,8 +251,7 @@ class Java2Strudel(
         fun ConstructorDeclaration.translateConstructor(namespace: String) =
             Procedure(
                 types.mapType(this.nameAsString),
-                INIT,
-                comment.translateComment()
+                INIT
             ).apply {
                 if (modifiers.any { !supportedModifiers.contains(it.keyword) })
                     unsupported("modifiers", modifiers)
@@ -353,9 +342,18 @@ class Java2Strudel(
             return
         }
 
-        fun getType(type: Type) =
-            if (type.isArrayType) types[type.elementType.asString()]!!.array()
-            else types[type.asString()]
+        fun getType(type: Type): IType =
+//            if (type.isArrayType)
+
+//                if(types.containsKey(type.asString()))
+//                    types[type.asString()]!!
+//                else {
+//                    val t = getType(type.elementType).array()
+//                    types[type.elementType.asString() + "[]"] = t
+//                    t
+//                }
+//            else
+                types[type.asString()]!!
 
         fun findVariable(id: String): IVariableDeclaration<*>? =
             procedure.variables.find { it.id == id }
@@ -454,9 +452,9 @@ class Java2Strudel(
                 is ArrayInitializerExpr -> {
                     val values = exp.values.map { mapExpression(it) }
                     val baseType =
-                        if (exp.parentNode.getOrNull() is ArrayCreationExpr)
+                        if (exp.parentNode.getOrNull is ArrayCreationExpr)
                             types.mapType((exp.parentNode.get() as ArrayCreationExpr).elementType)
-                        else if (exp.parentNode.getOrNull() is VariableDeclarator)
+                        else if (exp.parentNode.getOrNull is VariableDeclarator)
                             types.mapType((exp.parentNode.get() as VariableDeclarator).typeAsString)
                         else
                             unsupported("array initializer", exp)
