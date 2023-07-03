@@ -71,6 +71,6 @@ import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
     TestsPaper::class,
 
     // comments
-    TestProcedureComments::class
+    TestDocumentation::class
 )
 class AllTests

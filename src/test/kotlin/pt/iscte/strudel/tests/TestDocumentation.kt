@@ -4,13 +4,16 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.INT
+import pt.iscte.strudel.model.IReturn
 import pt.iscte.strudel.model.dsl.*
+import pt.iscte.strudel.model.util.find
+import kotlin.test.assertNull
 
-class TestProcedureComments {
+class TestDocumentation {
 
     @Test
-    fun `Comment set through DSL`() {
-        val procedure = Procedure(INT, "sum", "This function sums all the values of an integer array.") {
+    fun `Procedure comment set through DSL`() {
+        val procedure = Procedure(INT, "sum") {
             val a = Param(array(INT), "a")
 
             val sum = Var(INT, "sum")
@@ -24,13 +27,15 @@ class TestProcedureComments {
             }
 
             Return(exp(sum))
+        }.apply {
+            documentation = "This function sums all the values of an integer array."
         }
 
-        assertEquals("This function sums all the values of an integer array.", procedure.comment)
+        assertEquals("This function sums all the values of an integer array.", procedure.documentation)
     }
 
     @Test
-    fun `Parsed line comment`() {
+    fun `Parsed procedure line comment`() {
         val src = """
             public class IntArraySum {
                 
@@ -47,11 +52,11 @@ class TestProcedureComments {
 
         val procedure = Java2Strudel().load(src).getProcedure("sum")
 
-        assertEquals("This function sums all the values of an integer array.", procedure.comment)
+        assertEquals("This function sums all the values of an integer array.", procedure.documentation)
     }
 
     @Test
-    fun `Parsed Javadoc comment`() {
+    fun `Parsed procedure Javadoc comment`() {
         val src = """
             public class IntArraySum {
                 
@@ -74,7 +79,39 @@ class TestProcedureComments {
         // The """ strings are being weird and converting tabs to 4 individual spaces
         assertEquals(
             "This is a Javadoc comment.\n    This function sums all the values of an integer array.",
-            procedure.comment
+            procedure.documentation
         )
+    }
+
+    @Test
+    fun `Parsed record line comment`() {
+        val src = """
+            // This is a simple class with no procedures.
+            public class CompletelyEmpty {
+
+            }
+        """.trimIndent()
+
+        val record = Java2Strudel().load(src).getRecordType("CompletelyEmpty")
+
+        assertEquals("This is a simple class with no procedures.", record.documentation)
+    }
+
+    @Test
+    fun `Parsed statement line comment`() {
+        val src = """
+            public class HelloWorld {
+            
+                public static int hello() {
+                    System.out.println("Hello there! This function will return the integer value 42.");
+                    return 42; // Returns the int 42. :)
+                }
+            }
+        """.trimIndent()
+
+        val procedure = Java2Strudel().load(src).getProcedure("hello")
+        val returnStmt = procedure.find(IReturn::class, 0)
+
+        assertEquals("Returns the int 42. :)", returnStmt.documentation)
     }
 }

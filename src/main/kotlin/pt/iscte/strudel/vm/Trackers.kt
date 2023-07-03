@@ -2,6 +2,24 @@ package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.*
 
+interface IRecursiveCallCounter {
+    operator fun get(procedure: IProcedureDeclaration): Int
+}
+
+fun IVirtualMachine.addRecursiveCallCounter(): IRecursiveCallCounter {
+    val map = mutableMapOf<IProcedureDeclaration, Int>()
+    val counter = object : IRecursiveCallCounter {
+        override fun get(procedure: IProcedureDeclaration): Int = map[procedure] ?: 0
+    }
+    addListener(object: IVirtualMachine.IListener {
+        override fun procedureCall(procedure: IProcedureDeclaration, args: List<IValue>, caller: IProcedureDeclaration?) {
+            if (procedure == caller)
+                map[procedure] = (map[procedure] ?: 0) + 1
+        }
+    })
+    return counter
+}
+
 interface ILoopCounter {
     operator fun get(loop: ILoop): Int
 }

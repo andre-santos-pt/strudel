@@ -12,8 +12,6 @@ interface IProcedure : IProcedureDeclaration, IBlockHolder {
     val variables: List<IVariableDeclaration<*>>
     override var returnType: IType
 
-    val comment: String?
-
     val isRecursive: Boolean
         get() {
             class RecFind : IBlock.IVisitor {
@@ -69,7 +67,7 @@ interface IProcedure : IProcedureDeclaration, IBlockHolder {
 
 }
 
-internal class UnboundProcedure(id: String, override val comment: String? = null) : ProgramElement(), IProcedure {
+internal class UnboundProcedure(id: String) : ProgramElement(), IProcedure {
 
     override val module: IModule? = null
 

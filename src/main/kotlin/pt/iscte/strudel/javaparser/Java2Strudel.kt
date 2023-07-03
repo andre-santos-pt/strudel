@@ -4,6 +4,7 @@ import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.Modifier
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.*
+import com.github.javaparser.ast.comments.Comment
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.type.Type
@@ -40,6 +41,13 @@ private const val IT = "\$it"
 
 val <T> Optional<T>.getOrNull: T? get() =
     if(isPresent) this.get() else null
+
+fun Optional<Comment>.translateComment(): String? =
+    if (isPresent) {
+        val comment = get()
+        val str = comment.asString()
+        str.substring(comment.header?.length ?: 0, str.length - (comment.footer?.length ?: 0)).trim()
+    } else null
 
 fun MutableMap<String, IType>.mapType(t: String): IType =
     if (containsKey(t))
@@ -192,7 +200,9 @@ class Java2Strudel(
 
             val type = Record(c.nameAsString) {
                 bind(c.name, ID_LOC)
+                c.comment.translateComment()?.let { documentation = it }
             }
+
             types[c.nameAsString] = type.reference()
             types[c.nameAsString + "[]"] = type.array().reference()
             types[c.nameAsString + "[][]"] = type.array().array().reference()
@@ -222,9 +232,9 @@ class Java2Strudel(
             }
         }
 
-
         fun MethodDeclaration.translateMethod(namespace: String) =
             Procedure(types.mapType(type), nameAsString).apply {
+                comment.translateComment()?.let { this.documentation = it }
 
                 if (modifiers.any { !supportedModifiers.contains(it.keyword) })
                     unsupported("modifiers", modifiers)
@@ -253,6 +263,8 @@ class Java2Strudel(
                 types.mapType(this.nameAsString),
                 INIT
             ).apply {
+                comment.translateComment()?.let { this.documentation = it }
+
                 if (modifiers.any { !supportedModifiers.contains(it.keyword) })
                     unsupported("modifiers", modifiers)
 
@@ -770,6 +782,7 @@ class Java2Strudel(
 
             else -> unsupported("statement", this)
         }
+        comment.translateComment()?.let { s.documentation = it }
         s.bind(this)
     }
 
