@@ -48,7 +48,11 @@ class TestFactorial : pt.iscte.strudel.tests.BaseTest({
         var returns = 0
 
         vm.addListener(object : IVirtualMachine.IListener {
-            override fun procedureCall(p: IProcedureDeclaration, args: List<IValue>) {
+            override fun procedureCall(
+                p: IProcedureDeclaration,
+                args: List<IValue>,
+                caller: IProcedureDeclaration?
+            ) {
                 println(args)
                 calls++
             }

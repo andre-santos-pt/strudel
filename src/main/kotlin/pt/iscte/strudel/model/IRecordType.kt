@@ -103,9 +103,9 @@ class HostRecordType(
         return RecordAllocation(this)
     }
 
-    override fun reference(): IReferenceType {
-        return ReferenceType(this)
-    }
+//    override fun reference(): IReferenceType {
+//        return this.reference()
+//    }
 
 
     override fun cloneProperties(e: IProgramElement) {

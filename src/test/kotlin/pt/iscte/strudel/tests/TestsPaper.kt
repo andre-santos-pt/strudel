@@ -6,9 +6,9 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*
+import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.vm.*
 import pt.iscte.strudel.vm.impl.*
-import java.io.File
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -18,7 +18,7 @@ class TestsPaper {
         class Example {
         static boolean binarySearch(int[] a, int e) { 
           int l = 0;
-          int r = a - 1; 
+          int r = a.length - 1; 
           while(l <= r) { 
             int m = l + ((r-l) / 2); 
             if(a[m] == e) return true; 
@@ -48,13 +48,13 @@ class TestsPaper {
         return modifies
     }
 
-    val binarySearch = Procedure(BOOLEAN) {
-        val a = Param(array(INT))
-        val e = Param(INT)
-        val l = Var(INT, 0)
-        val r = Var(INT, a.length() - 1)
+    val bsearch = Procedure(BOOLEAN) {
+        val a = Param(array(INT), "a")
+        val e = Param(INT,"e")
+        val l = Var(INT, "l",0)
+        val r = Var(INT, "r", a.length() - 1)
         While(l smallerEq r) {
-            val m = Var(INT, l + (r - l) / 2)
+            val m = Var(INT, "m",l + (r - l) / 2)
             If(a[m] equal e) {
                 Return(True)
             }
@@ -70,9 +70,12 @@ class TestsPaper {
 
 
 
+
+
     @Test
     fun testRun() {
         val binarySearch = Java2Strudel().load(binarySearchCode).getProcedure("binarySearch")
+        println(binarySearch)
         val vm = VirtualMachine(
             callStackMaximum = 1024,
             loopIterationMaximum = 100000,
@@ -167,24 +170,22 @@ class TestsPaper {
     fun testForeignInterfaceList() {
         val code = """
             class Test {
-                static void t() {
-                    LinkedList list = new LinkedList();
-                    list.add(3);
-                }
-            }
+                static void display(int n) {
+                 print(n + 1);
+                 }
+        }
         """
         val vm = VirtualMachine()
-        val linkedList = JavaType(LinkedList::class.java)
-        val print = ForeignProcedure(null, "createList", VOID, listOf()) { m, args ->
-            Value(linkedList, LinkedList<Any>())
+
+        val print = ForeignProcedure(null, "print", VOID, ANY) {
+                _, args -> println(args[0])
         }
         val loader = Java2Strudel(
-            foreignTypes = listOf(linkedList),
             foreignProcedures = listOf(print)
         )
-        val proc = loader.load(code).procedures[0]
+        val proc = loader.load(code).procedures[1]
         val arg = vm.getValue(1)
-        vm.execute(proc)
+        vm.execute(proc, arg)
     }
 
     @Test
@@ -193,22 +194,80 @@ class TestsPaper {
         val counter = vm.addLoopCounter()
         val array = vm.allocateArrayOf(INT, 1, 2, 4, 5, 7, 7, 9, 10, 10, 11, 14, 15, 15, 17, 20, 21, 22)
         val e = vm.getValue(2)
-        val result = vm.execute(binarySearch, array, e)
+        val result = vm.execute(bsearch, array, e)
         assertTrue(result?.toBoolean() == true)
-        assertEquals(3, counter[binarySearch.loops[0]])
+        assertEquals(3, counter[bsearch.loops[0]])
+    }
+
+    val bsearchRec = Procedure(BOOLEAN) {
+        val a = Param(array(INT))
+        val e = Param(INT)
+        val l = Param(INT)
+        val r = Param(INT)
+
+        If(l smallerEq r) {
+            val m = Var(INT, l + (r - l) / 2)
+            If(a[m] equal e) {
+                Return(True)
+            }.Else {
+                If(a[m] smaller e) {
+                    Return(this@Procedure.procedure!!.expression(a.expression(),
+                        e.expression(),
+                        ArithmeticOperator.ADD.on(m.expression(), lit(1)),
+                        r.expression()))
+                }.Else {
+                    Return(this@Procedure.procedure!!.expression(a.expression(),
+                        e.expression(), l.expression(),
+                        ArithmeticOperator.SUB.on(m.expression(), lit(1))))
+                }
+            }
+        }
+        Return(False)
+    }
+
+    @Test
+    fun testIterationsRec() {
+        val vm = VirtualMachine()
+        var recCalls = 0
+        vm.addListener(object : IVirtualMachine.IListener {
+            override fun procedureCall(
+                procedure: IProcedureDeclaration,
+                args: List<IValue>,
+                caller: IProcedureDeclaration?
+            ) {
+               if(procedure == bsearchRec && caller == bsearchRec)
+                   recCalls++
+            }
+        })
+        val array = vm.allocateArrayOf(INT, 1, 2, 4, 5, 7, 7, 9, 10, 10, 11, 14, 15, 15, 17, 20, 21, 22)
+        val e = vm.getValue(2)
+        val l = vm.getValue(0)
+        val r = vm.getValue(array.target.length-1)
+        val result = vm.execute(bsearchRec, array, e, l, r)
+        assertTrue(result?.toBoolean() == true)
+        assertEquals(2, recCalls)
     }
 
     @Test
     fun testVariables() {
         val vm = VirtualMachine()
         val tracker = vm.addVariableTracker()
-        val array = vm.allocateArrayOf(INT, 1, 2, 4, 5, 7, 7, 9, 10, 10, 11, 14, 15, 15, 17, 20, 21, 22)
+        val a = vm.allocateArrayOf(INT,
+            1,2,4,5,7,7,9,10,10,11,14,15,15,17,20,21,22
+        )
         val e = vm.getValue(3)
-        val result = vm.execute(binarySearch, array, e)
+        val result = vm.execute(bsearch, a, e)
         assertTrue(result?.toBoolean() == false)
-        assertEquals(listOf(0, 2), tracker[binarySearch.variables[2]]?.map { it.toInt() }) // l
-        assertEquals(listOf(16, 7, 2, 1), tracker[binarySearch.variables[3]]?.map { it.toInt() }) // r
-        assertEquals(listOf(8, 3, 1, 2), tracker[binarySearch.variables[4]]?.map { it.toInt() }) // m
+        assertEquals(listOf(a),
+            tracker[bsearch.getVariable("a")])
+        assertEquals(listOf(3),
+            tracker[bsearch.getVariable("e")].map { it.toInt() })
+        assertEquals(listOf(0, 2),
+            tracker[bsearch.getVariable("l")].map { it.toInt() })
+        assertEquals(listOf(16, 7, 2, 1),
+            tracker[bsearch.getVariable("r")].map { it.toInt() })
+        assertEquals(listOf(8, 3, 1, 2),
+            tracker[bsearch.getVariable("m")].map { it.toInt() })
     }
 
     @Test

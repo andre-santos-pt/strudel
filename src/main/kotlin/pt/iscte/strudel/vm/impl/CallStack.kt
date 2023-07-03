@@ -15,6 +15,9 @@ internal class CallStack(override val virtualMachine: VirtualMachine, override v
             return stack.peek()
         }
 
+    override val previousFrame: IStackFrame?
+        get() = stack.peekPrevious()
+
     override val lastTerminatedFrame: IStackFrame?
         get() = stack.peekAhead()
 

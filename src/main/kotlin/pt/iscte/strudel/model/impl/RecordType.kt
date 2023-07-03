@@ -25,9 +25,9 @@ internal class RecordType(override val module: IModule)
         return RecordAllocation(this)
     }
 
-    override fun reference(): IReferenceType {
-        return ReferenceType(this)
-    }
+//    override fun reference(): IReferenceType {
+//        return this.reference()
+//    }
 
     override fun toString(): String = "class $id {\n " + fields.joinToString(separator = "\n") {
         "\t${it.type.id} ${it.id};"

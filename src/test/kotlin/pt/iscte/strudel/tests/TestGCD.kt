@@ -28,7 +28,7 @@ class TestGCD : pt.iscte.strudel.tests.BaseTest({
     fun execute() {
         var countCalls = 0
         vm.addListener(object : IVirtualMachine.IListener {
-            override fun procedureCall(s: IProcedureDeclaration, args: List<IValue>) {
+            override fun procedureCall(s: IProcedureDeclaration, args: List<IValue>,  caller: IProcedureDeclaration?) {
                 countCalls++
             }
         })

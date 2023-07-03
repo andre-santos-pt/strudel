@@ -10,7 +10,7 @@ import pt.iscte.strudel.vm.NULL
 
 internal class Reference<T: IValue>(override var target: T) : IReference<T> {
     override val type: IType
-        get() = ReferenceType(target.type)
+        get() = target.type.reference()
 
     override val value: Any
         get() = target
