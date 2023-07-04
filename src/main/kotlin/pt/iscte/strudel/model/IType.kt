@@ -4,6 +4,9 @@ import pt.iscte.strudel.model.impl.ArrayType
 import pt.iscte.strudel.model.impl.ReferenceType
 
 interface IType : IProgramElement {
+
+    val bytes: Int
+
     val isVoid: Boolean
         get() = this === VOID
     val isUnbound: Boolean
@@ -87,6 +90,9 @@ object VOID : IType {
     override fun cloneProperties(e: IProgramElement) {
         throw UnsupportedOperationException()
     }
+
+    override val bytes: Int
+        get() = 0
 }
 
 val ANY = UnboundType()
@@ -117,6 +123,9 @@ class UnboundType(override val defaultExpression: IExpression = NULL_LITERAL) : 
     }
 
     override fun toString(): String = "Object"
+
+    override val bytes: Int
+        get() = TODO("Not yet implemented")
 
 }
 
@@ -152,5 +161,6 @@ class JavaType(val type: Class<*>) : IType {
         return e is JavaType && e.type === type
     }
 
-
+    override val bytes: Int
+        get() = TODO("Not yet implemented")
 }

@@ -71,6 +71,9 @@ import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
     TestsPaper::class,
 
     // comments
-    TestDocumentation::class
+    TestDocumentation::class,
+
+    // IVirtualMachine.usedMemory
+    TestUsedMemory::class
 )
 class AllTests

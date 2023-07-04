@@ -3,7 +3,6 @@ package pt.iscte.strudel.vm
 import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.vm.impl.StackFrame
 
-
 interface ICallStack {
     val maxSize: Int
     val size: Int
@@ -14,14 +13,18 @@ interface ICallStack {
 
     val lastTerminatedFrame: IStackFrame?
     val isEmpty: Boolean
-//    val memory: Int
-//        get() {
-//            var bytes = 0
-//            for (f in frames) {
-//                bytes += f.memory
-//            }
-//            return bytes
-//        }
+
+    val memory: Int
+        get() {
+            var m = 0
+            frames.forEach { frame ->
+                m += STACK_FRAME_OVERHEAD
+                frame.variables.values.forEach { localVar ->
+                    m += localVar.memory
+                }
+            }
+            return m
+        }
 
     //@Throws(RuntimeError::class)
     fun newFrame(procedure: IProcedure, args: List<IValue>): IStackFrame {
