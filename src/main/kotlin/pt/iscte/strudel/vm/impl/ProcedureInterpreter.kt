@@ -14,9 +14,9 @@ class ProcedureInterpreter(
     var returnValue: IValue? = null
 
     val instructionPointer: IProgramElement?
-        get() = if(blockStack.isEmpty()) null
-    else
-        blockStack.top.current
+        get() = if (blockStack.isEmpty()) null
+        else
+            blockStack.top.current
 
     val currentExpression: IProgramElement?
         get() = if (expStack.isEmpty())
@@ -37,19 +37,27 @@ class ProcedureInterpreter(
     val expStack = mutableListOf<IExpression>()
     val valStack = mutableListOf<IValue>()
     val blockStack = mutableListOf<BlockExec>()
-    val loopCount = procedure.findAll(ILoop::class).associateWith { 0 }.toMutableMap()
+    val loopCount =
+        procedure.findAll(ILoop::class).associateWith { 0 }.toMutableMap()
+
     fun isOver() = blockStack.isEmpty()
 
     fun init() {
         vm.callStack.newFrame(procedure, arguments.toList())
-        blockStack.add(BlockExec(procedure.block,false))
+        blockStack.add(BlockExec(procedure.block, false))
 
     }
 
     fun run(): IValue? {
         init()
         val args = arguments.toList()
-        vm.listeners.forEach { it.procedureCall(procedure, args, vm.callStack.previousFrame?.procedure) }
+        vm.listeners.forEach {
+            it.procedureCall(
+                procedure,
+                args,
+                vm.callStack.previousFrame?.procedure
+            )
+        }
         while (!isOver())
             step()
         vm.listeners.forEach { it.procedureEnd(procedure, args, returnValue) }
@@ -58,16 +66,20 @@ class ProcedureInterpreter(
     }
 
 
-    inner class BlockExec(val block: IBlock, val isLoop: Boolean, var index: Int = 0) {
+    inner class BlockExec(
+        val block: IBlock,
+        val isLoop: Boolean,
+        var index: Int = 0
+    ) {
         val isOver: Boolean get() = index == block.size
 
-        val current: IProgramElement get() = block.children[index]
+        val current: IProgramElement? get() = if (isOver) null else block.children[index]
 
         fun execute() {
             check(!isOver)
             when (val next = block.children[index]) {
                 is IStatement -> {
-                    if(execute(next))
+                    if (execute(next))
                         index++
                 }
                 is IBlock -> {
@@ -80,14 +92,17 @@ class ProcedureInterpreter(
                     else {
                         if (valStack.pop().isTrue) {
                             blockStack.push(BlockExec(next.block, true))
-                            if(loopCount[next] == vm.loopIterationMaximum)
-                                throw RuntimeError(RuntimeErrorType.LOOP_MAX,next,"Loop reached the maximum number of iterations (${vm.loopIterationMaximum}).")
+                            if (loopCount[next] == vm.loopIterationMaximum)
+                                throw RuntimeError(
+                                    RuntimeErrorType.LOOP_MAX,
+                                    next,
+                                    "Loop reached the maximum number of iterations (${vm.loopIterationMaximum})."
+                                )
                             loopCount[next] = (loopCount[next] ?: 0) + 1
                             vm.listeners.forEach {
                                 it.loopIteration(next)
                             }
-                        }
-                        else {
+                        } else {
                             index++
                             loopCount[next] = 0
                         }
@@ -98,9 +113,14 @@ class ProcedureInterpreter(
                         evaluateStep(next.guard)
                     else {
                         if (valStack.pop().isTrue)
-                            blockStack.push(BlockExec(next.block,false))
+                            blockStack.push(BlockExec(next.block, false))
                         else if (next.hasAlternativeBlock())
-                            blockStack.push(BlockExec(next.alternativeBlock!!, false))
+                            blockStack.push(
+                                BlockExec(
+                                    next.alternativeBlock!!,
+                                    false
+                                )
+                            )
 
                         index++
                     }
@@ -111,6 +131,12 @@ class ProcedureInterpreter(
     }
 
 
+    fun stepStatement() {
+        while(expStack.isNotEmpty())
+            step()
+
+        step()
+    }
 
     fun step() {
         while (expStack.isNotEmpty() && expStack.top is ILiteral)
@@ -125,6 +151,7 @@ class ProcedureInterpreter(
             if (blockStack.isNotEmpty())
                 blockStack.top.execute()
         }
+
     }
 
     private fun eval(e: IExpression): IValue? =
@@ -235,14 +262,14 @@ class ProcedureInterpreter(
             }
 
             is IBreak -> {
-                while(!blockStack.top.isLoop)
+                while (!blockStack.top.isLoop)
                     blockStack.pop()
 
                 blockStack.pop()
                 blockStack.top.index++
             }
             is IContinue -> {
-                while(!blockStack.top.isLoop)
+                while (!blockStack.top.isLoop)
                     blockStack.pop()
                 blockStack.pop()
             }

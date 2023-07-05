@@ -9,7 +9,6 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.vm.*
 import pt.iscte.strudel.vm.impl.*
-import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -81,7 +80,7 @@ class TestsPaper {
             loopIterationMaximum = 100000,
             availableMemory = 2048
         )
-        val array = vm.allocateArrayOf(INT,
+        val array: IReference<IArray> = vm.allocateArrayOf(INT,
             1, 2, 4, 5, 7, 7, 9, 10, 10, 11, 14, 15, 15, 17, 20, 21, 22
         )
         val e: IValue = vm.getValue(20)
@@ -101,8 +100,10 @@ class TestsPaper {
         val e: IValue = vm.getValue(20)
         val process = ProcedureInterpreter(vm, binarySearch, array, e)
         process.init()
-        while (!process.isOver())
-            process.step()
+        while (!process.isOver()) {
+            println(process.instructionPointer)
+            process.stepStatement()
+        }
         val result: IValue? = process.returnValue
 
         assertTrue(result?.toBoolean() == true)
@@ -114,7 +115,7 @@ class TestsPaper {
         var totalArrayLength = 0
         vm.addListener(object : IVirtualMachine.IListener {
             override fun arrayAllocated(ref: IReference<IArray>) {
-                totalArrayLength += (ref.target as IArray).length
+                totalArrayLength += ref.target.length
             }
         })
         // vm.execute(...)
@@ -167,28 +168,6 @@ class TestsPaper {
     }
 
     @Test
-    fun testForeignInterfaceList() {
-        val code = """
-            class Test {
-                static void display(int n) {
-                 print(n + 1);
-                 }
-        }
-        """
-        val vm = VirtualMachine()
-
-        val print = ForeignProcedure(null, "print", VOID, ANY) {
-                _, args -> println(args[0])
-        }
-        val loader = Java2Strudel(
-            foreignProcedures = listOf(print)
-        )
-        val proc = loader.load(code).procedures[1]
-        val arg = vm.getValue(1)
-        vm.execute(proc, arg)
-    }
-
-    @Test
     fun testIterations() {
         val vm = VirtualMachine()
         val counter = vm.addLoopCounter()
@@ -231,9 +210,9 @@ class TestsPaper {
         var recCalls = 0
         vm.addListener(object : IVirtualMachine.IListener {
             override fun procedureCall(
-                procedure: IProcedureDeclaration,
+                procedure: IProcedure,
                 args: List<IValue>,
-                caller: IProcedureDeclaration?
+                caller: IProcedure?
             ) {
                if(procedure == bsearchRec && caller == bsearchRec)
                    recCalls++

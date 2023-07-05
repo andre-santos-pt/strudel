@@ -3,7 +3,7 @@ package pt.iscte.strudel.tests
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.DOUBLE
 import pt.iscte.strudel.model.INT
-import pt.iscte.strudel.model.IProcedureDeclaration
+import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
@@ -44,7 +44,7 @@ class TestAvgInvoke : pt.iscte.strudel.tests.BaseTest({
         vm.addListener(object : IVirtualMachine.IListener {
             var stack = 0
 
-            override fun procedureCall(p: IProcedureDeclaration, args: List<IValue>, caller: IProcedureDeclaration?) {
+            override fun procedureCall(p: IProcedure, args: List<IValue>, caller: IProcedure?) {
                 if(stack == 0)
                     assertEquals(module.procedures.find { it.id == "avg" }!!, p)
                 else if(stack == 1)
@@ -52,7 +52,7 @@ class TestAvgInvoke : pt.iscte.strudel.tests.BaseTest({
                 stack++
             }
 
-            override fun procedureEnd(p: IProcedureDeclaration, args: List<IValue>, result: IValue?) {
+            override fun procedureEnd(p: IProcedure, args: List<IValue>, result: IValue?) {
                 if(stack == 1)
                    assertEquals(module.procedures.find { it.id == "avg" }!!, p)
                 else if(stack == 2)
