@@ -49,11 +49,11 @@ fun IVirtualMachine.addVariableTracker(): IVariableTracker {
     }
     addListener(object : IVirtualMachine.IListener {
         override fun procedureCall(
-            s: IProcedureDeclaration,
+            s: IProcedure,
             args: List<IValue>,
-            caller: IProcedureDeclaration?
+            caller: IProcedure?
         ) {
-            s.parameters.forEachIndexed {i, p ->
+            s.parameters.forEachIndexed { i, p ->
                 if(!map.containsKey(p)) map[p] = mutableListOf(args[i])
                 else (map[p] as MutableList).add(args[i])
             }

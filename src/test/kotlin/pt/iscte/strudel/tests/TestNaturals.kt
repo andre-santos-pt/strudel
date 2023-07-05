@@ -11,7 +11,7 @@ import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class TestNaturals : pt.iscte.strudel.tests.BaseTest({
+class TestNaturals : BaseTest({
     Procedure(INT.array().reference(), "naturals") {
         val n = Param(INT, "n")
         val a = Var(INT.array().reference(), "a")

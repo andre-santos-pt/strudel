@@ -7,7 +7,6 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.IControlFlowGraph
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.module
-//import pt.iscte.strudel.tests.javaparser.TestLoopIterationMax
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IValue
@@ -86,7 +85,7 @@ abstract class BaseTest {
             }
         }
 
-        override fun procedureEnd(p: IProcedureDeclaration, args: List<IValue>, result: IValue?) {
+        override fun procedureEnd(p: IProcedure, args: List<IValue>, result: IValue?) {
             assertEquals(i, vals.size)
         }
     }
@@ -105,7 +104,7 @@ abstract class BaseTest {
             }
         }
 
-        override fun procedureEnd(p: IProcedureDeclaration, args: List<IValue>, result: IValue?) {
+        override fun procedureEnd(p: IProcedure, args: List<IValue>, result: IValue?) {
             assertEquals(i, vals.size)
         }
     }
