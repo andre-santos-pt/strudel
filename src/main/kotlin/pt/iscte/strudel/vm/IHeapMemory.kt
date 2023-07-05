@@ -14,9 +14,4 @@ interface IHeapMemory {
     // TODO
     val memory: Int
         get() = 0
-
-    interface IListener {
-        fun allocated(value: IValue) {}
-        fun deallocated(value: IValue) {}
-    }
 }
