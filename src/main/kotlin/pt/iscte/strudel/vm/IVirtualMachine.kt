@@ -47,6 +47,8 @@ interface IVirtualMachine {
 
     fun addListener(l: IListener)
 
+    fun removeAllListeners()
+
     fun allocateArray(baseType: IType, length: Int): IReference<IArray> {
         val array = heapMemory.allocateArray(baseType, length)
         for (i in 0 until array.length)
@@ -110,7 +112,8 @@ interface IVirtualMachine {
         fun procedureEnd(procedure: IProcedure, args: List<IValue>, result: IValue?) { }
         fun returnCall(s: IReturn, returnValue: IValue?) { }
         fun variableAssignment(a: IVariableAssignment, value: IValue) { }
-        fun arrayElementAssignment(a: IArrayElementAssignment, index: Int, value: IValue) { }
+        //fun arrayElementAssignment(a: IArrayElementAssignment, index: Int, value: IValue) { }
+        fun arrayElementAssignment(ref: IReference<IArray>, index: Int, expression: IExpression, value: IValue) { }
         fun loopIteration(loop: ILoop) { }
         fun arrayAllocated(ref: IReference<IArray>) { }
         fun recordAllocated(ref: IReference<IRecord>) { }

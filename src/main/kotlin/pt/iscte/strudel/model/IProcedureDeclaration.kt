@@ -37,6 +37,7 @@ interface IProcedureDeclaration : IModuleMember {
 
     val thisParameter: IParameter get() = parameters.find { it.id == "\$this" }!!
 
+    /*
     fun matchesSignature(id: String, vararg paramTypes: IType): Boolean {
         if (id != this.id) return false
         val parameters = parameters
@@ -45,6 +46,7 @@ interface IProcedureDeclaration : IModuleMember {
         for (t in paramTypes) if (!parameters[i++].type.isSame(t)) return false
         return true
     }
+     */
 
     // compares id and types of parameters
     // excludes return

@@ -12,7 +12,7 @@ fun IVirtualMachine.addRecursiveCallCounter(): IRecursiveCallCounter {
         override fun get(procedure: IProcedureDeclaration): Int = map[procedure] ?: 0
     }
     addListener(object: IVirtualMachine.IListener {
-        override fun procedureCall(procedure: IProcedureDeclaration, args: List<IValue>, caller: IProcedureDeclaration?) {
+        override fun procedureCall(procedure: IProcedure, args: List<IValue>, caller: IProcedure?) {
             if (procedure == caller)
                 map[procedure] = (map[procedure] ?: 0) + 1
         }

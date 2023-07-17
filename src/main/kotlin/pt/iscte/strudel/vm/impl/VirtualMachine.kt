@@ -26,6 +26,10 @@ internal open class VirtualMachine(
         listeners.add(l)
     }
 
+    override fun removeAllListeners() {
+        listeners.clear()
+    }
+
     override val callStack: ICallStack
         get() = stack
 

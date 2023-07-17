@@ -1,6 +1,7 @@
 package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.IProcedure
+import pt.iscte.strudel.model.UnboundType
 import pt.iscte.strudel.vm.impl.StackFrame
 
 interface ICallStack {
@@ -20,7 +21,7 @@ interface ICallStack {
             frames.forEach { frame ->
                 m += STACK_FRAME_OVERHEAD
                 frame.variables.values.forEach { localVar ->
-                    m += localVar.memory
+                    m += if (localVar.isNull) 4 else localVar.memory // Null Pointer is still a pointer
                 }
             }
             return m

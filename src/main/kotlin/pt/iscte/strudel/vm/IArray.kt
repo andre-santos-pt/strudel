@@ -26,6 +26,7 @@ interface IArray : IMemory {
     fun removeListener(listener: IListener)
 
     interface IListener {
-        fun elementChanged(index: Int, oldValue: IValue, newValue: IValue)
+        fun elementChanged(index: Int, oldValue: IValue, newValue: IValue) {}
+        fun elementRead(index: Int, value: IValue) {}
     }
 }

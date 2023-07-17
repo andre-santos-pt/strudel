@@ -134,7 +134,7 @@ class ProcedureExecution(
                     throw ArrayIndexError(s.arrayAccess, i, s.arrayAccess.index)
 
                 (array.target as IArray).setElement(i, value)
-                vm.listeners.forEach { l -> l.arrayElementAssignment(s, i, value) }
+                vm.listeners.forEach { l -> l.arrayElementAssignment(array, i, s.expression, value) }
                 return true
             }
 

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.DOUBLE
 import pt.iscte.strudel.model.INT
+import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.IProcedureDeclaration
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.IValue
@@ -86,7 +87,7 @@ class TestUsedMemory {
 
         val vm = IVirtualMachine.create()
         vm.addListener(object : IVirtualMachine.IListener {
-            override fun procedureEnd(procedure: IProcedureDeclaration, args: List<IValue>, result: IValue?) {
+            override fun procedureEnd(procedure: IProcedure, args: List<IValue>, result: IValue?) {
                 callStackMemoryBytes = vm.callStack.memory
             }
         })

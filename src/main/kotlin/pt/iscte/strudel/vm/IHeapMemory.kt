@@ -12,10 +12,4 @@ interface IHeapMemory {
     fun allocateRecord(type: IRecordType): IRecord
 
     val memory: Int
-        get() = 0
-
-    interface IListener {
-        fun allocated(value: IValue) {}
-        fun deallocated(value: IValue) {}
-    }
 }
