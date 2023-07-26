@@ -1,11 +1,12 @@
-package pt.iscte.strudel.tests
+package pt.iscte.strudel.tests.temp
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.CHAR
-import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.dsl.*
+import pt.iscte.strudel.tests.BaseTest
+import kotlin.test.assertEquals
 
-class TestChars : pt.iscte.strudel.tests.BaseTest({
+class TestChars : BaseTest({
     Procedure(CHAR, "next") {
         val c = Param(CHAR, "a")
         If(c.expression() equal character('z')) {
@@ -18,9 +19,8 @@ class TestChars : pt.iscte.strudel.tests.BaseTest({
 
     @Test
     fun test() {
-        val a = vm.allocateArrayOf(INT, 2, 4, 6, 8)
-        vm.execute(procedure, a, vm.getValue('b'))
-
+        val res = vm.execute(procedure, vm.getValue('b'))
+        assertEquals('c', res!!.toChar())
     }
 
 }

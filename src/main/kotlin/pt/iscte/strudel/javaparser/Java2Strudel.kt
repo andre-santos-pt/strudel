@@ -38,6 +38,9 @@ private const val INIT = "\$init"
 private const val IT = "\$it"
 
 
+val IModule.proceduresExcludingConstructors: List<IProcedure>
+    get() = procedures.filter { it.id != INIT }
+
 val <T> Optional<T>.getOrNull: T? get() =
     if(isPresent) this.get() else null
 

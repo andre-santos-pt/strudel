@@ -1,5 +1,3 @@
-package pt.iscte.strudel.tests.javaparser;
-
 class Sorting {
     public static void bubbleSort(int[] arr) {
         int n = arr.length;

@@ -1,11 +1,12 @@
-package pt.iscte.strudel.tests
+package pt.iscte.strudel.tests.temp
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.dsl.*
+import pt.iscte.strudel.tests.BaseTest
 
-class TestStackRecord: pt.iscte.strudel.tests.BaseTest({
+class TestStackRecord: BaseTest({
     val type = Record("Stack") {
         Field(INT.array(), "elements")
         Field(INT, "next")

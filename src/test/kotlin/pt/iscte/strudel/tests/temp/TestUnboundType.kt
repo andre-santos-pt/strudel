@@ -1,12 +1,13 @@
-package pt.iscte.strudel.tests
+package pt.iscte.strudel.tests.temp
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.ANY
 import pt.iscte.strudel.model.DOUBLE
 import pt.iscte.strudel.model.dsl.*
+import pt.iscte.strudel.tests.BaseTest
 import kotlin.test.assertTrue
 
-class TestUnboundType : pt.iscte.strudel.tests.BaseTest({
+class TestUnboundType : BaseTest({
     Procedure(ANY, "sum") {
         val a = Param(ANY, "a")
         val s = Var(ANY, "s")

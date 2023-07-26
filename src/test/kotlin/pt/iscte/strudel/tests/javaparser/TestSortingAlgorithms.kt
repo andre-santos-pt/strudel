@@ -15,7 +15,7 @@ class TestSortingAlgorithms {
 
         println(System.getProperty("user.dir"))
         val vm = IVirtualMachine.create()
-        val model = Java2Strudel().load(Path("src", "test", "kotlin","pt","iscte","strudel","tests","javaparser","Sorting.java").toFile())
+        val model = Java2Strudel().load(Path("src", "test", "java","Sorting.java").toFile())
         // TODO missing InsertionSort -- short-circuit  &&
         model.procedures.filter { it.id!!.endsWith("Sort") }.forEach {
             val array = vm.allocateArrayOf(INT, *case.toTypedArray())
