@@ -26,12 +26,15 @@ internal open class VirtualMachine(
         listeners.add(l)
     }
 
+    override fun removeAllListeners() {
+        listeners.clear()
+    }
+
     override val callStack: ICallStack
         get() = stack
 
     override val usedMemory: Int
-        get() = 0 //stack.memory + heapMemory.memory
-
+        get() = stack.memory + heapMemory.memory
 
     var call: ProcedureInterpreter? = null
 
@@ -124,7 +127,13 @@ internal open class VirtualMachine(
         }
 
         override val memory: Int
-            get() = 0
+            get() {
+                var mem = 0
+                objects.forEach { value ->
+                    mem += value.memory
+                }
+                return mem
+            }
     }
 
     inner class Record(override val type: IRecordType) : IRecord {
@@ -139,6 +148,9 @@ internal open class VirtualMachine(
                 fields[f] = Reference(v)
             }
         }
+
+        override val memory: Int
+            get() = type.bytes
 
         override fun getField(field: IVariableDeclaration<IRecordType>): IValue {
             if (field.type is IReferenceType)

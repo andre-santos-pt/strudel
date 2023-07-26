@@ -19,7 +19,13 @@ internal class Array(private val t: IArrayType, length: Int) : IArray {
 
     override val length: Int  get() = elements.size
 
-    override fun getElement(i: Int) = elements[i]
+    override fun getElement(i: Int): IValue {
+        val elem = elements[i]
+        listeners.forEach {
+            it.elementRead(i, elem)
+        }
+        return elem
+    }
 
     override fun setElement(i: Int, value: IValue) {
         val old = elements[i]

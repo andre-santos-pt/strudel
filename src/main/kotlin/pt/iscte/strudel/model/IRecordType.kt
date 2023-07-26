@@ -4,6 +4,7 @@ import pt.iscte.strudel.model.impl.RecordAllocation
 import pt.iscte.strudel.model.impl.ReferenceType
 import pt.iscte.strudel.model.impl.VariableDeclaration
 
+const val RECORD_OVERHEAD = 16
 
 typealias IField = IVariableDeclaration<IRecordType>
 
@@ -13,6 +14,15 @@ typealias IField = IVariableDeclaration<IRecordType>
 interface IRecordType : IType, IModuleMember {
     val module: IModule?
     val fields: MutableList<IVariableDeclaration<IRecordType>>
+
+    override val bytes: Int
+        get() {
+            var mem = RECORD_OVERHEAD
+            fields.forEach { fieldDeclaration ->
+                mem += fieldDeclaration.type.bytes
+            }
+            return mem
+        }
 
     fun getField(id: String): IVariableDeclaration<IRecordType>? {
         for (f in fields) if (id == f.id) return f
@@ -72,6 +82,9 @@ class UnboundRecordType(
         TODO("Not yet implemented")
     }
 
+    override val bytes: Int
+        get() = TODO("Not yet implemented")
+
 }
 
 class HostRecordType(
@@ -124,6 +137,9 @@ class HostRecordType(
     }
 
     override fun toString(): String = type.name
+
+    override val bytes: Int
+        get() = TODO("Not yet implemented")
 
 
 }

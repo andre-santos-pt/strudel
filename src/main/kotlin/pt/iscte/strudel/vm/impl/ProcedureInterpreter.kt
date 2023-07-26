@@ -204,8 +204,9 @@ class ProcedureInterpreter(
                 (array.target as IArray).setElement(i, value)
                 vm.listeners.forEach { l ->
                     l.arrayElementAssignment(
-                        s,
+                        array,
                         i,
+                        s.expression,
                         value
                     )
                 }

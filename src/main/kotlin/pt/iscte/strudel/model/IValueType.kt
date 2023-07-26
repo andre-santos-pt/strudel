@@ -34,6 +34,9 @@ val INT: IValueType<Int> = object : ValueType<Int>() {
     override var id: String?
         get() = "int"
         set(value) {}
+
+    override val bytes: Int
+        get() = 4
 }
 
 val DOUBLE: IValueType<Double> = object : ValueType<Double>() {
@@ -47,6 +50,9 @@ val DOUBLE: IValueType<Double> = object : ValueType<Double>() {
     override var id: String?
         get() = "double"
         set(value) {}
+
+    override val bytes: Int
+        get() = 8
 }
 
 val BOOLEAN: IValueType<Boolean> = object : ValueType<Boolean>() {
@@ -60,6 +66,9 @@ val BOOLEAN: IValueType<Boolean> = object : ValueType<Boolean>() {
     override var id: String?
         get() = "boolean"
         set(value) {}
+
+    override val bytes: Int
+        get() = 4
 }
 
 val CHAR: IValueType<Char> = object : ValueType<Char>() {
@@ -73,5 +82,8 @@ val CHAR: IValueType<Char> = object : ValueType<Char>() {
     override var id: String?
         get() = "char"
         set(value) {}
+
+    override val bytes: Int
+        get() = 2
 }
 

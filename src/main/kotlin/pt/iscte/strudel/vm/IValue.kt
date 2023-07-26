@@ -36,7 +36,7 @@ interface IValue {
     val isFalse: Boolean
 
     val memory: Int
-        get() = 0 //type.memoryBytes
+        get() = type.bytes
 
     fun toInt(): Int {
         //check(type === INT)

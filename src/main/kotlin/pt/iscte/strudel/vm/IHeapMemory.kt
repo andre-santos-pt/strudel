@@ -11,7 +11,5 @@ interface IHeapMemory {
     //@Throws(RuntimeError::class)
     fun allocateRecord(type: IRecordType): IRecord
 
-    // TODO
     val memory: Int
-        get() = 0
 }

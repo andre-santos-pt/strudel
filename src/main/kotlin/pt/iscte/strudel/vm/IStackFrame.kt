@@ -5,6 +5,7 @@ import pt.iscte.strudel.model.IRecordType
 import pt.iscte.strudel.model.IType
 import pt.iscte.strudel.model.IVariableDeclaration
 
+const val STACK_FRAME_OVERHEAD = 16
 
 interface IStackFrame {
     val callStack: ICallStack

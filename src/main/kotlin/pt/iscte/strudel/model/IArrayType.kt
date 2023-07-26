@@ -5,6 +5,9 @@ package pt.iscte.strudel.model
 interface IArrayType : IType {
     val componentType: IType
 
+    override val bytes: Int
+        get() = componentType.bytes
+
     override val defaultExpression: IExpression
         get() = NULL_LITERAL
 

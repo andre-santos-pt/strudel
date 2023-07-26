@@ -18,11 +18,11 @@ interface IProcedureDeclaration : IModuleMember {
         return expression(listOf(*args))
     }
 
-    fun shortSignature(): String? {
+    fun shortSignature(): String {
         return "$id(...)"
     }
 
-    fun longSignature(): String? {
+    fun longSignature(): String {
         var args = ""
         for (p in parameters) {
             if (!args.isEmpty()) args += ", "
@@ -37,14 +37,16 @@ interface IProcedureDeclaration : IModuleMember {
 
     val thisParameter: IParameter get() = parameters.find { it.id == "\$this" }!!
 
+    /*
     fun matchesSignature(id: String, vararg paramTypes: IType): Boolean {
-        if (id != id) return false
+        if (id != this.id) return false
         val parameters = parameters
         if (parameters.size != paramTypes.size) return false
         var i = 0
         for (t in paramTypes) if (!parameters[i++].type.isSame(t)) return false
         return true
     }
+     */
 
     // compares id and types of parameters
     // excludes return
