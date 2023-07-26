@@ -80,4 +80,10 @@ publishing {
             }
         }
     }
+
+    publications {
+        register<MavenPublication>("strudel") {
+            from(components["java"])
+        }
+    }
 }
