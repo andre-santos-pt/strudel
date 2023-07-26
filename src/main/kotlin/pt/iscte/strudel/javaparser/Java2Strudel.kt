@@ -54,11 +54,19 @@ fun MutableMap<String, IType>.mapType(t: String): IType =
                 try {
                     JavaType(Class.forName("java.util.$t"))
                 } catch (e3: Exception) {
-                    unsupported("type", t)
+                    error("type", t)
                 }
             }
         }
     }
+
+class StrudelUnsupported(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
+    val locations = nodes.map {
+        SourceLocation(it)
+    }
+
+    constructor(msg: String, node: Node) : this(msg, listOf(node))
+}
 
 fun MutableMap<String, IType>.mapType(t: Type) = mapType(t.asString())
 
@@ -66,8 +74,12 @@ fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
     mapType(t.nameAsString)
 
 // inline because otherwise test fails (KotlinNothingValueException)
-inline fun unsupported(msg: String, node: Any): Nothing {
-    throw AssertionError("unsupported $msg: $node (${node::class.java})")
+inline fun unsupported(msg: String, node: Node): Nothing {
+    throw StrudelUnsupported(msg, node)
+}
+
+inline fun unsupported(msg: String, nodes: List<Node>): Nothing {
+    throw StrudelUnsupported(msg, nodes)
 }
 
 inline fun error(msg: String, node: Any): Nothing {
@@ -182,13 +194,14 @@ class Java2Strudel(
             if (c.implementedTypes.isNotEmpty())
                 unsupported("implements", c)
 
-            if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 })
-                unsupported(
-                    "method name overload",
-                    c.methods.groupBy { it.nameAsString }
-                        .filter { it.value.size > 1 })
-
-            //replaceStringConcat(c)
+            if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 }) {
+                val nodes = c.methods
+                    .groupBy { it.nameAsString }
+                    .filter { it.value.size > 1 }
+                    .values.first()
+                    .toList()
+                unsupported("method name overload", nodes)
+            }
 
             val type = Record(c.nameAsString) {
                 bind(c.name, ID_LOC)
@@ -227,7 +240,7 @@ class Java2Strudel(
             Procedure(types.mapType(type), nameAsString).apply {
 
                 if (modifiers.any { !supportedModifiers.contains(it.keyword) })
-                    unsupported("modifiers", modifiers)
+                    unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
 
                 setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
 
@@ -254,7 +267,7 @@ class Java2Strudel(
                 INIT
             ).apply {
                 if (modifiers.any { !supportedModifiers.contains(it.keyword) })
-                    unsupported("modifiers", modifiers)
+                    unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
 
                 setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
 
@@ -533,7 +546,7 @@ class Java2Strudel(
 
                 val value = when (a.operator) {
                     AssignExpr.Operator.ASSIGN -> mapExpression(a.value)
-                    else -> a.operator.map()
+                    else -> a.operator.map(a)
                         .on(mapExpression(a.target), mapExpression(a.value))
                 }
 
@@ -807,14 +820,14 @@ class Java2Strudel(
             else -> unsupported("binary operator", exp)
         }
 
-    fun AssignExpr.Operator.map(): IBinaryOperator =
+    fun AssignExpr.Operator.map(a: AssignExpr): IBinaryOperator =
         when (this) {
             AssignExpr.Operator.PLUS -> ArithmeticOperator.ADD
             AssignExpr.Operator.MINUS -> ArithmeticOperator.SUB
             AssignExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
             AssignExpr.Operator.DIVIDE -> ArithmeticOperator.DIV
             AssignExpr.Operator.REMAINDER -> ArithmeticOperator.MOD
-            else -> unsupported("asign operator", this)
+            else -> unsupported("assign operator", a)
         }
 
     private fun <T> handleMethodCall(
