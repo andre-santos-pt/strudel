@@ -10,7 +10,7 @@ interface IProgramElement {
 
     fun cloneProperties(e: IProgramElement)
 
-    fun <T> getProperty(keyClass: Class<T>) : T = getProperty(keyClass.simpleName) as T
+    fun <T> getProperty(keyClass: Class<T>) : T? = getProperty(keyClass.simpleName) as? T
 
     fun hasProperty(key: String): Boolean = getProperty(key) != null
 

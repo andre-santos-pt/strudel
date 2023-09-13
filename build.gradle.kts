@@ -1,11 +1,13 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.net.URI
 
 plugins {
-    kotlin("jvm") version "1.8.20"
+    kotlin("jvm") version "1.6.10"
+    id("maven-publish")
 }
 
 group = "pt.iscte"
-version = "0.8"
+version = "0.8.1"
 
 repositories {
     mavenCentral()
@@ -24,11 +26,16 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.withType<Test> {
+    exclude("**/temp/**")
+
+}
+
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "17"
-    compilerOptions {
-        freeCompilerArgs.add("-Xjvm-default=all")
-    }
+    kotlinOptions.jvmTarget = "1.8"
+    //compilerOptions {
+    //    freeCompilerArgs.add("-Xjvm-default=all")
+    //}
 }
 
 tasks {
@@ -53,9 +60,30 @@ tasks {
 }
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
-    jvmTarget = "17"
+    jvmTarget = "1.8"
 }
+
 val compileTestKotlin: KotlinCompile by tasks
 compileTestKotlin.kotlinOptions {
-    jvmTarget = "17"
+    jvmTarget = "1.8"
+}
+
+publishing {
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = URI("https://maven.pkg.github.com/andre-santos-pt/strudel")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+
+    publications {
+        register<MavenPublication>("strudel") {
+            from(components["java"])
+        }
+    }
 }

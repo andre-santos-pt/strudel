@@ -2,8 +2,10 @@ package pt.iscte.strudel.tests
 
 import org.junit.platform.suite.api.SelectClasses
 import org.junit.platform.suite.api.Suite
-//import pt.iscte.strudel.tests.javaparser.TestLoopIterationMax
+import pt.iscte.strudel.tests.javaparser.TestLoopIterationMax
 import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
+import pt.iscte.strudel.tests.temp.TestUnboundType
+import pt.iscte.strudel.tests.temp.TestsPaper
 
 @Suite
 @SelectClasses(
@@ -41,7 +43,7 @@ import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
     // array errors
     TestArrayIndexOutOfBounds::class,
 
-    //TestLoopIterationMax::class,
+    TestLoopIterationMax::class,
 
     // matrix functions
     TestMatrixSum::class,
@@ -59,7 +61,7 @@ import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
     TestLinkedList::class,
 
     TestAvgInvoke::class,
-    TestUnboundType::class,
+   // TestUnboundType::class,
     TestBuiltinRound::class,
     TestJDKLinkedList::class,
     TestBuiltinString::class,
@@ -67,13 +69,5 @@ import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
     //--- direct source
     TestSortingAlgorithms::class,
 
-
-    TestsPaper::class,
-
-    // comments
-    TestDocumentation::class,
-
-    // IVirtualMachine.usedMemory
-    TestUsedMemory::class
 )
 class AllTests

@@ -1,4 +1,4 @@
-package pt.iscte.strudel.tests
+package pt.iscte.strudel.tests.temp
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel

@@ -1,16 +1,17 @@
-package pt.iscte.strudel.tests
+package pt.iscte.strudel.tests.temp
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.IVariableDeclaration
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
+import pt.iscte.strudel.tests.BaseTest
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 
-class TestNaturalsTemp : pt.iscte.strudel.tests.BaseTest({
+class TestNaturalsTemp : BaseTest({
     Procedure(INT.array().reference(), "naturals") {
         val n = Param(INT, "n")
         val a = Var(INT.array().reference(), "a")
