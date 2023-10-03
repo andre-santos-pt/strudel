@@ -25,9 +25,11 @@ interface IType : IProgramElement {
     val isRecordReference: Boolean
         get() = isReference && (this as IReferenceType).target is IRecordType
 
+    val asArrayType: IArrayType
+        get() = (this as IReferenceType).target as IArrayType
+
     val asRecordType: IRecordType
         get() = (this as IReferenceType).target as IRecordType
-
     fun reference(): IReferenceType =
         if(TypeCache.reference.containsKey(this))
             TypeCache.reference[this]!!

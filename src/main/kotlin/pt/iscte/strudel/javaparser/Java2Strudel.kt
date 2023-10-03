@@ -404,7 +404,7 @@ class Java2Strudel(
                     if (target?.isField == true)
                         procedure.thisParameter.field(target as IVariableDeclaration<IRecordType>)
                     else
-                        target?.expression() ?: error("not found", exp)
+                        target?.expression() ?: error("not found $exp", exp)
                 }
 
                 is ThisExpr -> {
@@ -487,7 +487,7 @@ class Java2Strudel(
                         else
                             unsupported("array initializer", exp)
 
-                    baseType.array().heapAllocationWith(values)
+                    baseType.asArrayType.heapAllocationWith(values)
                 }
 
                 is ArrayAccessExpr -> mapExpression(exp.name).element(
@@ -500,7 +500,7 @@ class Java2Strudel(
                         INIT,
                         emptyList()
                     ) // TODO params
-                        ?: unsupported("not found", exp)
+                        ?: unsupported("not found $exp", exp)
                     val alloc =
                         types.mapType(exp.type).asRecordType.heapAllocation()
                     const.expression(listOf(alloc) + exp.arguments.map {
@@ -529,7 +529,7 @@ class Java2Strudel(
                                 val f =
                                     types[typeId]?.asRecordType?.fields?.find { it.id == exp.nameAsString }
                                         ?: error(
-                                            "not found",
+                                            "not found $exp",
                                             exp
                                         ) // UnboundVariableDeclaration(exp.nameAsString, procedure)
 
@@ -870,7 +870,7 @@ class Java2Strudel(
 
 
         val m = procedures.findProcedure(ns, exp.nameAsString, emptyList())
-            ?: unsupported("not found", exp)
+            ?: unsupported("not found $exp", exp)
         val args = exp.arguments.map { mapExpression(it) }
         return if (exp.scope.isPresent)
             if (ns == null)

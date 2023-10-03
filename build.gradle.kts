@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "pt.iscte"
-version = "0.8.1"
+version = "0.8.2"
 
 repositories {
     mavenCentral()
@@ -41,7 +41,7 @@ tasks.withType<KotlinCompile> {
 tasks {
     register<Jar>("fatJar") {
         group = "distribution"
-        archiveClassifier.set("with-dependencies")
+        archiveClassifier.set("standalone")
         destinationDirectory.set(File("$buildDir/dist"))
         dependsOn.addAll(
             listOf(
@@ -49,7 +49,9 @@ tasks {
                 "processResources"
             )
         )
-
+        manifest {
+            attributes["Main-Class"] = "pt.iscte.strudel.MainJarKt"
+        }
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         val sourcesMain = sourceSets.main.get()
         val contents = configurations.runtimeClasspath.get()
