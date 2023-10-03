@@ -112,11 +112,3 @@ val e: IValue = vm.getValue(23)
 
 val result: IValue? = vm.execute(search, a, e) // true
 ```
-
-<br>
-
-## Inner workings (for nerds)
-Ideias de coisas que eu acho que era giro ir incluindo aqui (se/quando houver interesse, tempo, e motivação):
-- UML
-- Descrição dos processos de tradução e execução (não super detalhado com texto mas maybe uns diagramas giros que modelem o processo assim de maneira simplificada ou wtv)
-- ...?
