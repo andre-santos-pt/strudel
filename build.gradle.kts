@@ -51,6 +51,7 @@ tasks {
         destinationDirectory.set(File("$buildDir/dist"))
         dependsOn.addAll(
             listOf(
+                "compileJava",
                 "compileKotlin",
                 "processResources"
             )
@@ -63,7 +64,9 @@ tasks {
         val contents = configurations.runtimeClasspath.get()
             .map { if (it.isDirectory) it else zipTree(it) } +
                 sourcesMain.output
-        from(contents)
+        from(contents) {
+            exclude("**/*.RSA","**/*.SF","**/*.DSA")
+        }
     }
 }
 //val compileKotlin: KotlinCompile by tasks
