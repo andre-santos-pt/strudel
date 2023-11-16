@@ -122,7 +122,7 @@ class ProcedureExecution(
     private fun execute(s: IStatement): Boolean {
         when (s) {
             is IVariableAssignment -> eval(s.expression)?.let {
-                vm.callStack.topFrame.variables[s.target] = it
+                vm.callStack.topFrame[s.target] = it
                 vm.listeners.forEach { l -> l.variableAssignment(s, it) }
                 return true
             }

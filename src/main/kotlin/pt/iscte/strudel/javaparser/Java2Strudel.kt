@@ -200,10 +200,10 @@ class Java2Strudel(
 
         classes.forEach { c ->
             if (c.extendedTypes.isNotEmpty())
-                unsupported("extends", c)
+                unsupported("extends", c.extendedTypes.first())
 
             if (c.implementedTypes.isNotEmpty())
-                unsupported("implements", c)
+                unsupported("implements", c.extendedTypes.first())
 
             if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 }) {
                 val nodes = c.methods
@@ -585,10 +585,11 @@ class Java2Strudel(
                     else -> unsupported("assign operator ${a.operator}", a)
                 }
             } else if (a.target is FieldAccessExpr) {
-                val solve =
-                    jpFacade.solve((a.target as FieldAccessExpr).scope)
-                val typeId =
-                    solve.correspondingDeclaration.type.asReferenceType().id
+               // val solve = jpFacade.solve((a.target as FieldAccessExpr).scope)
+                val typeId = if((a.target as FieldAccessExpr).scope.isThisExpr)
+                    procedure.namespace//(a.target as FieldAccessExpr).scope.asThisExpr().typeName.getOrNull?.id
+                else
+                    jpFacade.solve((a.target as FieldAccessExpr).scope).correspondingDeclaration.type.asReferenceType().id
 
                 return when (a.operator) { // TODO compound assignment operators
                     AssignExpr.Operator.ASSIGN ->

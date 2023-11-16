@@ -1,5 +1,6 @@
 package pt.iscte.strudel.vm.impl
 
+import pt.iscte.strudel.model.IBlock
 import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.IVariableDeclaration
 import pt.iscte.strudel.vm.*
@@ -8,9 +9,13 @@ internal class StackFrame(callStack: ICallStack, procedure: IProcedure, override
     IStackFrame {
     override val callStack: ICallStack
     override val procedure: IProcedure
-    override val variables: MutableMap<IVariableDeclaration<*>, IValue>
-    override var returnValue: IValue? = null
 
+    private val variableMap: MutableMap<IVariableDeclaration<*>, IValue>
+
+    override val variables: Map<IVariableDeclaration<*>, IValue>
+        get() = variableMap
+
+    override var returnValue: IValue? = null
 
     init {
         require(procedure.parameters.size == arguments.size) { "number of arguments do not match (${procedure.id})"}
@@ -20,17 +25,23 @@ internal class StackFrame(callStack: ICallStack, procedure: IProcedure, override
         }
         this.callStack = callStack
         this.procedure = procedure
-        variables = LinkedHashMap()
+        variableMap = LinkedHashMap()
         returnValue = null
         procedure.parameters.forEachIndexed {
             i, p ->
-            variables[p] = arguments[i].copy()
+            variableMap[p] = arguments[i].copy()
         }
         for (v in procedure.localVariables) {
-            variables[v] = NULL
+            variableMap[v] = NULL
         }
     }
 
+    override fun get(v: IVariableDeclaration<IBlock>): IValue? = variableMap[v]
+
+    override fun set(target: IVariableDeclaration<*>, value: IValue) {
+        val old = variables[target]
+        variableMap[target] = value
+    }
     override fun toString(): String {
         var text = procedure.id + "(...)" // TODO pretty print
         for ((key, value) in variables) text += " $key=$value"

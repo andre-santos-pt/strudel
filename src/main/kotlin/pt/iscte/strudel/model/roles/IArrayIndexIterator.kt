@@ -5,7 +5,7 @@ import pt.iscte.strudel.model.IVariableDeclaration
 
 interface IArrayIndexIterator : IStepper {
     //arrays em que a variavel é usada
-    val arrayVariables: List<Any?>?
+    val arrayVariables: List<IVariableDeclaration<*>>
 
     /**
      * Note: map.keys() is the same as getArrayVarriables().

@@ -191,11 +191,7 @@ internal open class VirtualMachine(
         }
 
         override fun toString(): String {
-            var text = ""
-            for ((key, value1) in fields) {
-                text += """$key = $value1\n"""
-            }
-            return text.ifEmpty { type.id.toString() }
+            return  "(" + fields.entries.joinToString { it.key.id + ": " + it.value } + ")"
         }
 
 

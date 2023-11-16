@@ -18,7 +18,7 @@ class ProcedureInterpreter(
         else
             blockStack.top.current
 
-    val currentExpression: IProgramElement?
+    val currentExpression: IExpression?
         get() = if (expStack.isEmpty())
             null
         else
@@ -45,7 +45,6 @@ class ProcedureInterpreter(
     fun init() {
         vm.callStack.newFrame(procedure, arguments.toList())
         blockStack.add(BlockExec(procedure.block, false))
-
     }
 
     fun run(): IValue? {
@@ -112,16 +111,17 @@ class ProcedureInterpreter(
                     if (valStack.isEmpty())
                         evaluateStep(next.guard)
                     else {
-                        if (valStack.pop().isTrue)
+                        if (valStack.pop().isTrue) {
                             blockStack.push(BlockExec(next.block, false))
-                        else if (next.hasAlternativeBlock())
+                        }
+                        else if (next.hasAlternativeBlock()) {
                             blockStack.push(
                                 BlockExec(
                                     next.alternativeBlock!!,
                                     false
                                 )
                             )
-
+                        }
                         index++
                     }
                 }
@@ -139,8 +139,8 @@ class ProcedureInterpreter(
     }
 
     fun step() {
-        while (expStack.isNotEmpty() && expStack.top is ILiteral)
-            evaluate(expStack.pop())
+//        while (expStack.isNotEmpty() && expStack.top is ILiteral)
+//            evaluate(expStack.pop())
 
         if (expStack.isNotEmpty()) {
             evaluate(expStack.pop())
@@ -186,7 +186,7 @@ class ProcedureInterpreter(
     private fun execute(s: IStatement): Boolean {
         when (s) {
             is IVariableAssignment -> eval(s.expression)?.let {
-                vm.callStack.topFrame.variables[s.target] = it
+                vm.callStack.topFrame[s.target] = it
                 vm.listeners.forEach { l -> l.variableAssignment(s, it) }
                 return true
             }
@@ -203,12 +203,7 @@ class ProcedureInterpreter(
 
                 (array.target as IArray).setElement(i, value)
                 vm.listeners.forEach { l ->
-                    l.arrayElementAssignment(
-                        s,
-                        array,
-                        i,
-                        value
-                    )
+                    l.arrayElementAssignment(s, array, i, value)
                 }
                 return true
             }
