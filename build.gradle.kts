@@ -31,8 +31,14 @@ tasks.withType<Test> {
 
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "17"
     //compilerOptions {
     //    freeCompilerArgs.add("-Xjvm-default=all")
     //}
