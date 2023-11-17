@@ -3,31 +3,34 @@ package pt.iscte.strudel.vm.impl
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.vm.*
 
-internal open class VirtualMachine(
+internal class VirtualMachine(
     override val callStackMaximum: Int = 1024,
-    override val loopIterationMaximum: Int = 1000, // TODO
+    override val loopIterationMaximum: Int = 1000,
     override val availableMemory: Int = 1000, // TODO
     override val throwExceptions: Boolean = true
 ) : IVirtualMachine {
     private val stack: ICallStack
-    override val heapMemory: IHeapMemory
+    override val heapMemory: IHeapMemory = Memory()
 
-    override val listeners = mutableListOf<IVirtualMachine.IListener>()
+    override val listeners: Set<IVirtualMachine.IListener> = mutableSetOf()
 
     init {
         require(callStackMaximum >= 1)
         require(loopIterationMaximum >= 1)
         require(availableMemory >= 1)
         stack = CallStack(this, callStackMaximum)
-        heapMemory = Memory()
     }
 
     override fun addListener(l: IVirtualMachine.IListener) {
-        listeners.add(l)
+        (listeners as MutableSet<IVirtualMachine.IListener>).add(l)
+    }
+
+    override fun removeListener(l: IVirtualMachine.IListener) {
+        (listeners as MutableSet<IVirtualMachine.IListener>).remove(l)
     }
 
     override fun removeAllListeners() {
-        listeners.clear()
+        (listeners as MutableSet<IVirtualMachine.IListener>).clear()
     }
 
     override val callStack: ICallStack
@@ -85,6 +88,12 @@ internal open class VirtualMachine(
                 throw e
             else
                 null
+        }
+    }
+
+    override fun systemOutput(text: String) {
+        listeners.forEach {
+            it.systemOutput(text)
         }
     }
 

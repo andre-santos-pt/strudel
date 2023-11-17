@@ -21,7 +21,7 @@ interface IVirtualMachine {
 
     val instructionPointer: IProgramElement?
 
-    val listeners: List<IListener>
+    val listeners: Set<IListener>
 
     fun getValue(literal: String): IValue
 
@@ -47,7 +47,11 @@ interface IVirtualMachine {
 
     fun addListener(l: IListener)
 
+    fun removeListener(l: IListener)
+
     fun removeAllListeners()
+
+    fun systemOutput(text: String)
 
     fun allocateArray(baseType: IType, length: Int): IReference<IArray> {
         val array = heapMemory.allocateArray(baseType, length)
@@ -119,6 +123,7 @@ interface IVirtualMachine {
         fun recordAllocated(ref: IReference<IRecord>) { }
         fun fieldAssignment(a: IRecordFieldAssignment, value: IValue) { }
         fun executionError(e: RuntimeError) { }
+        fun systemOutput(text: String) { }
     }
 
     companion object {

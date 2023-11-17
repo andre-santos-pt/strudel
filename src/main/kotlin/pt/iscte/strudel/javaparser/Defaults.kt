@@ -39,25 +39,20 @@ internal const val NEW_STRING = "\$newString"
 
 internal val defaultForeignProcedures = listOf(
     ForeignProcedure(null, "println", VOID, ANY) { m, args ->
-        if (args.isEmpty())
-            println()
-        else
-            println(args[0])
+        val text = if(args.isEmpty()) System.lineSeparator()
+        else args[0].toString() + System.lineSeparator()
+        m.systemOutput(text)
     },
     ForeignProcedure(null, "print", VOID, ANY) { m, args ->
-        print(args[0])
+        m.systemOutput(args[0].toString())
     },
     ForeignProcedure("System.out", "println", VOID, ANY) { m, args ->
-        if (args.isEmpty())
-            println()
-        else
-            println(args[0])
+        val text = if(args.isEmpty()) System.lineSeparator()
+        else args[0].toString() + System.lineSeparator()
+        m.systemOutput(text)
     },
     ForeignProcedure("System.out", "print", VOID, ANY) { m, args ->
-        if (args.isEmpty())
-            println()
-        else
-            println(args[0])
+        m.systemOutput(args[0].toString())
     },
     ForeignProcedure(
         null,
