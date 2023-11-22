@@ -34,6 +34,8 @@ const val ID_LOC = "ID_LOC"
 const val TYPE_LOC = "TYPE_LOC"
 const val OPERATOR_LOC = "OPERATOR_LOC"
 
+const val CONSTRUCTOR_FLAG = "CONSTRUCTOR"
+
 private const val THIS_PARAM = "\$this"
 private const val INIT = "\$init"
 private const val IT = "\$it"
@@ -285,7 +287,7 @@ class Java2Strudel(
                     unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
 
                 setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
-
+                setFlag(CONSTRUCTOR_FLAG)
                 addParameter(this.returnType).apply {
                     id = THIS_PARAM
                 }

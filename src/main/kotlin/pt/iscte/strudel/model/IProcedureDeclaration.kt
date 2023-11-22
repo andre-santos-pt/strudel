@@ -1,11 +1,6 @@
 package pt.iscte.strudel.model
 
 
-const val INSTANCE_FLAG = "INSTANCE"
-const val CONSTRUCTOR_FLAG = "CONSTRUCTOR"
-const val BUILTIN_FLAG = "BUILTIN"
-const val HIDDEN_FLAG = "HIDDEN"
-
 typealias IParameter = IVariableDeclaration<IProcedureDeclaration>
 
 interface IProcedureDeclaration : IModuleMember {
