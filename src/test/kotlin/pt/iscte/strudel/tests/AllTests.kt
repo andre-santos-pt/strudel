@@ -42,6 +42,9 @@ import pt.iscte.strudel.tests.temp.TestsPaper
 
     // array errors
     TestArrayIndexOutOfBounds::class,
+    TestDivByZeroInt::class,
+    TestDivByZeroIntMod::class,
+    TestDivByZeroDouble::class,
 
     TestLoopIterationMax::class,
 

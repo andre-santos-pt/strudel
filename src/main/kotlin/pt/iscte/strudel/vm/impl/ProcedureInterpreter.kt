@@ -6,6 +6,7 @@ import pt.iscte.strudel.model.util.*
 import pt.iscte.strudel.vm.*
 
 
+
 class ProcedureInterpreter(
     val vm: IVirtualMachine,
     val procedure: IProcedure,
@@ -370,7 +371,7 @@ class ProcedureInterpreter(
                 }
                 val right = valStack.pop()
                 val left = valStack.pop()
-                valStack.push(binoperation(exp.operator, exp.type, left, right))
+                valStack.push(binoperation(exp, left, right))
             }
 
             is IUnaryExpression -> eval(exp.operand)?.let {
@@ -423,21 +424,24 @@ class ProcedureInterpreter(
             else -> throw UnsupportedOperationException(operator.toString())
         }
 
+    val div0message = "Cannot divide by zero"
     private fun binoperation(
-        operator: IBinaryOperator,
-        type: IType,
+        exp: IBinaryExpression,
         left: IValue,
         right: IValue
     ): IValue {
+        val operator = exp.operator
+        val type = exp.type
         if (operator is ArithmeticOperator) {
-            if (operator == ArithmeticOperator.IDIV) return Value(
-                INT,
-                left.toInt() / right.toInt()
-            )
-            if (operator == ArithmeticOperator.MOD) return Value(
-                INT,
-                left.toInt() % right.toInt()
-            )
+            if (operator == ArithmeticOperator.IDIV)
+                return if(right.toInt() == 0)
+                    throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, div0message)
+                else Value(INT, left.toInt() / right.toInt())
+            if (operator == ArithmeticOperator.MOD)
+                return if(right.toInt() == 0)
+                    throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, div0message)
+                else Value(INT, left.toInt() % right.toInt())
+
 
             val l: Double = left.toDouble()
             val r: Double = right.toDouble()
@@ -445,7 +449,10 @@ class ProcedureInterpreter(
                 ArithmeticOperator.ADD -> l + r
                 ArithmeticOperator.SUB -> l - r
                 ArithmeticOperator.MUL -> l * r
-                ArithmeticOperator.DIV -> l / r
+                ArithmeticOperator.DIV -> if(r == 0.0)
+                    throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, div0message)
+                else
+                    l / r
                 else -> throw UnsupportedOperationException(operator.toString())
             }
 
