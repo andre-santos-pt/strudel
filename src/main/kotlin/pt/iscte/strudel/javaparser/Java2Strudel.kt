@@ -44,8 +44,9 @@ private const val IT = "\$it"
 val IModule.proceduresExcludingConstructors: List<IProcedure>
     get() = procedures.filter { it.id != INIT }
 
-val <T> Optional<T>.getOrNull: T? get() =
-    if(isPresent) this.get() else null
+val <T> Optional<T>.getOrNull: T?
+    get() =
+        if (isPresent) this.get() else null
 
 fun Optional<Comment>.translateComment(): String? =
     if (isPresent) {
@@ -112,7 +113,6 @@ fun typeSolver(): TypeSolver {
 }
 
 val jpFacade = JavaParserFacade.get(typeSolver())
-
 
 
 class Java2Strudel(
@@ -383,7 +383,7 @@ class Java2Strudel(
 //                    t
 //                }
 //            else
-                types[type.asString()]!!
+            types[type.asString()]!!
 
         fun findVariable(id: String): IVariableDeclaration<*>? =
             procedure.variables.find { it.id == id }
@@ -463,7 +463,7 @@ class Java2Strudel(
 
                 // TODO multi level
                 is ArrayCreationExpr -> {
-                    if(exp.levels.any { !it.dimension.isPresent })
+                    if (exp.levels.any { !it.dimension.isPresent })
                         unsupported("multi-dimension array initialization with partial dimensions", exp)
 
                     val arrayType =
@@ -511,6 +511,7 @@ class Java2Strudel(
                         )
                     })
                 }
+
                 is FieldAccessExpr -> {
                     if (exp.scope is ArrayAccessExpr && exp.nameAsString == "length") {
                         mapExpression(exp.scope).length()
@@ -540,6 +541,7 @@ class Java2Strudel(
                         }
                     }
                 }
+
                 is MethodCallExpr -> handleMethodCall(
                     procedure,
                     procedures,
@@ -549,6 +551,7 @@ class Java2Strudel(
                 ) { m, args ->
                     ProcedureCall(NullBlock, m, arguments = args)
                 }
+
                 else -> unsupported("expression", exp)
             }.bind(exp)
 
@@ -584,11 +587,12 @@ class Java2Strudel(
                             mapExpression((a.target as ArrayAccessExpr).index),
                             mapExpression(a.value)
                         )
+
                     else -> unsupported("assign operator ${a.operator}", a)
                 }
             } else if (a.target is FieldAccessExpr) {
-               // val solve = jpFacade.solve((a.target as FieldAccessExpr).scope)
-                val typeId = if((a.target as FieldAccessExpr).scope.isThisExpr)
+                // val solve = jpFacade.solve((a.target as FieldAccessExpr).scope)
+                val typeId = if ((a.target as FieldAccessExpr).scope.isThisExpr)
                     procedure.namespace//(a.target as FieldAccessExpr).scope.asThisExpr().typeName.getOrNull?.id
                 else
                     jpFacade.solve((a.target as FieldAccessExpr).scope).correspondingDeclaration.type.asReferenceType().id
@@ -601,6 +605,7 @@ class Java2Strudel(
                                 ?: unsupported("field access", a),
                             mapExpression(a.value)
                         )
+
                     else -> unsupported("assign operator ${a.operator}", a)
                 }
             } else
@@ -652,6 +657,7 @@ class Java2Strudel(
                         ProcedureCall(block, m, arguments = args)
                     }
                 }
+
                 else -> unsupported("expression statement", s)
             }
 
@@ -688,7 +694,7 @@ class Java2Strudel(
                 initialization.forEach { i ->
                     if (i.isVariableDeclarationExpr) {
                         i.asVariableDeclarationExpr().variables.forEach { v ->
-                            if(procedure.variables.any { it.id == v.nameAsString })
+                            if (procedure.variables.any { it.id == v.nameAsString })
                                 unsupported("variables with same identifiers within the same procedure", i)
                             val varDec =
                                 addVariable(types.mapType(v.type)).apply {
@@ -725,7 +731,7 @@ class Java2Strudel(
             }
 
             is ForEachStmt -> block.Block(EFOR) {
-                if(procedure.variables.any { it.id == variable.variables[0].nameAsString })
+                if (procedure.variables.any { it.id == variable.variables[0].nameAsString })
                     unsupported("variables with same identifiers within the same procedure", variable)
 
                 val itVar =
@@ -783,7 +789,7 @@ class Java2Strudel(
                     if (type == null)
                         unsupported("type", expression)
                     else {
-                        if(procedure.variables.any { it.id == dec.nameAsString })
+                        if (procedure.variables.any { it.id == dec.nameAsString })
                             unsupported("variables with same identifiers within the same procedure", expression)
 
                         val varDec = block.Var(type, dec.nameAsString)
@@ -799,7 +805,25 @@ class Java2Strudel(
                 } else
                     handle(block, expression)
 
-            else -> unsupported("statement", this)
+            is ThrowStmt -> {
+                // throw statement only supported if expression is object creation with single String argument
+                val exc = this.expression as? ObjectCreationExpr
+
+                if (exc == null ||
+                    exc.arguments.size !in 0..1 ||
+                    exc.arguments.size == 1 && exc.arguments[0] !is StringLiteralExpr
+                )
+                    unsupported("$this (${this::class})", this)
+                else {
+                    val msg = if(exc.arguments.isEmpty())
+                        exc.typeAsString
+                    else
+                        (exc.arguments[0] as StringLiteralExpr).value
+                    block.ReturnError(msg)
+                }
+            }
+
+            else -> unsupported("$this (${this::class})", this)
         }
         comment.translateComment()?.let { s.documentation = it }
         s.bind(this)

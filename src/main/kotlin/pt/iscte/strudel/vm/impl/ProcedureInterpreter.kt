@@ -220,7 +220,10 @@ class ProcedureInterpreter(
             }
 
             is IReturn ->
-                if (s.expression != null) {
+                if(s.isError) {
+                    throw ExceptionError(s, s.errorMessage.toString())
+                }
+                else if (s.expression != null) {
                     val e = eval(s.expression!!)
                     e?.let {
                         returnValue = it

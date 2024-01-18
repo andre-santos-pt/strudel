@@ -92,7 +92,8 @@ internal class Return(
     override var parent: IBlock,
     override var expression: IExpression? = null,
     index: Int = -1,
-    override var isError: Boolean = false)
+    override var isError: Boolean = false,
+    override val errorMessage: String? = null)
     : Statement(parent), IReturn {
 
     init {

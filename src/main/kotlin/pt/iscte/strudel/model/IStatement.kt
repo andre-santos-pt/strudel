@@ -34,6 +34,8 @@ interface IReturn : IStatement {
     var expression: IExpression?
     override val parent: IBlock
     val isError: Boolean
+    val errorMessage: String?
+    
     val isVoid: Boolean
         get() = expression == null
 

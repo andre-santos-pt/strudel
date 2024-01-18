@@ -6,19 +6,21 @@ import pt.iscte.strudel.model.IExpression
 import pt.iscte.strudel.model.IProgramElement
 
 enum class RuntimeErrorType {
-    NULL_POINTER, ARRAY_INDEX_BOUNDS, NEGATIVE_ARRAY_SIZE, NONINIT_VARIABLE, LOOP_MAX, STACK_OVERFLOW, OUT_OF_MEMORY, VALUE_OVERFLOW, ASSERTION, DIVBYZERO, BUILT_IN_PROCEDURE, UNSUPPORTED
+    NULL_POINTER, ARRAY_INDEX_BOUNDS, NEGATIVE_ARRAY_SIZE, NONINIT_VARIABLE, LOOP_MAX, STACK_OVERFLOW, OUT_OF_MEMORY, VALUE_OVERFLOW, ASSERTION, DIVBYZERO, BUILT_IN_PROCEDURE, EXCEPTION, UNSUPPORTED
 }
 
 open class RuntimeError(
     val type: RuntimeErrorType,
     val sourceElement: IProgramElement?,
-    override val message: String) : RuntimeException() {
+    override val message: String?) : RuntimeException() {
 
     override fun toString(): String {
         return "$type at $sourceElement: $message"
     }
 }
 
+class ExceptionError(sourceElement: IProgramElement, msg: String?)
+    : RuntimeError(RuntimeErrorType.EXCEPTION, sourceElement, msg)
 
 class ArrayIndexError(
     element: IArrayAccess,
