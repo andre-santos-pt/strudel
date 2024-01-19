@@ -21,7 +21,11 @@ internal class StackFrame(callStack: ICallStack, procedure: IProcedure, override
         require(procedure.parameters.size == arguments.size) { "number of arguments do not match (${procedure.id})"}
         procedure.parameters.forEachIndexed {
             i, p ->
-           require(p.type.isSame(arguments[i].type) || p.type.isReference && arguments[i] == NULL)
+           require(p.type.isSame(arguments[i].type) || p.type.isReference && arguments[i] == NULL) {
+               "Argument types do not match procedure parameter types: ${procedure.id}" +
+                       "\n\tExpected: ${procedure.parameters.joinToString { it.type.id ?: "null" }}" +
+                       "\n\tBut was: ${arguments.joinToString { it.type.id ?: "null" }}"
+           }
         }
         this.callStack = callStack
         this.procedure = procedure
