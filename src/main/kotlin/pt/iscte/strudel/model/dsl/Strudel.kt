@@ -158,9 +158,11 @@ fun IBlock.ArraySet(v: IVariableDeclaration<*>, index: IExpression, e: IExpressi
 fun IBlock.ArraySet(v: ITargetExpression, index: IExpression, e: IExpression): IArrayElementAssignment =
     ArrayElementAssignment(this, v, e, arrayIndex = index)
 
-fun IBlock.FieldSet(variable: IVariableDeclaration<*>, f: IVariableDeclaration<IRecordType>, e: IExpression) : IRecordFieldAssignment = FieldSet(variable.expression(), f, e)
+fun IBlock.FieldSet(variable: IVariableDeclaration<*>, f: IVariableDeclaration<IRecordType>, e: IExpression, index: Int = -1) : IRecordFieldAssignment =
+    FieldSet(variable.expression(), f, e, index)
 
-fun IBlock.FieldSet(s: ITargetExpression, f: IVariableDeclaration<IRecordType>, e: IExpression) : IRecordFieldAssignment = RecordFieldAssignment(this, s, f, e)
+fun IBlock.FieldSet(s: ITargetExpression, f: IVariableDeclaration<IRecordType>, e: IExpression, index: Int = -1) : IRecordFieldAssignment =
+    RecordFieldAssignment(this, s, f, e, index)
 
 fun lit(n: Number) =
     if (n is Int) INT.literal(n)

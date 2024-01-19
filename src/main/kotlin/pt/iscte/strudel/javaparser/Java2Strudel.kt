@@ -129,6 +129,8 @@ class Java2Strudel(
     val bindJavaParser: Boolean = true
 ) {
 
+    private val fieldInitializers = mutableMapOf<IField, Expression>()
+
     private fun <T : IProgramElement> T.bind(
         node: Node,
         prop: String? = null
@@ -248,12 +250,13 @@ class Java2Strudel(
                 if (f.variables.size > 1)
                     unsupported("multiple field declarations", f)
 
-                if (f.variables[0].initializer.isPresent)
-                    unsupported("field initializers", f)
-
-                recordType.addField(types[f.variables[0].typeAsString]!!) {
+                val field = recordType.addField(types[f.variables[0].typeAsString]!!) {
                     id = f.variables[0].nameAsString
                 }
+
+                if (f.variables[0].initializer.isPresent)
+                    fieldInitializers[field] = f.variables[0].initializer.get()
+                    //unsupported("field initializers", f)
             }
         }
 
@@ -308,6 +311,7 @@ class Java2Strudel(
                         .bind(p.type, TYPE_LOC)
                         .bind(p.name, ID_LOC)
                 }
+
                 bind(this@translateConstructor)
                 setProperty(NAMESPACE_PROP, namespace)
                 bind(name, ID_LOC)
@@ -319,37 +323,56 @@ class Java2Strudel(
                 types.mapType(type.nameAsString),
                 INIT
             ).apply {
+                setFlag("public") // Added public modifier
+                setFlag(CONSTRUCTOR_FLAG)
                 var instance = addParameter(returnType).apply {
-                    id = "instance"
+                    id = THIS_PARAM /* @ambco-iscte : Change to THIS_PARAM from "instance" */
                 }
                 block.Return(instance)
                 setProperty(NAMESPACE_PROP, type.nameAsString)
             }
 
         val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> =
-            classes.filter { it.constructors.isEmpty() && it.methods.none { it.nameAsString == INIT } }
-                .map {
-                    null to createDefaultConstructor(it)
-                } + classes.map { it.constructors }.flatten().map {
+            classes.filter {
+                // Filter to classes with no constructor declarations
+                it.constructors.isEmpty() && it.methods.none { method -> method.nameAsString == INIT }
+            }.map {
+                null to createDefaultConstructor(it) // Map a null declaration to a default constructor
+            } +
+            classes.map {
+                it.constructors // Map each class to its constructor declarations
+            }.flatten(). // Flatten to get a list of all constructor declarations
+            map {
+                // Map each constructor declaration to its translation
                 it to it.translateConstructor((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
-            } + classes.map { it.methods }.flatten().map {
+            } +
+            classes.map {
+                it.methods // Map each class to its method declarations
+            }.flatten(). // Flatten to get a list of all constructor declarations
+            map {
+                // Map each method declaration to its translation
                 it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
             }
 
-        procedures.filter {
-            it.first != null && it.second is IProcedure
-        }.forEach {
-            it.first!!.body?.translate(
-                it.second as IProcedure,
-                (it.second as IProcedure).block,
-                procedures,
-                types
-            )
-            if (it.first is ConstructorDeclaration)
-                (it.second as IProcedure).block.Return(it.second.thisParameter)
+        procedures.forEach {
+            if (it.first != null && it.second is IProcedure) {
+                it.first!!.body?.translate(
+                    it.second as IProcedure,
+                    (it.second as IProcedure).block,
+                    procedures,
+                    types
+                )
+                if (it.first is ConstructorDeclaration)
+                    (it.second as IProcedure).block.Return(it.second.thisParameter)
+            } else {
+                BlockStmt().translate(
+                    it.second as IProcedure,
+                    (it.second as IProcedure).block,
+                    procedures,
+                    types
+                )
+            }
         }
-
-
     }
 
     fun List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>.findProcedure(
@@ -373,15 +396,6 @@ class Java2Strudel(
         procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
         types: MutableMap<String, IType>
     ) {
-        if (this is EmptyStmt)
-            return
-        else if (this is BlockStmt) {
-            this.statements.forEach {
-                it.translate(procedure, block, procedures, types)
-            }
-            return
-        }
-
         fun getType(type: Type): IType =
 //            if (type.isArrayType)
 
@@ -670,6 +684,39 @@ class Java2Strudel(
 
                 else -> unsupported("expression statement", s)
             }
+
+        /*
+         * @ambco-iscte
+         * Moved this here since above are just function declarations anyway and I needed access to mapExpression
+         */
+        if (this is EmptyStmt)
+            return
+        else if (this is BlockStmt) {
+            // Inject field initializers
+            val ownerProcedure = procedures.firstOrNull {
+                it.first == null || it.first?.body == this
+            }?.second
+            if (ownerProcedure != null && ownerProcedure.hasFlag(CONSTRUCTOR_FLAG)) {
+                val type = ownerProcedure.thisParameter.type.asRecordType
+                type.fields.forEach { field ->
+                    val init = fieldInitializers[field]
+                    if (init != null)
+                        ownerProcedure.block.FieldSet(
+                            ownerProcedure.thisParameter.expression(),
+                            field,
+                            mapExpression(init),
+                            0
+                        )
+                    fieldInitializers.remove(field)
+                }
+            }
+
+            // Translate body
+            this.statements.forEach {
+                it.translate(procedure, block, procedures, types)
+            }
+            return
+        }
 
 
         val s = when (this) {
