@@ -4,129 +4,65 @@ import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.Modifier
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.*
-import com.github.javaparser.ast.comments.Comment
-import com.github.javaparser.ast.expr.*
-import com.github.javaparser.ast.stmt.*
-import com.github.javaparser.ast.type.ClassOrInterfaceType
-import com.github.javaparser.ast.type.Type
+import com.github.javaparser.ast.expr.Expression
+import com.github.javaparser.ast.expr.MethodCallExpr
+import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
-import com.github.javaparser.resolution.TypeSolver
 import com.github.javaparser.resolution.types.ResolvedType
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade
-import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
-import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
-import pt.iscte.strudel.model.impl.ProcedureCall
-import pt.iscte.strudel.model.impl.RecordFieldExpression
-import pt.iscte.strudel.model.impl.VariableExpression
-import pt.iscte.strudel.model.util.ArithmeticOperator
 import java.io.File
-import java.util.Optional
 
-
-const val JP = "JP"
-const val FOR = "FOR"
-const val EFOR = "EFOR"
-
-const val ID_LOC = "ID_LOC"
-const val TYPE_LOC = "TYPE_LOC"
-const val OPERATOR_LOC = "OPERATOR_LOC"
-
-const val CONSTRUCTOR_FLAG = "CONSTRUCTOR"
-
-internal const val THIS_PARAM = "\$this"
-internal const val INIT = "\$init"
-private const val IT = "\$it"
-
-
-val IModule.proceduresExcludingConstructors: List<IProcedure>
-    get() = procedures.filter { it.id != INIT }
-
-val <T> Optional<T>.getOrNull: T?
-    get() =
-        if (isPresent) this.get() else null
-
-fun Optional<Comment>.translateComment(): String? =
-    if (isPresent) {
-        val comment = get()
-        val str = comment.asString()
-        str.substring(comment.header?.length ?: 0, str.length - (comment.footer?.length ?: 0)).trim()
-    } else null
-
-fun MutableMap<String, IType>.mapType(t: String): IType =
-    if (containsKey(t))
-        this[t]!!
-    else {
-        try {
-            JavaType(Class.forName(t))
-        } catch (e1: Exception) {
-            try {
-                JavaType(Class.forName("java.lang.$t"))
-            } catch (e2: Exception) {
-                try {
-                    JavaType(Class.forName("java.util.$t"))
-                } catch (e3: Exception) {
-                    error("type", t)
-                }
-            }
-        }
-    }
-
-class StrudelUnsupported(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
-    val locations = nodes.map {
-        SourceLocation(it)
-    }
+class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
+    val locations = nodes.map { SourceLocation(it) }
 
     constructor(msg: String, node: Node) : this(msg, listOf(node))
 }
 
-fun MutableMap<String, IType>.mapType(t: Type) =
-    if (t is ClassOrInterfaceType)
-        mapType(t.nameAsString)
-    else
-        mapType(t.asString())
-
-fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
-    mapType(t.nameAsString)
-
-// inline because otherwise test fails (KotlinNothingValueException)
+@Suppress("NOTHING_TO_INLINE") // inline because otherwise test fails (KotlinNothingValueException)
 inline fun unsupported(msg: String, node: Node): Nothing {
-    throw StrudelUnsupported(msg, node)
+    throw StrudelUnsupportedException("Unsupported $msg in: $node", node)
 }
 
+@Suppress("NOTHING_TO_INLINE")
 inline fun unsupported(msg: String, nodes: List<Node>): Nothing {
-    throw StrudelUnsupported(msg, nodes)
+    throw StrudelUnsupportedException("Unsupported $msg in:\n\t${nodes.joinToString("\n\t")}", nodes)
 }
 
+@Suppress("NOTHING_TO_INLINE")
 inline fun error(msg: String, node: Any): Nothing {
-    throw AssertionError("compile error $msg: $node (${node::class.java})")
+    throw AssertionError("Compilation error at $node (${node::class.java}): $msg")
 }
 
-val CallableDeclaration<*>.body: BlockStmt?
-    get() = if (this is ConstructorDeclaration) this.body
-    else (this as MethodDeclaration).body.getOrNull
-
-fun typeSolver(): TypeSolver {
-    val combinedTypeSolver = CombinedTypeSolver()
-    combinedTypeSolver.add(ReflectionTypeSolver())
-//        combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-core")))
-//        combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-generated-sources")))
-    return combinedTypeSolver
-}
-
-val jpFacade = JavaParserFacade.get(typeSolver())
+val JPFacade: JavaParserFacade = JavaParserFacade.get(typeSolver())
 
 
 class Java2Strudel(
     val foreignTypes: List<IType> = emptyList(),
     val foreignProcedures: List<IProcedureDeclaration> = defaultForeignProcedures,
-    val bindSource: Boolean = true,
-    val bindJavaParser: Boolean = true
+    private val bindSource: Boolean = true,
+    private val bindJavaParser: Boolean = true
 ) {
 
+    private val supportedModifiers = listOf(
+        Modifier.Keyword.STATIC,
+        Modifier.Keyword.PUBLIC,
+        Modifier.Keyword.PRIVATE,
+    )
+
     private val fieldInitializers = mutableMapOf<IField, Expression>()
+
+    fun load(file: File): IModule =
+        translate(StaticJavaParser.parse(file).types.filterIsInstance<ClassOrInterfaceDeclaration>())
+
+    fun load(files: List<File>): IModule = translate(files.map {
+        StaticJavaParser.parse(it).types.filterIsInstance<ClassOrInterfaceDeclaration>()
+    }.flatten())
+
+    fun load(src: String): IModule =
+        translate(StaticJavaParser.parse(src).types.filterIsInstance<ClassOrInterfaceDeclaration>())
 
     internal fun <T : IProgramElement> T.bind(
         node: Node,
@@ -149,17 +85,66 @@ class Java2Strudel(
         return this
     }
 
-    fun load(file: File): IModule =
-        translate(StaticJavaParser.parse(file).types.filterIsInstance<ClassOrInterfaceDeclaration>())
+    /**
+     * Finds a procedure with matching namespace, ID, and parameter types.
+     * @receiver A list of (JavaParser Declaration, IProcedureDeclaration) pairs.
+     * @param namespace Procedure namespace.
+     * @param id Procedure ID.
+     * @param paramTypes List of parameter types.
+     * @return The matching procedure declaration, or null if one wasn't found.
+     */
+    internal fun List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>.findProcedure(
+        namespace: String?,
+        id: String,
+        paramTypes: List<ResolvedType>  // TODO param types in find procedure
+    ): IProcedureDeclaration? {
+        val find = find { (namespace == null || it.second.namespace == namespace) && it.second.id == id }
+        if (find != null)
+            return find.second
+        return foreignProcedures.find { it.namespace == namespace && it.id == id }
+    }
 
-    fun load(files: List<File>): IModule =
-        translate(files.map { StaticJavaParser.parse(it).types.filterIsInstance<ClassOrInterfaceDeclaration>() }
-            .flatten())
+    internal fun <T> handleMethodCall(
+        procedure: IProcedure,
+        procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
+        types: Map<String, IType>,
+        exp: MethodCallExpr,
+        mapExpression: (Expression) -> IExpression,
+        creator: (IProcedureDeclaration, List<IExpression>) -> T
+    ): T {
+        // val paramTypes = s.arguments.map { it.calculateResolvedType() })
 
-    fun load(src: String): IModule =
-        translate(StaticJavaParser.parse(src).types.filterIsInstance<ClassOrInterfaceDeclaration>())
+        // Get method namespace
+        val namespace: String? =
+            if (exp.scope.isPresent) {
+                val isNativeProcedure = exp.scope.get() is NameExpr && types.containsKey(exp.scope.get().toString())
+                val isForeignProcedure = foreignProcedures.any { it.namespace == exp.scope.get().toString() }
 
-    fun collectHostTypes(
+                if (isNativeProcedure || isForeignProcedure)
+                    exp.scope.get().toString()
+                else null
+            } else null
+
+        // Find matching procedure declaration
+        val method = procedures.findProcedure(
+            namespace, exp.nameAsString, emptyList()
+        ) ?: unsupported("not found $exp", exp)
+
+        // Get method call arguments
+        val args = exp.arguments.map { mapExpression(it) }
+
+        return if (exp.scope.isPresent)
+            if (namespace == null)
+                creator(method, listOf(mapExpression(exp.scope.get())) + args)
+            else
+                creator(method, args)
+        else if (method.parameters.isNotEmpty() && method.parameters[0].id == THIS_PARAM) // Instance method
+            creator(method, listOf(procedure.thisParameter.expression()) + args)
+        else
+            creator(method, args)
+    }
+
+    private fun collectHostTypes(
         types: MutableMap<String, IType>,
         type: ClassOrInterfaceDeclaration
     ): List<HostRecordType> {
@@ -197,18 +182,111 @@ class Java2Strudel(
         return list
     }
 
-    private val supportedModifiers = listOf(
-        Modifier.Keyword.STATIC,
-        Modifier.Keyword.PUBLIC,
-        Modifier.Keyword.PRIVATE,
-    )
-
-    fun translate(classes: List<ClassOrInterfaceDeclaration>) = module {
+    private fun translate(classes: List<ClassOrInterfaceDeclaration>) = module {
         val types = defaultTypes.toMutableMap()
+
+        /**
+         * Translates a JavaParser method declaration into a Strudel procedure declaration.
+         * @receiver Any JavaParser method declaration.
+         * @param namespace Method namespace.
+         * @return IProcedure with correct modifiers and parameters but empty body.
+         */
+        fun MethodDeclaration.translateMethod(namespace: String): IProcedureDeclaration =
+            if (!body.isPresent)
+                PolymophicProcedure(this@module, nameAsString, emptyList(), types.mapType(type))
+            else
+                Procedure(types.mapType(type), nameAsString).apply {
+                    comment.translateComment()?.let { this.documentation = it }
+
+                    // Check for unsupported modifiers
+                    if (modifiers.any { !supportedModifiers.contains(it.keyword) })
+                        unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
+
+                    // Add modifiers
+                    setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
+
+                    // Is instance method --> Add $this parameter
+                    if (!modifiers.contains(Modifier.staticModifier()))
+                        addParameter(types.mapType((parentNode.get() as ClassOrInterfaceDeclaration))).apply {
+                            id = THIS_PARAM
+                        }
+
+                    // Add regular method parameters
+                    this@translateMethod.parameters.forEach { p ->
+                        addParameter(types.mapType(p.type)).apply {
+                            id = p.nameAsString
+                        }.bind(p)
+                            .bind(p.type, TYPE_LOC)
+                            .bind(p.name, ID_LOC)
+                    }
+
+                    bind(this@translateMethod)
+                    setProperty(NAMESPACE_PROP, namespace)
+                    bind(name, ID_LOC)
+                    bind(this@translateMethod.type, TYPE_LOC)
+                }
+
+        /**
+         * Translates a Java Parser constructor declaration.
+         * @receiver Java Parser constructor declaration.
+         * @param namespace Constructor namespace.
+         * @return IProcedure with correct modifiers and parameters but empty body.
+         */
+        fun ConstructorDeclaration.translateConstructor(namespace: String) =
+            Procedure(
+                types.mapType(this.nameAsString),
+                INIT
+            ).apply {
+                comment.translateComment()?.let { this.documentation = it }
+
+                // Check for unsupported modifiers
+                if (modifiers.any { !supportedModifiers.contains(it.keyword) })
+                    unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
+
+                // Set modifiers and constructor flag
+                setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
+                setFlag(CONSTRUCTOR_FLAG)
+
+                // Add $this parameter
+                addParameter(this.returnType).apply {
+                    id = THIS_PARAM
+                }
+
+                // Add regular constructor parameters
+                this@translateConstructor.parameters.forEach { p ->
+                    addParameter(types.mapType(p.type)).apply {
+                        id = p.nameAsString
+                    }.bind(p)
+                        .bind(p.type, TYPE_LOC)
+                        .bind(p.name, ID_LOC)
+                }
+
+                bind(this@translateConstructor)
+                setProperty(NAMESPACE_PROP, namespace)
+                bind(name, ID_LOC)
+                bind(this@translateConstructor.name, TYPE_LOC)
+            }
+
+        /**
+         * Creates a default constructor for a JavaParser class or interface declaration.
+         * @param type JavaParser class declaration.
+         * @return IProcedure with `return $this` statement and otherwise empty body.
+         */
+        fun createDefaultConstructor(type: ClassOrInterfaceDeclaration) =
+            Procedure(
+                types.mapType(type.nameAsString),
+                INIT
+            ).apply {
+                setFlag("public")
+                setFlag(CONSTRUCTOR_FLAG)
+                val instance = addParameter(returnType).apply { id = THIS_PARAM }
+                block.Return(instance)
+                setProperty(NAMESPACE_PROP, type.nameAsString)
+            }
 
         classes.forEach { c ->
             if (c.extendedTypes.isNotEmpty())
-                unsupported("extends", c.extendedTypes.first())
+                unsupported("extends keyword", c.extendedTypes.first())
 
             //if (c.implementedTypes.isNotEmpty())
             //    unsupported("implements", c.implementedTypes.first())
@@ -219,7 +297,7 @@ class Java2Strudel(
                     .filter { it.value.size > 1 }
                     .values.first()
                     .toList()
-                unsupported("method name overload", nodes)
+                unsupported("method name overloading", nodes)
             }
 
             val type = Record(c.nameAsString) {
@@ -240,534 +318,95 @@ class Java2Strudel(
             }
         }
 
+        // Translate field declarations for each class
         classes.forEach { c ->
-            val recordType =
-                (types[c.nameAsString] as IReferenceType).target as IRecordType
-            c.fields.forEach { f ->
-                if (f.variables.size > 1)
-                    unsupported("multiple field declarations", f)
+            val recordType = (types[c.nameAsString] as IReferenceType).target as IRecordType
+            c.fields.forEach { field ->
+                if (field.variables.size > 1)
+                    unsupported("multiple field declarations", field)
 
-                val field = recordType.addField(types[f.variables[0].typeAsString]!!) {
-                    id = f.variables[0].nameAsString
+                val f = recordType.addField(types[field.variables[0].typeAsString]!!) {
+                    id = field.variables[0].nameAsString
                 }
 
-                if (f.variables[0].initializer.isPresent)
-                    fieldInitializers[field] = f.variables[0].initializer.get()
-                //unsupported("field initializers", f)
+                // Store field initializer JavaParser expressions
+                // (these are translated and injected into constructor(s) later)
+                if (field.variables[0].initializer.isPresent)
+                    fieldInitializers[f] = field.variables[0].initializer.get()
             }
         }
 
-        fun MethodDeclaration.translateMethod(namespace: String): IProcedureDeclaration =
-            if (!body.isPresent)
-                PolymophicProcedure(this@module, nameAsString, emptyList(), types.mapType(type))
-            else
-                Procedure(types.mapType(type), nameAsString).apply {
-                    comment.translateComment()?.let { this.documentation = it }
-
-                    if (modifiers.any { !supportedModifiers.contains(it.keyword) })
-                        unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
-
-                    setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
-
-                    if (!modifiers.contains(Modifier.staticModifier()))
-                        addParameter(types.mapType((parentNode.get() as ClassOrInterfaceDeclaration))).apply {
-                            id = THIS_PARAM
-                        }
-                    this@translateMethod.parameters.forEach { p ->
-                        addParameter(types.mapType(p.type)).apply {
-                            id = p.nameAsString
-                        }.bind(p)
-                            .bind(p.type, TYPE_LOC)
-                            .bind(p.name, ID_LOC)
-                    }
-                    bind(this@translateMethod)
-                    setProperty(NAMESPACE_PROP, namespace)
-                    bind(name, ID_LOC)
-                    bind(this@translateMethod.type, TYPE_LOC)
-                }
-
-        fun ConstructorDeclaration.translateConstructor(namespace: String) =
-            Procedure(
-                types.mapType(this.nameAsString),
-                INIT
-            ).apply {
-                comment.translateComment()?.let { this.documentation = it }
-
-                if (modifiers.any { !supportedModifiers.contains(it.keyword) })
-                    unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
-
-                setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
-                setFlag(CONSTRUCTOR_FLAG)
-                addParameter(this.returnType).apply {
-                    id = THIS_PARAM
-                }
-                this@translateConstructor.parameters.forEach { p ->
-                    addParameter(types.mapType(p.type)).apply {
-                        id = p.nameAsString
-                    }.bind(p)
-                        .bind(p.type, TYPE_LOC)
-                        .bind(p.name, ID_LOC)
-                }
-
-                bind(this@translateConstructor)
-                setProperty(NAMESPACE_PROP, namespace)
-                bind(name, ID_LOC)
-                bind(this@translateConstructor.name, TYPE_LOC)
-            }
-
-        fun createDefaultConstructor(type: ClassOrInterfaceDeclaration) =
-            Procedure(
-                types.mapType(type.nameAsString),
-                INIT
-            ).apply {
-                setFlag("public")
-                setFlag(CONSTRUCTOR_FLAG)
-                var instance = addParameter(returnType).apply {
-                    id = THIS_PARAM /* @ambco-iscte : Change to THIS_PARAM from "instance" */
-                }
-
-                block.Return(instance)
-                setProperty(NAMESPACE_PROP, type.nameAsString)
-            }
-
-        val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> =
-            classes.filter {
-                // Filter to classes with no constructor declarations
+        /**
+         * Associates every callable declaration in a list of class declarations with a Strudel IProcedureDeclaration.
+         * @receiver A list of JavaParser class or interface declarations.
+         * @return A list of (JavaParser Declaration, IProcedure) pairs. Declaration is null for default constructors.
+         */
+        fun List<ClassOrInterfaceDeclaration>.getAllProcedures(): List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> {
+            // Default constructors created for classes with no explicit constructor declarations
+            val defaultConstructors = filter {
                 it.constructors.isEmpty() && it.methods.none { method -> method.nameAsString == INIT }
             }.map {
-                null to createDefaultConstructor(it) // Map a null declaration to a default constructor
-            } +
-                    classes.map {
-                        it.constructors // Map each class to its constructor declarations
-                    }.flatten(). // Flatten to get a list of all constructor declarations
-                    map {
-                        // Map each constructor declaration to its translation
-                        it to it.translateConstructor((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
-                    } +
-                    classes.map {
-                        it.methods // Map each class to its method declarations
-                    }.flatten(). // Flatten to get a list of all constructor declarations
-                    map {
-                        // Map each method declaration to its translation
-                        it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
-                    }
+                null to createDefaultConstructor(it)
+            }
 
+            // Each explicit constructor declarations are translated
+            val explicitConstructors = flatMap { it.constructors }.map {
+                it to it.translateConstructor((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
+            }
+
+            // Each of a type's methods is translated
+            val methods = flatMap { it.methods }.map {
+                it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
+            }
+
+            return defaultConstructors + explicitConstructors + methods
+        }
+
+        // Get all procedures in a list of class declarations
+        val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> = classes.getAllProcedures()
+
+        /**
+         * Injects field assignment statements in a procedure based on a record type's field initializers.
+         * @receiver Any IProcedure. The goal is to use this with record type constructors.
+         * @param type Record type. If null, defaults to procedure's return type as a record type.
+         */
+        fun IProcedure.injectFieldInitializers(type: IRecordType? = null) {
+            val exp2Strudel = JavaExpression2Strudel(this, block, procedures, types, this@Java2Strudel)
+            val t = type ?: thisParameter.type.asRecordType
+            t.fields.reversed().forEach { field ->
+                fieldInitializers[field]?.let {
+                    block.FieldSet(
+                        thisParameter.expression(),
+                        field,
+                        exp2Strudel.map(it),
+                        0
+                    )
+                }
+            }
+        }
+
+        // Translate bodies of all procedures
         procedures.forEach {
             if (it.first != null && it.second is IProcedure) {
-                if (it.first is ConstructorDeclaration) {
-                    val exp2Strudel = JavaExpression2Strudel(it.second as IProcedure, (it.second as IProcedure).block, procedures, types, this@Java2Strudel)
-                    val type = it.second.thisParameter.type.asRecordType
-                    type.fields.forEach { field ->
-                        val init = fieldInitializers[field]
-                        if (init != null) {
-                            (it.second as IProcedure).block.FieldSet(
-                                it.second.thisParameter.expression(),
-                                field,
-                                exp2Strudel.map(init)
-                            )
-                        }
-                    }
-                }
-
-                it.first!!.body?.translate(
+                val stmtTranslator = JavaStatement2Strudel(
                     it.second as IProcedure,
-                    (it.second as IProcedure).block,
                     procedures,
-                    types
+                    types,
+                    this@Java2Strudel
                 )
-                if (it.first is ConstructorDeclaration)
+
+                // Translate statements in declaration body
+                it.first!!.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
+
+                // Inject field initializers and return statement in constructors
+                if (it.first is ConstructorDeclaration) {
+                    (it.second as IProcedure).injectFieldInitializers()
                     (it.second as IProcedure).block.Return(it.second.thisParameter)
-            } else if (it.first == null) { // if no JavaParser declaration -> default constructor
-                val exp2Strudel = JavaExpression2Strudel(it.second as IProcedure, (it.second as IProcedure).block, procedures, types, this@Java2Strudel)
-                val type = it.second.thisParameter.type.asRecordType
-                type.fields.reversed().forEach { field ->
-                    val init = fieldInitializers[field]
-                    if (init != null) {
-                        (it.second as IProcedure).block.FieldSet(
-                            it.second.thisParameter.expression(),
-                            field,
-                            exp2Strudel.map(init),
-                            0
-                        )
-                    }
                 }
+            } else if (it.first == null) { // No JavaParser declaration --> default constructor
+                // Inject field initializers into default constructors
+                (it.second as IProcedure).injectFieldInitializers()
             }
         }
-    }
-
-    fun List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>.findProcedure(
-        namespace: String?,
-        id: String,
-        paramTypes: List<ResolvedType>  // TODO param types in find procedure
-    ): IProcedureDeclaration? {
-        val find =
-            find { (namespace == null || it.second.namespace == namespace) && it.second.id == id }
-        if (find != null)
-            return find.second
-
-        val findForeign =
-            foreignProcedures.find { it.namespace == namespace && it.id == id }
-        return findForeign
-    }
-
-    fun Statement.translate(
-        procedure: IProcedure,
-        block: IBlock,
-        procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
-        types: MutableMap<String, IType>
-    ) {
-
-        val exp2Strudel = JavaExpression2Strudel(procedure, block, procedures, types, this@Java2Strudel)
-
-        fun getType(type: Type): IType =
-//            if (type.isArrayType)
-
-//                if(types.containsKey(type.asString()))
-//                    types[type.asString()]!!
-//                else {
-//                    val t = getType(type.elementType).array()
-//                    types[type.elementType.asString() + "[]"] = t
-//                    t
-//                }
-//            else
-            types[type.asString()]!!
-
-        fun findVariable(id: String): IVariableDeclaration<*>? =
-            procedure.variables.find { it.id == id }
-                ?: procedure.parameters.find { it.id == THIS_PARAM }
-                    ?.let { p ->
-                        ((p.type as IReferenceType).target as IRecordType).getField(
-                            id
-                        )
-                    }
-
-        fun handleAssign(block: IBlock, a: AssignExpr): IStatement {
-            if (a.target is NameExpr) {
-                val target = findVariable(a.target.toString())
-                    ?: error(
-                        "not found",
-                        a
-                    ) // UnboundVariableDeclaration(a.target.toString(), block)
-
-                val value = when (a.operator) {
-                    AssignExpr.Operator.ASSIGN -> exp2Strudel.map(a.value)
-                    else -> a.operator.map(a)
-                        .on(exp2Strudel.map(a.target), exp2Strudel.map(a.value))
-                }
-
-                return if (target.isField)
-                    block.FieldSet(
-                        procedure.thisParameter.expression(),
-                        target as IVariableDeclaration<IRecordType>,
-                        value
-                    )
-                else
-                    block.Assign(target, value)
-
-            } else if (a.target is ArrayAccessExpr) {
-                return when (a.operator) { // TODO compound assignment operators
-                    AssignExpr.Operator.ASSIGN ->
-                        block.ArraySet(
-                            exp2Strudel.map((a.target as ArrayAccessExpr).name) as ITargetExpression,
-                            exp2Strudel.map((a.target as ArrayAccessExpr).index),
-                            exp2Strudel.map(a.value)
-                        )
-
-                    else -> unsupported("assign operator ${a.operator}", a)
-                }
-            } else if (a.target is FieldAccessExpr) {
-                // val solve = jpFacade.solve((a.target as FieldAccessExpr).scope)
-                val typeId = if ((a.target as FieldAccessExpr).scope.isThisExpr)
-                    procedure.namespace//(a.target as FieldAccessExpr).scope.asThisExpr().typeName.getOrNull?.id
-                else
-                    jpFacade.solve((a.target as FieldAccessExpr).scope).correspondingDeclaration.type.asReferenceType().id
-
-                return when (a.operator) { // TODO compound assignment operators
-                    AssignExpr.Operator.ASSIGN ->
-                        block.FieldSet(
-                            exp2Strudel.map((a.target as FieldAccessExpr).scope) as ITargetExpression,
-                            types[typeId]?.asRecordType?.fields?.find { it.id == (a.target as FieldAccessExpr).nameAsString }
-                                ?: unsupported("field access", a),
-                            exp2Strudel.map(a.value)
-                        )
-
-                    else -> unsupported("assign operator ${a.operator}", a)
-                }
-            } else
-                unsupported("assignment", a)
-        }
-
-
-        fun handle(block: IBlock, s: Expression): IStatement =
-            when (s) {
-                is AssignExpr -> handleAssign(block, s)
-
-                is UnaryExpr ->
-                    // TODO array ++ --
-                    if (s.operator == UnaryExpr.Operator.PREFIX_INCREMENT || s.operator == UnaryExpr.Operator.POSTFIX_INCREMENT) {
-                        val varExp = exp2Strudel.map(s.expression)
-                        if (varExp is VariableExpression)
-                            block.Assign(varExp.variable, varExp + lit(1))
-                        else if (varExp is RecordFieldExpression)
-                            block.FieldSet(
-                                varExp.target,
-                                varExp.field,
-                                varExp + lit(1)
-                            )
-                        else
-                            unsupported("${s.operator} on ${s.expression}", s)
-                    } else if (s.operator == UnaryExpr.Operator.PREFIX_DECREMENT || s.operator == UnaryExpr.Operator.POSTFIX_DECREMENT) {
-                        val varExp = exp2Strudel.map(s.expression)
-                        if (varExp is VariableExpression)
-                            block.Assign(varExp.variable, varExp - lit(1))
-                        else if (varExp is RecordFieldExpression)
-                            block.FieldSet(
-                                varExp.target,
-                                varExp.field,
-                                varExp - lit(1)
-                            )
-                        else
-                            unsupported("${s.operator} on ${s.expression}", s)
-                    } else
-                        unsupported("unary expression statement", s)
-
-                is MethodCallExpr -> {
-                    handleMethodCall(
-                        procedure,
-                        procedures,
-                        types,
-                        s,
-                        exp2Strudel::map
-                    ) { m, args ->
-                        ProcedureCall(block, m, arguments = args)
-                    }
-                }
-
-                else -> unsupported("expression statement", s)
-            }
-
-        if (this is EmptyStmt)
-            return
-        else if (this is BlockStmt) {
-            this.statements.forEach {
-                it.translate(procedure, block, procedures, types)
-            }
-            return
-        }
-
-
-        val s = when (this) {
-            is ReturnStmt -> if (expression.isPresent)
-                block.Return(exp2Strudel.map(expression.get())).apply {
-                    setFlag()
-                }
-            else
-                block.ReturnVoid()
-
-            is IfStmt -> block.If(exp2Strudel.map(condition)) {
-                thenStmt.translate(procedure, this, procedures, types)
-            }.apply {
-                if (hasElseBranch()) {
-                    createAlternativeBlock { elseBlock ->
-                        elseStmt.get()
-                            .translate(
-                                procedure,
-                                elseBlock,
-                                procedures,
-                                types
-                            )
-                    }
-                }
-            }
-
-            is WhileStmt -> block.While(exp2Strudel.map(this.condition)) {
-                body.translate(procedure, this, procedures, types)
-            }
-
-            is ForStmt -> block.Block(FOR) {
-                initialization.forEach { i ->
-                    if (i.isVariableDeclarationExpr) {
-                        i.asVariableDeclarationExpr().variables.forEach { v ->
-                            if (procedure.variables.any { it.id == v.nameAsString })
-                                unsupported("variables with same identifiers within the same procedure", i)
-                            val varDec =
-                                addVariable(types.mapType(v.type)).apply {
-                                    id = v.nameAsString
-                                    setFlag(FOR)
-                                    bind(i)
-                                    bind(v.name, ID_LOC)
-                                    bind(v.type, TYPE_LOC)
-                                }
-                            if (v.initializer.isPresent)
-                                Assign(
-                                    varDec,
-                                    exp2Strudel.map(v.initializer.get())
-                                ).apply {
-                                    setFlag(FOR)
-                                    bind(v)
-                                }
-                        }
-                    } else
-                        handle(this, i).bind(i)
-                }
-                val guard = if (compare.isPresent) exp2Strudel.map(compare.get()) else True
-                While(guard) {
-                    body.translate(procedure, this, procedures, types)
-                    update.forEach { u ->
-                        handle(this, u).apply {
-                            setFlag(FOR)
-                            bind(u)
-                        }
-                    }
-                }.apply {
-                    setFlag(FOR)
-                }
-            }
-
-            is ForEachStmt -> block.Block(EFOR) {
-                if (procedure.variables.any { it.id == variable.variables[0].nameAsString })
-                    unsupported("variables with same identifiers within the same procedure", variable)
-
-                val itVar =
-                    addVariable(types.mapType(variable.elementType)).apply {
-                        val v = variable.variables[0]
-                        id = v.nameAsString
-                        setFlag(EFOR)
-                        bind(variable)
-                        bind(v.name, ID_LOC)
-                        bind(v.type, TYPE_LOC)
-                    }
-                val indexVar = addVariable(INT).apply {
-                    id = IT + this@Block.depth
-                    setFlag(EFOR)
-                    bind(variable)
-                }
-                Assign(indexVar, lit(0)).apply {
-                    setFlag(EFOR)
-                }
-                While(indexVar.expression() smaller exp2Strudel.map(iterable).length()) {
-                    Assign(
-                        itVar,
-                        exp2Strudel.map(iterable).element(indexVar.expression())
-                    ).apply {
-                        setFlag(EFOR)
-                    }
-                    body.translate(procedure, this, procedures, types)
-                    Assign(
-                        indexVar,
-                        indexVar.expression() plus lit(1)
-                    ).apply {
-                        setFlag(EFOR)
-                    }
-                }.apply {
-                    setFlag(EFOR)
-                }
-            }
-
-            is BreakStmt -> block.Break()
-
-            is ContinueStmt -> block.Continue()
-
-            is ExpressionStmt ->
-                if (expression is VariableDeclarationExpr) {
-                    if ((expression as VariableDeclarationExpr).variables.size > 1)
-                        unsupported(
-                            "multiple variable declarations",
-                            expression
-                        )
-
-                    val dec =
-                        (expression as VariableDeclarationExpr).variables[0]
-
-                    val type = getType(dec.type)
-                    if (type == null)
-                        unsupported("type", expression)
-                    else {
-                        if (procedure.variables.any { it.id == dec.nameAsString })
-                            unsupported("variables with same identifiers within the same procedure", expression)
-
-                        val varDec = block.Var(type, dec.nameAsString)
-                        if (dec.initializer.isPresent) {
-                            block.Assign(
-                                varDec,
-                                exp2Strudel.map(dec.initializer.get())
-                            ).bind(this)
-                        }
-                        varDec.bind(dec.type, TYPE_LOC)
-                            .bind(dec.name, ID_LOC)
-                    }
-                } else
-                    handle(block, expression)
-
-            is ThrowStmt -> {
-                // throw statement only supported if expression is object creation with single String argument
-                val exc = this.expression as? ObjectCreationExpr
-
-                if (exc == null ||
-                    exc.arguments.size !in 0..1 ||
-                    exc.arguments.size == 1 && exc.arguments[0] !is StringLiteralExpr
-                )
-                    unsupported("$this (${this::class})", this)
-                else {
-                    val msg = if (exc.arguments.isEmpty())
-                        exc.typeAsString
-                    else
-                        (exc.arguments[0] as StringLiteralExpr).value
-                    block.ReturnError(msg)
-                }
-            }
-
-            else -> unsupported("$this (${this::class})", this)
-        }
-        comment.translateComment()?.let { s.documentation = it }
-        s.bind(this)
-    }
-
-
-    fun AssignExpr.Operator.map(a: AssignExpr): IBinaryOperator =
-        when (this) {
-            AssignExpr.Operator.PLUS -> ArithmeticOperator.ADD
-            AssignExpr.Operator.MINUS -> ArithmeticOperator.SUB
-            AssignExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
-            AssignExpr.Operator.DIVIDE -> ArithmeticOperator.DIV
-            AssignExpr.Operator.REMAINDER -> ArithmeticOperator.MOD
-            else -> unsupported("assign operator", a)
-        }
-
-    internal fun <T> handleMethodCall(
-        procedure: IProcedure,
-        procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
-        types: Map<String, IType>,
-        exp: MethodCallExpr,
-        mapExpression: (Expression) -> IExpression,
-        creator: (IProcedureDeclaration, List<IExpression>) -> T
-    ): T {
-        // val paramTypes = s.arguments.map { it.calculateResolvedType() })
-        val ns = if (exp.scope.isPresent &&
-            (exp.scope.get() is NameExpr && types.containsKey(
-                exp.scope.get().toString()
-            ) ||
-                    foreignProcedures.any {
-                        it.namespace == exp.scope.get().toString()
-                    }
-                    )
-        )
-            exp.scope.get().toString()
-        else
-            null
-
-
-        val m = procedures.findProcedure(ns, exp.nameAsString, emptyList())
-            ?: unsupported("not found $exp", exp)
-        val args = exp.arguments.map { mapExpression(it) }
-        return if (exp.scope.isPresent)
-            if (ns == null)
-                creator(m, listOf(mapExpression(exp.scope.get())) + args)
-            else
-                creator(m, args)
-        else if (m.parameters.isNotEmpty() && m.parameters[0].id == THIS_PARAM)
-            creator(m, listOf(procedure.thisParameter.expression()) + args)
-        else
-            creator(m, args)
     }
 }

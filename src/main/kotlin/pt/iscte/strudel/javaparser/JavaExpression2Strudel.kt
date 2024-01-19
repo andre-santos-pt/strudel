@@ -4,7 +4,6 @@ import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
 import pt.iscte.strudel.model.*
-import pt.iscte.strudel.model.NULL_LITERAL
 import pt.iscte.strudel.model.dsl.False
 import pt.iscte.strudel.model.dsl.True
 import pt.iscte.strudel.model.dsl.character
@@ -19,11 +18,11 @@ class JavaExpression2Strudel(
     val procedure: IProcedure,
     val block: IBlock,
     val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
-    val types: MutableMap<String, IType>,
-    val translator: Java2Strudel
+    private val types: MutableMap<String, IType>,
+    private val translator: Java2Strudel
 
 ) {
-    fun findVariable(id: String): IVariableDeclaration<*>? =
+    private fun findVariable(id: String): IVariableDeclaration<*>? =
         procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
                 ((p.type as IReferenceType).target as IRecordType).getField(
                     id
@@ -57,7 +56,7 @@ class JavaExpression2Strudel(
                 )
             }
 
-            is UnaryExpr -> mapUnOperator(exp).on(map(exp.expression)).apply {
+            is UnaryExpr -> mapUnaryOperator(exp).on(map(exp.expression)).apply {
                 // TODO review
                 val from = exp.range.get().begin.column
                 val to = exp.expression.range.get().begin.column - 1
@@ -68,7 +67,7 @@ class JavaExpression2Strudel(
                 )
             }
 
-            is BinaryExpr -> mapBiOperator(exp).on(
+            is BinaryExpr -> mapBinaryOperator(exp).on(
                 map(exp.left), map(exp.right)
             ).apply {
                 if (exp.left.range.isPresent && exp.right.range.isPresent && exp.left.range.get().begin.line == exp.right.range.get().begin.line) {
@@ -139,7 +138,7 @@ class JavaExpression2Strudel(
                         val thisType = (thisParam.type as IReferenceType).target as IRecordType
                         thisParam.field(thisType.getField(exp.nameAsString)!!)
                     } else {
-                        val solve = jpFacade.solve(exp.scope)
+                        val solve = JPFacade.solve(exp.scope)
                         val type = solve.correspondingDeclaration.type
                         val typeId = type.describe()
                         if (type.isArray && exp.nameAsString == "length") map(exp.scope).length()
@@ -165,14 +164,24 @@ class JavaExpression2Strudel(
     }
 }
 
-fun mapUnOperator(exp: UnaryExpr): IUnaryOperator = when (exp.operator) {
+fun AssignExpr.Operator.map(a: AssignExpr): IBinaryOperator =
+    when (this) {
+        AssignExpr.Operator.PLUS -> ArithmeticOperator.ADD
+        AssignExpr.Operator.MINUS -> ArithmeticOperator.SUB
+        AssignExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
+        AssignExpr.Operator.DIVIDE -> ArithmeticOperator.DIV
+        AssignExpr.Operator.REMAINDER -> ArithmeticOperator.MOD
+        else -> unsupported("assign operator", a)
+    }
+
+fun mapUnaryOperator(exp: UnaryExpr): IUnaryOperator = when (exp.operator) {
     UnaryExpr.Operator.LOGICAL_COMPLEMENT -> UnaryOperator.NOT
     UnaryExpr.Operator.PLUS -> UnaryOperator.PLUS
     UnaryExpr.Operator.MINUS -> UnaryOperator.MINUS
     else -> unsupported("unary operator", exp)
 }
 
-fun mapBiOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
+fun mapBinaryOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
     BinaryExpr.Operator.PLUS -> ArithmeticOperator.ADD
     BinaryExpr.Operator.MINUS -> ArithmeticOperator.SUB
     BinaryExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
