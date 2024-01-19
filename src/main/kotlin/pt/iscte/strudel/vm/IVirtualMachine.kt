@@ -100,6 +100,14 @@ interface IVirtualMachine {
 
     val errorOccurred get() = error != null
 
+    fun setDefaultSystemOut() {
+        addListener(object : IListener {
+            override fun systemOutput(text: String) {
+                println(text)
+            }
+        })
+    }
+
     fun debug(procedure: IProcedure, vararg arguments: IValue) : ProcedureExecution {
         require(arguments.size == procedure.parameters.size) {
             "number of arguments (${arguments.size}) do not match ${procedure.id}(${procedure.parameters.size})"

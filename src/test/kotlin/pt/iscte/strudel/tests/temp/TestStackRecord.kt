@@ -5,6 +5,7 @@ import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.tests.BaseTest
+import pt.iscte.strudel.tests.procedure
 
 class TestStackRecord: BaseTest({
     val type = Record("Stack") {
@@ -31,7 +32,7 @@ class TestStackRecord: BaseTest({
     @Test
     fun `init`() {
         val ret = vm.execute(procedure, vm.getValue(10))
-        val push = procedure("push")
+        val push = module.procedure("push")
         vm.execute(push, vm.getValue(5))
         vm.execute(push, vm.getValue(6))
     }

@@ -7,7 +7,7 @@ import pt.iscte.strudel.model.impl.ProgramElement
  * Mutable
  */
 interface IProcedure : IProcedureDeclaration, IBlockHolder {
-    val module: IModule?
+    override val module: IModule?
     val localVariables: List<IVariableDeclaration<IBlock>>
     val variables: List<IVariableDeclaration<*>>
     override var returnType: IType

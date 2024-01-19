@@ -158,7 +158,7 @@ class TestsPaper {
             }
         """
         val vm = VirtualMachine()
-        val print = ForeignProcedure(null, "print", VOID, ANY) { m, args ->
+        val print = ForeignProcedure(null, null, "print", VOID, ANY) { m, args ->
             println(args[0])
         }
         val loader = Java2Strudel(foreignProcedures = listOf(print))

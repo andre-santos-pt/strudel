@@ -383,19 +383,26 @@ class ProcedureInterpreter(
 
             is IProcedureCallExpression -> {
                 eval(*exp.arguments.reversed().toTypedArray())?.reversed()
-                    ?.let {
+                    ?.let {args ->
                         // TODO check error
                         if (exp.procedure.isForeign) {
                             val ret =
-                                (exp.procedure as ForeignProcedure).run(vm, it)
+                                (exp.procedure as ForeignProcedure).run(vm, args)
                             ret?.let {
                                 valStack.push(ret)
                             }
                         } else {
+                            val proc: IProcedure =
+                                if(exp.procedure is IPolymorphicProcedure)
+                                        exp.procedure.module?.procedures?.find { p -> p.id == exp.procedure.id && p.namespace == args[0].type.id }
+                                            ?: throw UnsupportedOperationException(exp.toString())
+                            else
+                                exp.procedure as IProcedure
+
                             val call = ProcedureInterpreter(
                                 vm,
-                                exp.procedure as IProcedure,
-                                *it.toTypedArray()
+                                proc,
+                                *args.toTypedArray()
                             )
                             call.run()
                             valStack.push(call.returnValue!!) // not void

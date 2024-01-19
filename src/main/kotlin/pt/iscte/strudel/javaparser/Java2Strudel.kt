@@ -7,14 +7,17 @@ import com.github.javaparser.ast.body.*
 import com.github.javaparser.ast.comments.Comment
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
+import com.github.javaparser.ast.type.ClassOrInterfaceType
 import com.github.javaparser.ast.type.Type
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import com.github.javaparser.resolution.TypeSolver
 import com.github.javaparser.resolution.types.ResolvedType
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
+import pt.iscte.strudel.model.impl.PolymophicProcedure
 import pt.iscte.strudel.model.impl.ProcedureCall
 import pt.iscte.strudel.model.impl.RecordFieldExpression
 import pt.iscte.strudel.model.impl.VariableExpression
@@ -82,7 +85,11 @@ class StrudelUnsupported(msg: String, val nodes: List<Node>) : RuntimeException(
     constructor(msg: String, node: Node) : this(msg, listOf(node))
 }
 
-fun MutableMap<String, IType>.mapType(t: Type) = mapType(t.asString())
+fun MutableMap<String, IType>.mapType(t: Type) =
+    if(t is ClassOrInterfaceType)
+        mapType(t.nameAsString)
+    else
+        mapType(t.asString())
 
 fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
     mapType(t.nameAsString)
@@ -100,13 +107,13 @@ inline fun error(msg: String, node: Any): Nothing {
     throw AssertionError("compile error $msg: $node (${node::class.java})")
 }
 
-val CallableDeclaration<*>.body: BlockStmt
+val CallableDeclaration<*>.body: BlockStmt?
     get() = if (this is ConstructorDeclaration) this.body
-    else (this as MethodDeclaration).body.get()
+    else (this as MethodDeclaration).body.getOrNull
 
 fun typeSolver(): TypeSolver {
     val combinedTypeSolver = CombinedTypeSolver()
-//    combinedTypeSolver.add(JreTypeSolver())
+    combinedTypeSolver.add(ReflectionTypeSolver())
 //        combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-core")))
 //        combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-generated-sources")))
     return combinedTypeSolver
@@ -204,8 +211,8 @@ class Java2Strudel(
             if (c.extendedTypes.isNotEmpty())
                 unsupported("extends", c.extendedTypes.first())
 
-            if (c.implementedTypes.isNotEmpty())
-                unsupported("implements", c.extendedTypes.first())
+            //if (c.implementedTypes.isNotEmpty())
+            //    unsupported("implements", c.implementedTypes.first())
 
             if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 }) {
                 val nodes = c.methods
@@ -250,31 +257,34 @@ class Java2Strudel(
             }
         }
 
-        fun MethodDeclaration.translateMethod(namespace: String) =
-            Procedure(types.mapType(type), nameAsString).apply {
-                comment.translateComment()?.let { this.documentation = it }
+        fun MethodDeclaration.translateMethod(namespace: String): IProcedureDeclaration =
+            if (!body.isPresent)
+                PolymophicProcedure(this@module, nameAsString, emptyList(), types.mapType(type))
+            else
+                Procedure(types.mapType(type), nameAsString).apply {
+                    comment.translateComment()?.let { this.documentation = it }
 
-                if (modifiers.any { !supportedModifiers.contains(it.keyword) })
-                    unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
+                    if (modifiers.any { !supportedModifiers.contains(it.keyword) })
+                        unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
 
-                setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
+                    setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
 
-                if (!modifiers.contains(Modifier.staticModifier()))
-                    addParameter(types.mapType((parentNode.get() as ClassOrInterfaceDeclaration))).apply {
-                        id = THIS_PARAM
+                    if (!modifiers.contains(Modifier.staticModifier()))
+                        addParameter(types.mapType((parentNode.get() as ClassOrInterfaceDeclaration))).apply {
+                            id = THIS_PARAM
+                        }
+                    this@translateMethod.parameters.forEach { p ->
+                        addParameter(types.mapType(p.type)).apply {
+                            id = p.nameAsString
+                        }.bind(p)
+                            .bind(p.type, TYPE_LOC)
+                            .bind(p.name, ID_LOC)
                     }
-                this@translateMethod.parameters.forEach { p ->
-                    addParameter(types.mapType(p.type)).apply {
-                        id = p.nameAsString
-                    }.bind(p)
-                        .bind(p.type, TYPE_LOC)
-                        .bind(p.name, ID_LOC)
+                    bind(this@translateMethod)
+                    setProperty(NAMESPACE_PROP, namespace)
+                    bind(name, ID_LOC)
+                    bind(this@translateMethod.type, TYPE_LOC)
                 }
-                bind(this@translateMethod)
-                setProperty(NAMESPACE_PROP, namespace)
-                bind(name, ID_LOC)
-                bind(this@translateMethod.type, TYPE_LOC)
-            }
 
         fun ConstructorDeclaration.translateConstructor(namespace: String) =
             Procedure(
@@ -316,7 +326,7 @@ class Java2Strudel(
                 setProperty(NAMESPACE_PROP, type.nameAsString)
             }
 
-        val procedures: List<Pair<CallableDeclaration<*>?, IProcedure>> =
+        val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> =
             classes.filter { it.constructors.isEmpty() && it.methods.none { it.nameAsString == INIT } }
                 .map {
                     null to createDefaultConstructor(it)
@@ -327,22 +337,22 @@ class Java2Strudel(
             }
 
         procedures.filter {
-            it.first != null
+            it.first != null && it.second is IProcedure
         }.forEach {
-            it.first!!.body.translate(
-                it.second,
-                it.second.block,
+            it.first!!.body?.translate(
+                it.second as IProcedure,
+                (it.second as IProcedure).block,
                 procedures,
                 types
             )
             if (it.first is ConstructorDeclaration)
-                it.second.block.Return(it.second.thisParameter)
+                (it.second as IProcedure).block.Return(it.second.thisParameter)
         }
 
 
     }
 
-    fun List<Pair<CallableDeclaration<*>?, IProcedure>>.findProcedure(
+    fun List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>.findProcedure(
         namespace: String?,
         id: String,
         paramTypes: List<ResolvedType>  // TODO param types in find procedure
@@ -360,7 +370,7 @@ class Java2Strudel(
     fun Statement.translate(
         procedure: IProcedure,
         block: IBlock,
-        procedures: List<Pair<CallableDeclaration<*>?, IProcedure>>,
+        procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
         types: MutableMap<String, IType>
     ) {
         if (this is EmptyStmt)
@@ -815,7 +825,7 @@ class Java2Strudel(
                 )
                     unsupported("$this (${this::class})", this)
                 else {
-                    val msg = if(exc.arguments.isEmpty())
+                    val msg = if (exc.arguments.isEmpty())
                         exc.typeAsString
                     else
                         (exc.arguments[0] as StringLiteralExpr).value
@@ -875,7 +885,7 @@ class Java2Strudel(
 
     private fun <T> handleMethodCall(
         procedure: IProcedure,
-        procedures: List<Pair<CallableDeclaration<*>?, IProcedure>>,
+        procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
         types: Map<String, IType>,
         exp: MethodCallExpr,
         mapExpression: (Expression) -> IExpression,

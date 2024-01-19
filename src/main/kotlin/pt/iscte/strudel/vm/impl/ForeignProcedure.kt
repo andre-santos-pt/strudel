@@ -8,15 +8,16 @@ import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
 
 internal class ForeignProcedure(
+    override val module: IModule?,
     override var namespace: String? = null,
     id: String,
     override val returnType: IType,
     parameterTypes: List<IType>,
     val action: (IVirtualMachine, List<IValue>) -> IValue?
-    ) : ProgramElement(), IProcedureDeclaration {
+) : ProgramElement(), IProcedureDeclaration {
 
-    constructor(namespace: String? = null, id: String, returnType: IType, param1: IType, action: (IVirtualMachine, List<IValue>) -> Unit)
-            : this(namespace, id, returnType, listOf(param1), { vm:IVirtualMachine, args:List<IValue> -> action(vm, args); null })
+    constructor(module: IModule? = null, namespace: String? = null, id: String, returnType: IType, param1: IType, action: (IVirtualMachine, List<IValue>) -> Unit)
+            : this(module, namespace, id, returnType, listOf(param1), { vm:IVirtualMachine, args:List<IValue> -> action(vm, args); null })
 
     override var id: String? = id
 
@@ -43,6 +44,6 @@ interface IForeignProcedure {
                     returnType: IType,
                     parameterTypes: List<IType>,
                     action: (IVirtualMachine, List<IValue>) -> IValue?): IProcedureDeclaration =
-            ForeignProcedure(namespace, id, returnType, parameterTypes, action)
+            ForeignProcedure(null, namespace, id, returnType, parameterTypes, action)
     }
 }

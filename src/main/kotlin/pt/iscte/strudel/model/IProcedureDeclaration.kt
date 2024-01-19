@@ -4,6 +4,7 @@ package pt.iscte.strudel.model
 typealias IParameter = IVariableDeclaration<IProcedureDeclaration>
 
 interface IProcedureDeclaration : IModuleMember {
+    val module: IModule?
     val parameters: List<IParameter>
     val returnType: IType
     fun addParameter(type: IType): IParameter

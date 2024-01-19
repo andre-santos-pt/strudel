@@ -38,23 +38,24 @@ internal val defaultTypes = mapOf(
 internal const val NEW_STRING = "\$newString"
 
 internal val defaultForeignProcedures = listOf(
-    ForeignProcedure(null, "println", VOID, ANY) { m, args ->
+    ForeignProcedure(null, null, "println", VOID, ANY) { m, args ->
         val text = if(args.isEmpty()) System.lineSeparator()
         else args[0].toString() + System.lineSeparator()
         m.systemOutput(text)
     },
-    ForeignProcedure(null, "print", VOID, ANY) { m, args ->
+    ForeignProcedure(null,null, "print", VOID, ANY) { m, args ->
         m.systemOutput(args[0].toString())
     },
-    ForeignProcedure("System.out", "println", VOID, ANY) { m, args ->
+    ForeignProcedure(null,"System.out", "println", VOID, ANY) { m, args ->
         val text = if(args.isEmpty()) System.lineSeparator()
         else args[0].toString() + System.lineSeparator()
         m.systemOutput(text)
     },
-    ForeignProcedure("System.out", "print", VOID, ANY) { m, args ->
+    ForeignProcedure(null,"System.out", "print", VOID, ANY) { m, args ->
         m.systemOutput(args[0].toString())
     },
     ForeignProcedure(
+        null,
         null,
         NEW_STRING,
         stringType,
@@ -66,10 +67,20 @@ internal val defaultForeignProcedures = listOf(
     },
     ForeignProcedure(
         null,
+        null,
         "concat",
         stringType,
         listOf(ANY, ANY)
     ) { m, args ->
         Value(stringType, args[0].value.toString() + args[1].value.toString())
+    },
+    ForeignProcedure(
+        null,
+        null,
+        "length",
+        INT,
+        listOf(stringType)
+    ) { m, args ->
+        Value(INT, args[0].value.toString().length)
     },
 )

@@ -6,6 +6,7 @@ import pt.iscte.strudel.model.IVariableDeclaration
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
 import pt.iscte.strudel.tests.BaseTest
+import pt.iscte.strudel.tests.checkArrayContent
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
