@@ -1,0 +1,197 @@
+package pt.iscte.strudel.javaparser
+
+import com.github.javaparser.ast.body.CallableDeclaration
+import com.github.javaparser.ast.body.VariableDeclarator
+import com.github.javaparser.ast.expr.*
+import pt.iscte.strudel.model.*
+import pt.iscte.strudel.model.NULL_LITERAL
+import pt.iscte.strudel.model.dsl.False
+import pt.iscte.strudel.model.dsl.True
+import pt.iscte.strudel.model.dsl.character
+import pt.iscte.strudel.model.dsl.lit
+import pt.iscte.strudel.model.impl.ProcedureCall
+import pt.iscte.strudel.model.util.ArithmeticOperator
+import pt.iscte.strudel.model.util.LogicalOperator
+import pt.iscte.strudel.model.util.RelationalOperator
+import pt.iscte.strudel.model.util.UnaryOperator
+
+class JavaExpression2Strudel(
+    val procedure: IProcedure,
+    val block: IBlock,
+    val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
+    val types: MutableMap<String, IType>,
+    val translator: Java2Strudel
+
+) {
+    fun findVariable(id: String): IVariableDeclaration<*>? =
+        procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
+                ((p.type as IReferenceType).target as IRecordType).getField(
+                    id
+                )
+            }
+
+    fun map(exp: Expression): IExpression = with(translator) {
+        when (exp) {
+            is IntegerLiteralExpr -> lit(exp.value.toInt())
+            is DoubleLiteralExpr -> lit(exp.value.toDouble())
+            is CharLiteralExpr -> character(exp.value[0])
+            is BooleanLiteralExpr -> if (exp.value) True else False
+
+            is NameExpr -> {
+                val target = findVariable(exp.nameAsString)
+                if (target?.isField == true) procedure.thisParameter.field(target as IVariableDeclaration<IRecordType>)
+                else target?.expression() ?: error("not found $exp", exp)
+            }
+
+            is ThisExpr -> {
+                procedure.thisParameter.expression()
+            }
+
+            is NullLiteralExpr -> NULL_LITERAL
+
+            is StringLiteralExpr -> {
+                translator.foreignProcedures.find { it.id == NEW_STRING }!!.expression(
+                    CHAR.array().heapAllocationWith(exp.value.map {
+                        CHAR.literal(it)
+                    })
+                )
+            }
+
+            is UnaryExpr -> mapUnOperator(exp).on(map(exp.expression)).apply {
+                // TODO review
+                val from = exp.range.get().begin.column
+                val to = exp.expression.range.get().begin.column - 1
+                setProperty(
+                    OPERATOR_LOC, SourceLocation(
+                        exp.expression.range.get().begin.line, from, to
+                    )
+                )
+            }
+
+            is BinaryExpr -> mapBiOperator(exp).on(
+                map(exp.left), map(exp.right)
+            ).apply {
+                if (exp.left.range.isPresent && exp.right.range.isPresent && exp.left.range.get().begin.line == exp.right.range.get().begin.line) {
+                    val from = exp.left.range.get().end.column + 1
+                    val to = exp.right.range.get().begin.column - 1
+                    setProperty(
+                        OPERATOR_LOC, SourceLocation(
+                            exp.left.range.get().begin.line, from, to
+                        )
+                    )
+                }
+            }
+
+            is EnclosedExpr -> map(exp.inner)
+
+            is CastExpr -> UnaryOperator.TRUNCATE.on(map(exp.expression)) //TODO other casts
+
+            // TODO multi level
+            is ArrayCreationExpr -> {
+                if (exp.levels.any { !it.dimension.isPresent }) unsupported(
+                    "multi-dimension array initialization with partial dimensions",
+                    exp
+                )
+
+                val arrayType = types.mapType(exp.elementType.asString()).array()
+
+                if (exp.levels[0].dimension.isPresent) arrayType.heapAllocation(exp.levels.map {
+                    map(
+                        it.dimension.get()
+                    )
+                })
+                else map(exp.initializer.get())
+            }
+
+            is ArrayInitializerExpr -> {
+                val values = exp.values.map { map(it) }
+                val baseType =
+                    if (exp.parentNode.getOrNull is ArrayCreationExpr) types.mapType((exp.parentNode.get() as ArrayCreationExpr).elementType)
+                    else if (exp.parentNode.getOrNull is VariableDeclarator) types.mapType((exp.parentNode.get() as VariableDeclarator).typeAsString)
+                    else unsupported("array initializer", exp)
+
+                baseType.asArrayType.heapAllocationWith(values)
+            }
+
+            is ArrayAccessExpr -> map(exp.name).element(
+                map(exp.index)
+            )
+
+            is ObjectCreationExpr -> {
+                val const = procedures.findProcedure(
+                    exp.type.nameAsString, INIT, emptyList()
+                ) // TODO params
+                    ?: unsupported("not found $exp", exp)
+                val alloc = types.mapType(exp.type).asRecordType.heapAllocation()
+                const.expression(listOf(alloc) + exp.arguments.map {
+                    map(
+                        it
+                    )
+                })
+            }
+
+            is FieldAccessExpr -> {
+                if (exp.scope is ArrayAccessExpr && exp.nameAsString == "length") {
+                    map(exp.scope).length()
+                } else {
+                    if (exp.scope is ThisExpr) {
+                        val thisParam = procedure.parameters.find { it.id == THIS_PARAM }!!
+                        val thisType = (thisParam.type as IReferenceType).target as IRecordType
+                        thisParam.field(thisType.getField(exp.nameAsString)!!)
+                    } else {
+                        val solve = jpFacade.solve(exp.scope)
+                        val type = solve.correspondingDeclaration.type
+                        val typeId = type.describe()
+                        if (type.isArray && exp.nameAsString == "length") map(exp.scope).length()
+                        else {
+                            val f = types[typeId]?.asRecordType?.fields?.find { it.id == exp.nameAsString } ?: error(
+                                "not found $exp", exp
+                            ) // UnboundVariableDeclaration(exp.nameAsString, procedure)
+
+                            map(exp.scope).field(f)
+                        }
+                    }
+                }
+            }
+
+            is MethodCallExpr -> translator.handleMethodCall(
+                procedure, procedures, types, exp, ::map
+            ) { m, args ->
+                ProcedureCall(NullBlock, m, arguments = args)
+            }
+
+            else -> unsupported("expression", exp)
+        }.bind(exp)
+    }
+}
+
+fun mapUnOperator(exp: UnaryExpr): IUnaryOperator = when (exp.operator) {
+    UnaryExpr.Operator.LOGICAL_COMPLEMENT -> UnaryOperator.NOT
+    UnaryExpr.Operator.PLUS -> UnaryOperator.PLUS
+    UnaryExpr.Operator.MINUS -> UnaryOperator.MINUS
+    else -> unsupported("unary operator", exp)
+}
+
+fun mapBiOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
+    BinaryExpr.Operator.PLUS -> ArithmeticOperator.ADD
+    BinaryExpr.Operator.MINUS -> ArithmeticOperator.SUB
+    BinaryExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
+    BinaryExpr.Operator.DIVIDE -> ArithmeticOperator.DIV
+    BinaryExpr.Operator.REMAINDER -> ArithmeticOperator.MOD
+
+    // TODO IDIV
+    // BinaryExpr.Operator.DIVIDE -> ArithmeticOperator.IDIV
+
+    BinaryExpr.Operator.EQUALS -> RelationalOperator.EQUAL
+    BinaryExpr.Operator.NOT_EQUALS -> RelationalOperator.DIFFERENT
+    BinaryExpr.Operator.LESS -> RelationalOperator.SMALLER
+    BinaryExpr.Operator.LESS_EQUALS -> RelationalOperator.SMALLER_EQUAL
+    BinaryExpr.Operator.GREATER -> RelationalOperator.GREATER
+    BinaryExpr.Operator.GREATER_EQUALS -> RelationalOperator.GREATER_EQUAL
+
+    BinaryExpr.Operator.AND -> LogicalOperator.AND
+    BinaryExpr.Operator.OR -> LogicalOperator.OR
+    BinaryExpr.Operator.XOR -> LogicalOperator.XOR
+
+    else -> unsupported("binary operator", exp)
+}

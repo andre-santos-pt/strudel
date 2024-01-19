@@ -22,9 +22,6 @@ import pt.iscte.strudel.model.impl.ProcedureCall
 import pt.iscte.strudel.model.impl.RecordFieldExpression
 import pt.iscte.strudel.model.impl.VariableExpression
 import pt.iscte.strudel.model.util.ArithmeticOperator
-import pt.iscte.strudel.model.util.LogicalOperator
-import pt.iscte.strudel.model.util.RelationalOperator
-import pt.iscte.strudel.model.util.UnaryOperator
 import java.io.File
 import java.util.Optional
 
@@ -39,8 +36,8 @@ const val OPERATOR_LOC = "OPERATOR_LOC"
 
 const val CONSTRUCTOR_FLAG = "CONSTRUCTOR"
 
-private const val THIS_PARAM = "\$this"
-private const val INIT = "\$init"
+internal const val THIS_PARAM = "\$this"
+internal const val INIT = "\$init"
 private const val IT = "\$it"
 
 
@@ -86,7 +83,7 @@ class StrudelUnsupported(msg: String, val nodes: List<Node>) : RuntimeException(
 }
 
 fun MutableMap<String, IType>.mapType(t: Type) =
-    if(t is ClassOrInterfaceType)
+    if (t is ClassOrInterfaceType)
         mapType(t.nameAsString)
     else
         mapType(t.asString())
@@ -131,7 +128,7 @@ class Java2Strudel(
 
     private val fieldInitializers = mutableMapOf<IField, Expression>()
 
-    private fun <T : IProgramElement> T.bind(
+    internal fun <T : IProgramElement> T.bind(
         node: Node,
         prop: String? = null
     ): T {
@@ -256,7 +253,7 @@ class Java2Strudel(
 
                 if (f.variables[0].initializer.isPresent)
                     fieldInitializers[field] = f.variables[0].initializer.get()
-                    //unsupported("field initializers", f)
+                //unsupported("field initializers", f)
             }
         }
 
@@ -323,11 +320,12 @@ class Java2Strudel(
                 types.mapType(type.nameAsString),
                 INIT
             ).apply {
-                setFlag("public") // Added public modifier
+                setFlag("public")
                 setFlag(CONSTRUCTOR_FLAG)
                 var instance = addParameter(returnType).apply {
                     id = THIS_PARAM /* @ambco-iscte : Change to THIS_PARAM from "instance" */
                 }
+
                 block.Return(instance)
                 setProperty(NAMESPACE_PROP, type.nameAsString)
             }
@@ -339,23 +337,38 @@ class Java2Strudel(
             }.map {
                 null to createDefaultConstructor(it) // Map a null declaration to a default constructor
             } +
-            classes.map {
-                it.constructors // Map each class to its constructor declarations
-            }.flatten(). // Flatten to get a list of all constructor declarations
-            map {
-                // Map each constructor declaration to its translation
-                it to it.translateConstructor((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
-            } +
-            classes.map {
-                it.methods // Map each class to its method declarations
-            }.flatten(). // Flatten to get a list of all constructor declarations
-            map {
-                // Map each method declaration to its translation
-                it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
-            }
+                    classes.map {
+                        it.constructors // Map each class to its constructor declarations
+                    }.flatten(). // Flatten to get a list of all constructor declarations
+                    map {
+                        // Map each constructor declaration to its translation
+                        it to it.translateConstructor((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
+                    } +
+                    classes.map {
+                        it.methods // Map each class to its method declarations
+                    }.flatten(). // Flatten to get a list of all constructor declarations
+                    map {
+                        // Map each method declaration to its translation
+                        it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
+                    }
 
         procedures.forEach {
             if (it.first != null && it.second is IProcedure) {
+                if (it.first is ConstructorDeclaration) {
+                    val exp2Strudel = JavaExpression2Strudel(it.second as IProcedure, (it.second as IProcedure).block, procedures, types, this@Java2Strudel)
+                    val type = it.second.thisParameter.type.asRecordType
+                    type.fields.forEach { field ->
+                        val init = fieldInitializers[field]
+                        if (init != null) {
+                            (it.second as IProcedure).block.FieldSet(
+                                it.second.thisParameter.expression(),
+                                field,
+                                exp2Strudel.map(init)
+                            )
+                        }
+                    }
+                }
+
                 it.first!!.body?.translate(
                     it.second as IProcedure,
                     (it.second as IProcedure).block,
@@ -364,13 +377,20 @@ class Java2Strudel(
                 )
                 if (it.first is ConstructorDeclaration)
                     (it.second as IProcedure).block.Return(it.second.thisParameter)
-            } else {
-                BlockStmt().translate(
-                    it.second as IProcedure,
-                    (it.second as IProcedure).block,
-                    procedures,
-                    types
-                )
+            } else if (it.first == null) { // if no JavaParser declaration -> default constructor
+                val exp2Strudel = JavaExpression2Strudel(it.second as IProcedure, (it.second as IProcedure).block, procedures, types, this@Java2Strudel)
+                val type = it.second.thisParameter.type.asRecordType
+                type.fields.reversed().forEach { field ->
+                    val init = fieldInitializers[field]
+                    if (init != null) {
+                        (it.second as IProcedure).block.FieldSet(
+                            it.second.thisParameter.expression(),
+                            field,
+                            exp2Strudel.map(init),
+                            0
+                        )
+                    }
+                }
             }
         }
     }
@@ -396,6 +416,9 @@ class Java2Strudel(
         procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
         types: MutableMap<String, IType>
     ) {
+
+        val exp2Strudel = JavaExpression2Strudel(procedure, block, procedures, types, this@Java2Strudel)
+
         fun getType(type: Type): IType =
 //            if (type.isArrayType)
 
@@ -418,168 +441,6 @@ class Java2Strudel(
                         )
                     }
 
-        fun mapExpression(exp: Expression): IExpression =
-            when (exp) {
-                is IntegerLiteralExpr -> lit(exp.value.toInt())
-                is DoubleLiteralExpr -> lit(exp.value.toDouble())
-                is CharLiteralExpr -> character(exp.value[0])
-                is BooleanLiteralExpr -> if (exp.value) True else False
-
-                is NameExpr -> {
-                    val target = findVariable(exp.nameAsString)
-                    if (target?.isField == true)
-                        procedure.thisParameter.field(target as IVariableDeclaration<IRecordType>)
-                    else
-                        target?.expression() ?: error("not found $exp", exp)
-                }
-
-                is ThisExpr -> {
-                    procedure.thisParameter.expression()
-                }
-
-                is NullLiteralExpr -> NULL_LITERAL
-
-                is StringLiteralExpr -> {
-                    foreignProcedures.find { it.id == NEW_STRING }!!
-                        .expression(
-                            CHAR.array().heapAllocationWith(exp.value.map {
-                                CHAR.literal(it)
-                            })
-                        )
-                }
-
-                is UnaryExpr -> mapUnOperator(exp).on(mapExpression(exp.expression))
-                    .apply {
-                        // TODO review
-                        val from = exp.range.get().begin.column
-                        val to = exp.expression.range.get().begin.column - 1
-                        setProperty(
-                            OPERATOR_LOC,
-                            SourceLocation(
-                                exp.expression.range.get().begin.line,
-                                from,
-                                to
-                            )
-                        )
-                    }
-
-                is BinaryExpr -> mapBiOperator(exp).on(
-                    mapExpression(exp.left),
-                    mapExpression(exp.right)
-                ).apply {
-                    if (exp.left.range.isPresent && exp.right.range.isPresent && exp.left.range.get().begin.line == exp.right.range.get().begin.line) {
-                        val from = exp.left.range.get().end.column + 1
-                        val to = exp.right.range.get().begin.column - 1
-                        setProperty(
-                            OPERATOR_LOC,
-                            SourceLocation(
-                                exp.left.range.get().begin.line,
-                                from,
-                                to
-                            )
-                        )
-                    }
-                }
-
-                is EnclosedExpr -> mapExpression(exp.inner)
-
-                is CastExpr -> UnaryOperator.TRUNCATE.on(mapExpression(exp.expression)) //TODO other casts
-
-                // TODO multi level
-                is ArrayCreationExpr -> {
-                    if (exp.levels.any { !it.dimension.isPresent })
-                        unsupported("multi-dimension array initialization with partial dimensions", exp)
-
-                    val arrayType =
-                        types.mapType(exp.elementType.asString()).array()
-
-                    if (exp.levels[0].dimension.isPresent)
-                        arrayType.heapAllocation(exp.levels.map {
-                            mapExpression(
-                                it.dimension.get()
-                            )
-                        })
-                    else
-                        mapExpression(exp.initializer.get())
-                }
-
-                is ArrayInitializerExpr -> {
-                    val values = exp.values.map { mapExpression(it) }
-                    val baseType =
-                        if (exp.parentNode.getOrNull is ArrayCreationExpr)
-                            types.mapType((exp.parentNode.get() as ArrayCreationExpr).elementType)
-                        else if (exp.parentNode.getOrNull is VariableDeclarator)
-                            types.mapType((exp.parentNode.get() as VariableDeclarator).typeAsString)
-                        else
-                            unsupported("array initializer", exp)
-
-                    baseType.asArrayType.heapAllocationWith(values)
-                }
-
-                is ArrayAccessExpr -> mapExpression(exp.name).element(
-                    mapExpression(exp.index)
-                )
-
-                is ObjectCreationExpr -> {
-                    val const = procedures.findProcedure(
-                        exp.type.nameAsString,
-                        INIT,
-                        emptyList()
-                    ) // TODO params
-                        ?: unsupported("not found $exp", exp)
-                    val alloc =
-                        types.mapType(exp.type).asRecordType.heapAllocation()
-                    const.expression(listOf(alloc) + exp.arguments.map {
-                        mapExpression(
-                            it
-                        )
-                    })
-                }
-
-                is FieldAccessExpr -> {
-                    if (exp.scope is ArrayAccessExpr && exp.nameAsString == "length") {
-                        mapExpression(exp.scope).length()
-                    } else {
-                        if (exp.scope is ThisExpr) {
-                            val thisParam =
-                                procedure.parameters.find { it.id == THIS_PARAM }!!
-                            val thisType =
-                                (thisParam.type as IReferenceType).target as IRecordType
-                            thisParam.field(thisType.getField(exp.nameAsString)!!)
-                        } else {
-                            val solve = jpFacade.solve(exp.scope)
-                            val type = solve.correspondingDeclaration.type
-                            val typeId = type.describe()
-                            if (type.isArray && exp.nameAsString == "length")
-                                mapExpression(exp.scope).length()
-                            else {
-                                val f =
-                                    types[typeId]?.asRecordType?.fields?.find { it.id == exp.nameAsString }
-                                        ?: error(
-                                            "not found $exp",
-                                            exp
-                                        ) // UnboundVariableDeclaration(exp.nameAsString, procedure)
-
-                                mapExpression(exp.scope).field(f)
-                            }
-                        }
-                    }
-                }
-
-                is MethodCallExpr -> handleMethodCall(
-                    procedure,
-                    procedures,
-                    types,
-                    exp,
-                    ::mapExpression
-                ) { m, args ->
-                    ProcedureCall(NullBlock, m, arguments = args)
-                }
-
-                else -> unsupported("expression", exp)
-            }.bind(exp)
-
-
         fun handleAssign(block: IBlock, a: AssignExpr): IStatement {
             if (a.target is NameExpr) {
                 val target = findVariable(a.target.toString())
@@ -589,9 +450,9 @@ class Java2Strudel(
                     ) // UnboundVariableDeclaration(a.target.toString(), block)
 
                 val value = when (a.operator) {
-                    AssignExpr.Operator.ASSIGN -> mapExpression(a.value)
+                    AssignExpr.Operator.ASSIGN -> exp2Strudel.map(a.value)
                     else -> a.operator.map(a)
-                        .on(mapExpression(a.target), mapExpression(a.value))
+                        .on(exp2Strudel.map(a.target), exp2Strudel.map(a.value))
                 }
 
                 return if (target.isField)
@@ -607,9 +468,9 @@ class Java2Strudel(
                 return when (a.operator) { // TODO compound assignment operators
                     AssignExpr.Operator.ASSIGN ->
                         block.ArraySet(
-                            mapExpression((a.target as ArrayAccessExpr).name) as ITargetExpression,
-                            mapExpression((a.target as ArrayAccessExpr).index),
-                            mapExpression(a.value)
+                            exp2Strudel.map((a.target as ArrayAccessExpr).name) as ITargetExpression,
+                            exp2Strudel.map((a.target as ArrayAccessExpr).index),
+                            exp2Strudel.map(a.value)
                         )
 
                     else -> unsupported("assign operator ${a.operator}", a)
@@ -624,10 +485,10 @@ class Java2Strudel(
                 return when (a.operator) { // TODO compound assignment operators
                     AssignExpr.Operator.ASSIGN ->
                         block.FieldSet(
-                            mapExpression((a.target as FieldAccessExpr).scope) as ITargetExpression,
+                            exp2Strudel.map((a.target as FieldAccessExpr).scope) as ITargetExpression,
                             types[typeId]?.asRecordType?.fields?.find { it.id == (a.target as FieldAccessExpr).nameAsString }
                                 ?: unsupported("field access", a),
-                            mapExpression(a.value)
+                            exp2Strudel.map(a.value)
                         )
 
                     else -> unsupported("assign operator ${a.operator}", a)
@@ -644,7 +505,7 @@ class Java2Strudel(
                 is UnaryExpr ->
                     // TODO array ++ --
                     if (s.operator == UnaryExpr.Operator.PREFIX_INCREMENT || s.operator == UnaryExpr.Operator.POSTFIX_INCREMENT) {
-                        val varExp = mapExpression(s.expression)
+                        val varExp = exp2Strudel.map(s.expression)
                         if (varExp is VariableExpression)
                             block.Assign(varExp.variable, varExp + lit(1))
                         else if (varExp is RecordFieldExpression)
@@ -656,7 +517,7 @@ class Java2Strudel(
                         else
                             unsupported("${s.operator} on ${s.expression}", s)
                     } else if (s.operator == UnaryExpr.Operator.PREFIX_DECREMENT || s.operator == UnaryExpr.Operator.POSTFIX_DECREMENT) {
-                        val varExp = mapExpression(s.expression)
+                        val varExp = exp2Strudel.map(s.expression)
                         if (varExp is VariableExpression)
                             block.Assign(varExp.variable, varExp - lit(1))
                         else if (varExp is RecordFieldExpression)
@@ -676,7 +537,7 @@ class Java2Strudel(
                         procedures,
                         types,
                         s,
-                        ::mapExpression
+                        exp2Strudel::map
                     ) { m, args ->
                         ProcedureCall(block, m, arguments = args)
                     }
@@ -685,33 +546,9 @@ class Java2Strudel(
                 else -> unsupported("expression statement", s)
             }
 
-        /*
-         * @ambco-iscte
-         * Moved this here since above are just function declarations anyway and I needed access to mapExpression
-         */
         if (this is EmptyStmt)
             return
         else if (this is BlockStmt) {
-            // Inject field initializers
-            val ownerProcedure = procedures.firstOrNull {
-                it.first == null || it.first?.body == this
-            }?.second
-            if (ownerProcedure != null && ownerProcedure.hasFlag(CONSTRUCTOR_FLAG)) {
-                val type = ownerProcedure.thisParameter.type.asRecordType
-                type.fields.forEach { field ->
-                    val init = fieldInitializers[field]
-                    if (init != null)
-                        ownerProcedure.block.FieldSet(
-                            ownerProcedure.thisParameter.expression(),
-                            field,
-                            mapExpression(init),
-                            0
-                        )
-                    fieldInitializers.remove(field)
-                }
-            }
-
-            // Translate body
             this.statements.forEach {
                 it.translate(procedure, block, procedures, types)
             }
@@ -721,13 +558,13 @@ class Java2Strudel(
 
         val s = when (this) {
             is ReturnStmt -> if (expression.isPresent)
-                block.Return(mapExpression(expression.get())).apply {
+                block.Return(exp2Strudel.map(expression.get())).apply {
                     setFlag()
                 }
             else
                 block.ReturnVoid()
 
-            is IfStmt -> block.If(mapExpression(condition)) {
+            is IfStmt -> block.If(exp2Strudel.map(condition)) {
                 thenStmt.translate(procedure, this, procedures, types)
             }.apply {
                 if (hasElseBranch()) {
@@ -743,7 +580,7 @@ class Java2Strudel(
                 }
             }
 
-            is WhileStmt -> block.While(mapExpression(this.condition)) {
+            is WhileStmt -> block.While(exp2Strudel.map(this.condition)) {
                 body.translate(procedure, this, procedures, types)
             }
 
@@ -764,7 +601,7 @@ class Java2Strudel(
                             if (v.initializer.isPresent)
                                 Assign(
                                     varDec,
-                                    mapExpression(v.initializer.get())
+                                    exp2Strudel.map(v.initializer.get())
                                 ).apply {
                                     setFlag(FOR)
                                     bind(v)
@@ -773,7 +610,7 @@ class Java2Strudel(
                     } else
                         handle(this, i).bind(i)
                 }
-                val guard = if (compare.isPresent) mapExpression(compare.get()) else True
+                val guard = if (compare.isPresent) exp2Strudel.map(compare.get()) else True
                 While(guard) {
                     body.translate(procedure, this, procedures, types)
                     update.forEach { u ->
@@ -808,10 +645,10 @@ class Java2Strudel(
                 Assign(indexVar, lit(0)).apply {
                     setFlag(EFOR)
                 }
-                While(indexVar.expression() smaller mapExpression(iterable).length()) {
+                While(indexVar.expression() smaller exp2Strudel.map(iterable).length()) {
                     Assign(
                         itVar,
-                        mapExpression(iterable).element(indexVar.expression())
+                        exp2Strudel.map(iterable).element(indexVar.expression())
                     ).apply {
                         setFlag(EFOR)
                     }
@@ -853,7 +690,7 @@ class Java2Strudel(
                         if (dec.initializer.isPresent) {
                             block.Assign(
                                 varDec,
-                                mapExpression(dec.initializer.get())
+                                exp2Strudel.map(dec.initializer.get())
                             ).bind(this)
                         }
                         varDec.bind(dec.type, TYPE_LOC)
@@ -887,39 +724,6 @@ class Java2Strudel(
     }
 
 
-    fun mapUnOperator(exp: UnaryExpr): IUnaryOperator =
-        when (exp.operator) {
-            UnaryExpr.Operator.LOGICAL_COMPLEMENT -> UnaryOperator.NOT
-            UnaryExpr.Operator.PLUS -> UnaryOperator.PLUS
-            UnaryExpr.Operator.MINUS -> UnaryOperator.MINUS
-            else -> unsupported("unary operator", exp)
-        }
-
-    fun mapBiOperator(exp: BinaryExpr): IBinaryOperator =
-        when (exp.operator) {
-            BinaryExpr.Operator.PLUS -> ArithmeticOperator.ADD
-            BinaryExpr.Operator.MINUS -> ArithmeticOperator.SUB
-            BinaryExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
-            BinaryExpr.Operator.DIVIDE -> ArithmeticOperator.DIV
-            BinaryExpr.Operator.REMAINDER -> ArithmeticOperator.MOD
-
-            // TODO IDIV
-            // BinaryExpr.Operator.DIVIDE -> ArithmeticOperator.IDIV
-
-            BinaryExpr.Operator.EQUALS -> RelationalOperator.EQUAL
-            BinaryExpr.Operator.NOT_EQUALS -> RelationalOperator.DIFFERENT
-            BinaryExpr.Operator.LESS -> RelationalOperator.SMALLER
-            BinaryExpr.Operator.LESS_EQUALS -> RelationalOperator.SMALLER_EQUAL
-            BinaryExpr.Operator.GREATER -> RelationalOperator.GREATER
-            BinaryExpr.Operator.GREATER_EQUALS -> RelationalOperator.GREATER_EQUAL
-
-            BinaryExpr.Operator.AND -> LogicalOperator.AND
-            BinaryExpr.Operator.OR -> LogicalOperator.OR
-            BinaryExpr.Operator.XOR -> LogicalOperator.XOR
-
-            else -> unsupported("binary operator", exp)
-        }
-
     fun AssignExpr.Operator.map(a: AssignExpr): IBinaryOperator =
         when (this) {
             AssignExpr.Operator.PLUS -> ArithmeticOperator.ADD
@@ -930,7 +734,7 @@ class Java2Strudel(
             else -> unsupported("assign operator", a)
         }
 
-    private fun <T> handleMethodCall(
+    internal fun <T> handleMethodCall(
         procedure: IProcedure,
         procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
         types: Map<String, IType>,
