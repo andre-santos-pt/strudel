@@ -18,7 +18,7 @@ dependencies {
     testApi("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testApi("org.junit.platform:junit-platform-suite:1.9.2")
     testImplementation(kotlin("test"))
-    testApi(kotlin("reflect"))
+    implementation(kotlin("reflect"))
     implementation(kotlin("stdlib-jdk8"))
 }
 

@@ -125,6 +125,8 @@ class Java2Strudel(
                 else null
             } else null
 
+        // TODO for foreign procedures - how to get method return type name expr or whatever from MethodCallExpr?
+
         // Find matching procedure declaration
         val method = procedures.findProcedure(
             namespace, exp.nameAsString, emptyList()
@@ -322,17 +324,16 @@ class Java2Strudel(
         classes.forEach { c ->
             val recordType = (types[c.nameAsString] as IReferenceType).target as IRecordType
             c.fields.forEach { field ->
-                if (field.variables.size > 1)
-                    unsupported("multiple field declarations", field)
+                field.variables.forEach { variableDeclaration ->
+                    val f = recordType.addField(types[variableDeclaration.typeAsString]!!) {
+                        id = variableDeclaration.nameAsString
+                    }
 
-                val f = recordType.addField(types[field.variables[0].typeAsString]!!) {
-                    id = field.variables[0].nameAsString
+                    // Store field initializer JavaParser expressions
+                    // (these are translated and injected into constructor(s) later)
+                    if (variableDeclaration.initializer.isPresent)
+                        fieldInitializers[f] = variableDeclaration.initializer.get()
                 }
-
-                // Store field initializer JavaParser expressions
-                // (these are translated and injected into constructor(s) later)
-                if (field.variables[0].initializer.isPresent)
-                    fieldInitializers[f] = field.variables[0].initializer.get()
             }
         }
 
