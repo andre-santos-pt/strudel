@@ -29,6 +29,6 @@ class TestSystemOut {
             }
         })
         vm.execute(model.procedure("main"))
-        assertEquals(listOf("hello\n","!"," this is ", "Strudel!\n"), out)
+        assertEquals(listOf("hello${System.lineSeparator()}","!"," this is ", "Strudel!${System.lineSeparator()}"), out)
     }
 }

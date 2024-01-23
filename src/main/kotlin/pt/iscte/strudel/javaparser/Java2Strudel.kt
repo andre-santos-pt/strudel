@@ -112,25 +112,22 @@ class Java2Strudel(
         mapExpression: (Expression) -> IExpression,
         creator: (IProcedureDeclaration, List<IExpression>) -> T
     ): T {
-        // val paramTypes = s.arguments.map { it.calculateResolvedType() })
+        // val paramTypes = exp.arguments.map { it.calculateResolvedType() }
 
         // Get method namespace
-        val namespace: String? =
-            if (exp.scope.isPresent) {
-                val isNativeProcedure = exp.scope.get() is NameExpr && types.containsKey(exp.scope.get().toString())
-                val isForeignProcedure = foreignProcedures.any { it.namespace == exp.scope.get().toString() }
+        val namespace: String? = if (exp.scope.isPresent) {
+            val isNativeProcedure = exp.scope.get() is NameExpr && types.containsKey(exp.scope.get().toString())
+            val isForeignProcedure = foreignProcedures.any { it.namespace == exp.scope.get().toString() }
 
-                if (isNativeProcedure || isForeignProcedure)
-                    exp.scope.get().toString()
-                else null
-            } else null
-
-        // TODO for foreign procedures - how to get method return type name expr or whatever from MethodCallExpr?
+            if (isNativeProcedure || isForeignProcedure)
+                exp.scope.get().toString()
+            else null
+        } else null
 
         // Find matching procedure declaration
         val method = procedures.findProcedure(
             namespace, exp.nameAsString, emptyList()
-        ) ?: unsupported("not found $exp", exp)
+        ) ?: unsupported("not found", exp)
 
         // Get method call arguments
         val args = exp.arguments.map { mapExpression(it) }
