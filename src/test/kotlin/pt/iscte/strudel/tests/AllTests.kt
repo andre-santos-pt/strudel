@@ -3,12 +3,6 @@ package pt.iscte.strudel.tests
 import org.junit.platform.suite.api.SelectClasses
 import org.junit.platform.suite.api.Suite
 import pt.iscte.strudel.tests.javaparser.*
-import pt.iscte.strudel.tests.javaparser.TestFieldInitializers
-import pt.iscte.strudel.tests.javaparser.TestLoopIterationMax
-import pt.iscte.strudel.tests.javaparser.TestSortingAlgorithms
-import pt.iscte.strudel.tests.javaparser.TestThrow
-import pt.iscte.strudel.tests.temp.TestUnboundType
-import pt.iscte.strudel.tests.temp.TestsPaper
 
 @Suite
 @SelectClasses(
@@ -80,7 +74,9 @@ import pt.iscte.strudel.tests.temp.TestsPaper
     TestSystemOut::class,
     TestComparator::class,
 
-    TestFieldInitializers::class
+    TestFieldInitializers::class,
+
+    TestAutomaticForeignProcedure::class
 
 )
 class AllTests

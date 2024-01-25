@@ -8,7 +8,7 @@ import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
-import com.github.javaparser.resolution.types.ResolvedType
+import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
@@ -54,6 +54,10 @@ class Java2Strudel(
 
     private val fieldInitializers = mutableMapOf<IField, Expression>()
 
+    init {
+        StaticJavaParser.getParserConfiguration().setSymbolResolver(JavaSymbolSolver(typeSolver()))
+    }
+
     fun load(file: File): IModule =
         translate(StaticJavaParser.parse(file).types.filterIsInstance<ClassOrInterfaceDeclaration>())
 
@@ -85,6 +89,9 @@ class Java2Strudel(
         return this
     }
 
+    internal fun IProcedureDeclaration.matches(namespace: String?, id: String, parameterTypes: List<IType>): Boolean =
+        (namespace == null || this.namespace == namespace) && this.id == id && true // TODO: parameter type match
+
     /**
      * Finds a procedure with matching namespace, ID, and parameter types.
      * @receiver A list of (JavaParser Declaration, IProcedureDeclaration) pairs.
@@ -96,12 +103,12 @@ class Java2Strudel(
     internal fun List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>.findProcedure(
         namespace: String?,
         id: String,
-        paramTypes: List<ResolvedType>  // TODO param types in find procedure
+        paramTypes: List<IType>  // TODO param types in find procedure
     ): IProcedureDeclaration? {
-        val find = find { (namespace == null || it.second.namespace == namespace) && it.second.id == id }
-        if (find != null)
-            return find.second
-        return foreignProcedures.find { it.namespace == namespace && it.id == id }
+        val find =
+            if (namespace == null) find { it.second.id == id }
+            else find { it.second.namespace == namespace && it.second.id == id }
+        return find?.second ?: foreignProcedures.find { it.namespace == namespace && it.id == id }
     }
 
     internal fun <T> handleMethodCall(
@@ -112,22 +119,24 @@ class Java2Strudel(
         mapExpression: (Expression) -> IExpression,
         creator: (IProcedureDeclaration, List<IExpression>) -> T
     ): T {
-        // val paramTypes = exp.arguments.map { it.calculateResolvedType() }
+        // val paramTypes: List<IType> = exp.arguments.map { it.getResolvedIType() }
 
         // Get method namespace
         val namespace: String? = if (exp.scope.isPresent) {
-            val isNativeProcedure = exp.scope.get() is NameExpr && types.containsKey(exp.scope.get().toString())
-            val isForeignProcedure = foreignProcedures.any { it.namespace == exp.scope.get().toString() }
+            val scope = exp.scope.get()
+            val isNativeProcedure: Boolean = scope is NameExpr && types.containsKey(scope.toString())
+            val isForeignProcedure: Boolean = foreignProcedures.any { it.namespace == scope.toString() }
+            val shouldBeForeignProcedure: Boolean = runCatching { getClass(scope.toString()) }.isSuccess
 
-            if (isNativeProcedure || isForeignProcedure)
-                exp.scope.get().toString()
+            if (isNativeProcedure || isForeignProcedure || shouldBeForeignProcedure)
+                scope.toString()
             else null
         } else null
 
         // Find matching procedure declaration
         val method = procedures.findProcedure(
             namespace, exp.nameAsString, emptyList()
-        ) ?: unsupported("not found", exp)
+        ) ?: exp.asForeignProcedure() ?: unsupported("not found", exp)
 
         // Get method call arguments
         val args = exp.arguments.map { mapExpression(it) }

@@ -2,7 +2,9 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.javaparser.stringType
 import pt.iscte.strudel.vm.IVirtualMachine
+import pt.iscte.strudel.vm.impl.Value
 import kotlin.test.assertEquals
 
 class TestAutomaticForeignProcedure {
@@ -11,7 +13,7 @@ class TestAutomaticForeignProcedure {
     fun test1() {
         val src = """
             public class Rounder {
-                public static double round(int x) {
+                public static int round(double x) {
                     return Math.round(x);
                 }
             }
@@ -29,7 +31,7 @@ class TestAutomaticForeignProcedure {
     fun test2() {
         val src = """
             public class Rounder {
-                public static double round(int x) {
+                public static int round(double x) {
                     return Math.round(x);
                 }
                 
@@ -47,6 +49,9 @@ class TestAutomaticForeignProcedure {
         val valueOf = module.getProcedure("integerValueOf")
         println(valueOf)
         assertEquals(3, vm.execute(round, vm.getValue(3.14))?.value)
-        assertEquals(8, vm.execute(valueOf, vm.getValue("\"8\""))?.value)
+
+        val str = Value(stringType, java.lang.String("8"))
+
+        assertEquals(8, vm.execute(valueOf, str)?.value)
     }
 }

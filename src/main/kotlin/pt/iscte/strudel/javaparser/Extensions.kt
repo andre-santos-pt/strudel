@@ -5,15 +5,21 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
 import com.github.javaparser.ast.body.ConstructorDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.comments.Comment
+import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.ast.stmt.BlockStmt
 import com.github.javaparser.ast.type.ClassOrInterfaceType
 import com.github.javaparser.ast.type.Type
 import com.github.javaparser.resolution.TypeSolver
+import com.github.javaparser.resolution.types.ResolvedArrayType
+import com.github.javaparser.resolution.types.ResolvedPrimitiveType
+import com.github.javaparser.resolution.types.ResolvedReferenceType
+import com.github.javaparser.resolution.types.ResolvedType
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
 import pt.iscte.strudel.model.*
+import pt.iscte.strudel.model.impl.ArrayType
 import pt.iscte.strudel.vm.impl.ForeignProcedure
 import java.lang.reflect.Method
 import java.util.*
@@ -33,10 +39,8 @@ fun Optional<Comment>.translateComment(): String? =
     } else null
 
 fun getType(t: String): IType = when (t) {
-    "int" -> INT
-    "double" -> DOUBLE
-    "float" -> DOUBLE // TODO: not cool
-    "long" -> INT  // also not cool
+    "int", "long" -> INT // TODO: hacky
+    "double", "float" -> DOUBLE // TODO: hacky
     "boolean" -> BOOLEAN
     "char" -> CHAR
     "String" -> stringType
@@ -106,14 +110,35 @@ internal fun createForeignProcedure(scope: String?, method: Method): ForeignProc
         vm.getValue(method.invoke(null, *args.map { it.value }.toTypedArray()))
     }
 
+internal fun ResolvedType.toIType(): IType = when (this) {
+    ResolvedPrimitiveType.CHAR -> CHAR
+    ResolvedPrimitiveType.INT, ResolvedPrimitiveType.LONG -> INT
+    ResolvedPrimitiveType.BOOLEAN -> BOOLEAN
+    ResolvedPrimitiveType.DOUBLE, ResolvedPrimitiveType.FLOAT -> DOUBLE
+    is ResolvedReferenceType -> TODO("Reference type resolution to Strudel IType not yet implemented")
+    is ResolvedArrayType -> ArrayType(componentType.toIType())
+    else -> error("unsupported expression type $this", this)
+}
+
+internal fun Expression.getResolvedJavaType(): Class<*> = when (val type = calculateResolvedType()) {
+    ResolvedPrimitiveType.CHAR -> Char::class.java
+    ResolvedPrimitiveType.INT, ResolvedPrimitiveType.LONG -> Int::class.java
+    ResolvedPrimitiveType.BOOLEAN -> Boolean::class.java
+    ResolvedPrimitiveType.DOUBLE, ResolvedPrimitiveType.FLOAT -> Double::class.java
+    is ResolvedReferenceType -> getClass(type.id)
+    is ResolvedArrayType -> TODO("Array type resolution to Java Class not yet implemented")
+    else -> error("unsupported expression type $type", this)
+}
+
+internal fun Expression.getResolvedIType(): IType = calculateResolvedType().toIType()
+
 internal fun MethodCallExpr.asForeignProcedure(): IProcedureDeclaration? {
     if (scope.isPresent) {
         val namespace = scope.get()
         if (namespace is NameExpr) { // todo does this work for instance methods? (I feel like it doesn't)
             val clazz: Class<*> = getClass(namespace.toString())
-            val method: Method = clazz.methods.first {
-                it.name == nameAsString && it.parameters.size == arguments.size // TODO also use parameter types to find
-            }
+            val method: Method = clazz.getMethod(nameAsString, *arguments.map { it.getResolvedJavaType() }.toTypedArray())
+            println("Method for $this is $method")
             return createForeignProcedure(namespace.toString(), method)
         } else unsupported("automatic foreign procedure creation for method call expression $this", this)
     }
