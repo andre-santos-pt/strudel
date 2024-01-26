@@ -20,9 +20,14 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSol
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.ArrayType
+import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.impl.ForeignProcedure
+import pt.iscte.strudel.vm.impl.Value
+import java.lang.reflect.Array
 import java.lang.reflect.Method
 import java.util.*
+
+fun getStringValue(str: String): IValue = Value(stringType, java.lang.String(str))
 
 val IModule.proceduresExcludingConstructors: List<IProcedure>
     get() = procedures.filter { it.id != INIT }
@@ -74,6 +79,8 @@ fun getClass(name: String): Class<*> =
         }
     }
 
+fun isJavaClassName(name: String): Boolean = runCatching { getClass(name) }.isSuccess
+
 fun MutableMap<String, IType>.mapType(t: String): IType =
     if (containsKey(t))
         this[t]!!
@@ -97,50 +104,99 @@ fun typeSolver(): TypeSolver {
     return CombinedTypeSolver().apply { add(ReflectionTypeSolver()) }
 }
 
-internal fun createForeignProcedure(scope: String?, method: Method): ForeignProcedure =
+internal fun createForeignProcedure(scope: String?, method: Method, isStatic: Boolean): ForeignProcedure =
     ForeignProcedure(
         null,
         scope,
         method.name,
         getType(method.returnType.typeName),
-        method.parameters.map { getType(it.type.typeName) }
+        (if (isStatic) listOf() else listOf(getType(method.declaringClass.simpleName))) + method.parameters.map { getType(it.type.typeName) }
     )
     { vm, args ->
-        println("Calling ${method.name}(${args.joinToString { it.type.toString() }})")
-        vm.getValue(method.invoke(null, *args.map { it.value }.toTypedArray()))
+        val res =
+            if (isStatic) // static --> no caller
+                method.invoke(null, *args.map { it.value }.toTypedArray())
+            else if (args.size == 1) { // not static --> caller is $this parameter
+                method.invoke(args.first().value)
+            } else if (args.size > 1) {
+                val caller = args.first().value // should be $this
+                if (caller!!.javaClass != method.declaringClass)
+                    error("Cannot invoke instance method $method with object instance $caller: is ${caller.javaClass.canonicalName}, should be ${method.declaringClass.canonicalName}")
+                val arguments = args.slice(1 until args.size).map { it.value }
+                method.invoke(caller, *arguments.toTypedArray())
+            } else error("Cannot invoke instance method $method with 0 arguments: missing (at least) object instance")
+        when (res) {
+            is String -> getStringValue(res)
+            else -> vm.getValue(res)
+        }
     }
 
-internal fun ResolvedType.toIType(): IType = when (this) {
+internal fun ResolvedType.toIType(types: Map<String, IType>): IType = when (this) {
     ResolvedPrimitiveType.CHAR -> CHAR
     ResolvedPrimitiveType.INT, ResolvedPrimitiveType.LONG -> INT
     ResolvedPrimitiveType.BOOLEAN -> BOOLEAN
     ResolvedPrimitiveType.DOUBLE, ResolvedPrimitiveType.FLOAT -> DOUBLE
-    is ResolvedReferenceType -> TODO("Reference type resolution to Strudel IType not yet implemented")
-    is ResolvedArrayType -> ArrayType(componentType.toIType())
+    is ResolvedReferenceType -> types[this.qualifiedName] ?: HostRecordType(this.qualifiedName)
+    is ResolvedArrayType -> ArrayType(componentType.toIType(types))
+    // is LazyType -> this.concrete
     else -> error("unsupported expression type $this", this)
 }
 
-internal fun Expression.getResolvedJavaType(): Class<*> = when (val type = calculateResolvedType()) {
+internal fun ResolvedType.toJavaType(): Class<*> = when (this) {
     ResolvedPrimitiveType.CHAR -> Char::class.java
     ResolvedPrimitiveType.INT, ResolvedPrimitiveType.LONG -> Int::class.java
     ResolvedPrimitiveType.BOOLEAN -> Boolean::class.java
     ResolvedPrimitiveType.DOUBLE, ResolvedPrimitiveType.FLOAT -> Double::class.java
-    is ResolvedReferenceType -> getClass(type.id)
-    is ResolvedArrayType -> TODO("Array type resolution to Java Class not yet implemented")
-    else -> error("unsupported expression type $type", this)
+    is ResolvedReferenceType -> getClass(this.id)
+    is ResolvedArrayType -> Array.newInstance(this.componentType.toJavaType(), 0).javaClass // TODO: test
+    else -> error("unsupported expression type $this", this)
 }
 
-internal fun Expression.getResolvedIType(): IType = calculateResolvedType().toIType()
+internal fun Expression.getResolvedJavaType(): Class<*> = calculateResolvedType().toJavaType()
+
+internal fun Expression.getResolvedIType(types: Map<String, IType>): IType = calculateResolvedType().toIType(types)
+
+internal val MethodCallExpr.isAbstractMethodCall: Boolean
+    get() = resolve().isAbstract
+
+internal val MethodCallExpr.isStaticMethodCall: Boolean
+    get() = resolve().isStatic
+
+data class MethodNamespace(val qualifiedName: String, val type: NamespaceType, val isStatic: Boolean)
+enum class NamespaceType { CLASS, ABSTRACT_REFERENCE, CONCRETE_REFERENCE }
+internal fun MethodCallExpr.getNamespace(types: Map<String, IType>, foreignProcedures: List<IProcedureDeclaration>): MethodNamespace? =
+    if (scope.isPresent) {
+        val scope = scope.get()
+
+        val scopeIsCurrentlyLoadedType: Boolean = scope is NameExpr && types.containsKey(scope.toString())
+        val scopeIsForeignProcedure: Boolean = foreignProcedures.any { it.namespace == scope.toString() }
+        val scopeIsValidJavaClass: Boolean = isJavaClassName(scope.toString())
+
+        if (scopeIsCurrentlyLoadedType || scopeIsForeignProcedure || scopeIsValidJavaClass)
+            MethodNamespace(scope.toString(), NamespaceType.CLASS, false)
+        else if (isAbstractMethodCall) when (val type = scope.calculateResolvedType()) {
+            is ResolvedReferenceType -> MethodNamespace(type.qualifiedName, NamespaceType.ABSTRACT_REFERENCE, isStaticMethodCall)
+            else -> null
+        } else MethodNamespace(scope.getResolvedJavaType().canonicalName, NamespaceType.CONCRETE_REFERENCE, isStaticMethodCall)
+    } else null
+
 
 internal fun MethodCallExpr.asForeignProcedure(): IProcedureDeclaration? {
+    if (isAbstractMethodCall) return null
     if (scope.isPresent) {
         val namespace = scope.get()
-        if (namespace is NameExpr) { // todo does this work for instance methods? (I feel like it doesn't)
-            val clazz: Class<*> = getClass(namespace.toString())
-            val method: Method = clazz.getMethod(nameAsString, *arguments.map { it.getResolvedJavaType() }.toTypedArray())
-            println("Method for $this is $method")
-            return createForeignProcedure(namespace.toString(), method)
-        } else unsupported("automatic foreign procedure creation for method call expression $this", this)
+        if (namespace is NameExpr) {
+            val clazz: Class<*> = runCatching {
+                getClass(namespace.toString())
+            }.getOrNull() ?: namespace.getResolvedJavaType()
+
+            val args = arguments.map { it.getResolvedJavaType() }.toTypedArray()
+            val method: Method = clazz.getMethod(nameAsString, *args)
+
+            val isStaticMethod = this.resolve().isStatic
+            return createForeignProcedure(namespace.toString(), method, isStaticMethod)
+        } else
+            unsupported("automatic foreign procedure creation for method call expression: $this", this)
     }
     return null
 }

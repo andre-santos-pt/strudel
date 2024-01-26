@@ -6,7 +6,6 @@ import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.*
 import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.expr.MethodCallExpr
-import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade
@@ -89,8 +88,13 @@ class Java2Strudel(
         return this
     }
 
-    internal fun IProcedureDeclaration.matches(namespace: String?, id: String, parameterTypes: List<IType>): Boolean =
-        (namespace == null || this.namespace == namespace) && this.id == id && true // TODO: parameter type match
+    private fun IProcedureDeclaration.matches(namespace: String?, id: String, parameterTypes: List<IType>): Boolean {
+        // val paramTypeMatch = this.parameters.map { it.type.id } == parameterTypes.map { it.id }
+        val idAndNamespaceMatch =
+            if (namespace == null) this.id == id
+            else this.namespace == namespace && this.id == id
+        return idAndNamespaceMatch
+    }
 
     /**
      * Finds a procedure with matching namespace, ID, and parameter types.
@@ -105,10 +109,8 @@ class Java2Strudel(
         id: String,
         paramTypes: List<IType>  // TODO param types in find procedure
     ): IProcedureDeclaration? {
-        val find =
-            if (namespace == null) find { it.second.id == id }
-            else find { it.second.namespace == namespace && it.second.id == id }
-        return find?.second ?: foreignProcedures.find { it.namespace == namespace && it.id == id }
+        val find = find { it.second.matches(namespace, id, paramTypes) }
+        return find?.second ?: foreignProcedures.find { it.matches(namespace, id, paramTypes) }
     }
 
     internal fun <T> handleMethodCall(
@@ -122,25 +124,17 @@ class Java2Strudel(
         // val paramTypes: List<IType> = exp.arguments.map { it.getResolvedIType() }
 
         // Get method namespace
-        val namespace: String? = if (exp.scope.isPresent) {
-            val scope = exp.scope.get()
-            val isNativeProcedure: Boolean = scope is NameExpr && types.containsKey(scope.toString())
-            val isForeignProcedure: Boolean = foreignProcedures.any { it.namespace == scope.toString() }
-            val shouldBeForeignProcedure: Boolean = runCatching { getClass(scope.toString()) }.isSuccess
-
-            if (isNativeProcedure || isForeignProcedure || shouldBeForeignProcedure)
-                scope.toString()
-            else null
-        } else null
+        val namespace: MethodNamespace? = exp.getNamespace(types, foreignProcedures)
 
         // Find matching procedure declaration
         val method = procedures.findProcedure(
-            namespace, exp.nameAsString, emptyList()
-        ) ?: exp.asForeignProcedure() ?: unsupported("not found", exp)
+            namespace?.qualifiedName, exp.nameAsString, emptyList()
+        ) ?: exp.asForeignProcedure() ?: error("procedure matching method call $exp not found within namespace $namespace", exp)
 
         // Get method call arguments
         val args = exp.arguments.map { mapExpression(it) }
 
+        // TODO: solve this without crying
         return if (exp.scope.isPresent)
             if (namespace == null)
                 creator(method, listOf(mapExpression(exp.scope.get())) + args)
@@ -201,7 +195,35 @@ class Java2Strudel(
          */
         fun MethodDeclaration.translateMethod(namespace: String): IProcedureDeclaration =
             if (!body.isPresent)
-                PolymophicProcedure(this@module, nameAsString, emptyList(), types.mapType(type))
+                PolymophicProcedure(this@module, namespace, nameAsString, types.mapType(type)).apply {
+                    comment.translateComment()?.let { this.documentation = it }
+
+                    // Check for unsupported modifiers
+                    if (modifiers.any { !supportedModifiers.contains(it.keyword) })
+                        unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
+
+                    // Add modifiers
+                    setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
+
+                    // Interface methods ""are always instance methods"" (don't quote us on this) -> add $this parameter
+                    addParameter(types.mapType((parentNode.get() as ClassOrInterfaceDeclaration))).apply {
+                        id = THIS_PARAM
+                    }
+
+                    // Add regular method parameters
+                    this@translateMethod.parameters.forEach { p ->
+                        addParameter(types.mapType(p.type)).apply {
+                            id = p.nameAsString
+                        }.bind(p)
+                            .bind(p.type, TYPE_LOC)
+                            .bind(p.name, ID_LOC)
+                    }
+
+                    bind(this@translateMethod)
+                    setProperty(NAMESPACE_PROP, namespace)
+                    bind(name, ID_LOC)
+                    bind(this@translateMethod.type, TYPE_LOC)
+                }
             else
                 Procedure(types.mapType(type), nameAsString).apply {
                     comment.translateComment()?.let { this.documentation = it }
@@ -296,9 +318,6 @@ class Java2Strudel(
             if (c.extendedTypes.isNotEmpty())
                 unsupported("extends keyword", c.extendedTypes.first())
 
-            //if (c.implementedTypes.isNotEmpty())
-            //    unsupported("implements", c.implementedTypes.first())
-
             if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 }) {
                 val nodes = c.methods
                     .groupBy { it.nameAsString }
@@ -327,7 +346,7 @@ class Java2Strudel(
         }
 
         // Translate field declarations for each class
-        classes.forEach { c ->
+        classes.filter { !it.isInterface }.forEach { c ->
             val recordType = (types[c.nameAsString] as IReferenceType).target as IRecordType
             c.fields.forEach { field ->
                 field.variables.forEach { variableDeclaration ->
@@ -351,7 +370,7 @@ class Java2Strudel(
         fun List<ClassOrInterfaceDeclaration>.getAllProcedures(): List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> {
             // Default constructors created for classes with no explicit constructor declarations
             val defaultConstructors = filter {
-                it.constructors.isEmpty() && it.methods.none { method -> method.nameAsString == INIT }
+                !it.isInterface && it.constructors.isEmpty() && it.methods.none { method -> method.nameAsString == INIT }
             }.map {
                 null to createDefaultConstructor(it)
             }

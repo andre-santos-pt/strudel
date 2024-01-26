@@ -4,10 +4,12 @@ import pt.iscte.strudel.model.*
 
 internal class PolymophicProcedure(
     override val module: IModule,
+    override var namespace: String?,
     override var id: String?,
-    override val parameters: List<IParameter>,
     override val returnType: IType
 ) : ProgramElement(), IPolymorphicProcedure {
+
+    override val parameters: List<IParameter> = mutableListOf()
 
     init {
         module.members.add(this)

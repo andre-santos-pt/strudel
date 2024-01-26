@@ -72,6 +72,7 @@ import pt.iscte.strudel.tests.javaparser.*
     TestThrow::class,
 
     TestSystemOut::class,
+    TestDynamicDispatch::class,
     TestComparator::class,
 
     TestFieldInitializers::class,

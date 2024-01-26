@@ -393,11 +393,12 @@ class ProcedureInterpreter(
                             }
                         } else {
                             val proc: IProcedure =
-                                if(exp.procedure is IPolymorphicProcedure)
-                                        exp.procedure.module?.procedures?.find { p -> p.id == exp.procedure.id && p.namespace == args[0].type.id }
-                                            ?: throw UnsupportedOperationException(exp.toString())
-                            else
-                                exp.procedure as IProcedure
+                                if (exp.procedure is IPolymorphicProcedure)
+                                    exp.procedure.module?.procedures?.find {
+                                        p -> p.id == exp.procedure.id && p.namespace == args[0].type.id
+                                    } ?: throw UnsupportedOperationException(exp.toString())
+                                else
+                                    exp.procedure as IProcedure
 
                             val call = ProcedureInterpreter(
                                 vm,

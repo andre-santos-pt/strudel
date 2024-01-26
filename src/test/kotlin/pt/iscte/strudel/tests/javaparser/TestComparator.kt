@@ -2,17 +2,12 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.model.INT
-import pt.iscte.strudel.model.VOID
-import pt.iscte.strudel.model.dsl.*
-import pt.iscte.strudel.vm.ArrayIndexError
 import pt.iscte.strudel.vm.IVirtualMachine
-import pt.iscte.strudel.vm.RuntimeError
-import pt.iscte.strudel.vm.RuntimeErrorType
-import kotlin.test.*
 
 class TestComparator {
     val code = """    
+        import java.util.Comparator;
+        
         class Larger implements Comparator<String> {
             public int compare(String a, String b) {
                 return a.length() - b.length();
