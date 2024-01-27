@@ -119,31 +119,37 @@ class Java2Strudel(
         types: Map<String, IType>,
         exp: MethodCallExpr,
         mapExpression: (Expression) -> IExpression,
-        creator: (IProcedureDeclaration, List<IExpression>) -> T
+        invoke: (IProcedureDeclaration, List<IExpression>) -> T
     ): T {
         // val paramTypes: List<IType> = exp.arguments.map { it.getResolvedIType() }
 
         // Get method namespace
-        val namespace: MethodNamespace? = exp.getNamespace(types, foreignProcedures)
+        val namespace: Namespace? = exp.getNamespace(types, foreignProcedures)
+        val scope: String? =
+            if (namespace == null || namespace.isAbstract) null
+            else namespace.qualifiedName
 
         // Find matching procedure declaration
-        val method = procedures.findProcedure(
-            namespace?.qualifiedName, exp.nameAsString, emptyList()
-        ) ?: exp.asForeignProcedure() ?: error("procedure matching method call $exp not found within namespace $namespace", exp)
+        val method =
+            procedures.findProcedure(scope, exp.nameAsString, emptyList()) ?:
+            exp.asForeignProcedure() ?:
+            error("procedure matching method call $exp not found within namespace ${namespace?.qualifiedName}", exp)
 
         // Get method call arguments
         val args = exp.arguments.map { mapExpression(it) }
 
-        // TODO: solve this without crying
-        return if (exp.scope.isPresent)
-            if (namespace == null)
-                creator(method, listOf(mapExpression(exp.scope.get())) + args)
-            else
-                creator(method, args)
-        else if (method.parameters.isNotEmpty() && method.parameters[0].id == THIS_PARAM) // Instance method
-            creator(method, listOf(procedure.thisParameter.expression()) + args)
-        else
-            creator(method, args)
+        return if (exp.scope.isPresent) {
+            if (namespace == null || !namespace.isStatic) { // No namespace or instance method
+                val thisParam = mapExpression(exp.scope.get())
+                invoke(method, listOf(thisParam) + args)
+            }
+            else invoke(method, args) // Static method
+        }
+        else if (method.parameters.isNotEmpty() && method.parameters[0].id == THIS_PARAM) {
+            val thisParam = procedure.thisParameter.expression()
+            invoke(method, listOf(thisParam) + args)
+        }
+        else invoke(method, args)
     }
 
     private fun collectHostTypes(

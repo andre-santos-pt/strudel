@@ -162,22 +162,22 @@ internal val MethodCallExpr.isAbstractMethodCall: Boolean
 internal val MethodCallExpr.isStaticMethodCall: Boolean
     get() = resolve().isStatic
 
-data class MethodNamespace(val qualifiedName: String, val type: NamespaceType, val isStatic: Boolean)
-enum class NamespaceType { CLASS, ABSTRACT_REFERENCE, CONCRETE_REFERENCE }
-internal fun MethodCallExpr.getNamespace(types: Map<String, IType>, foreignProcedures: List<IProcedureDeclaration>): MethodNamespace? =
+data class Namespace(val qualifiedName: String, val isAbstract: Boolean, val isStatic: Boolean)
+
+internal fun MethodCallExpr.getNamespace(types: Map<String, IType>, foreignProcedures: List<IProcedureDeclaration>): Namespace? =
     if (scope.isPresent) {
         val scope = scope.get()
 
         val scopeIsCurrentlyLoadedType: Boolean = scope is NameExpr && types.containsKey(scope.toString())
-        val scopeIsForeignProcedure: Boolean = foreignProcedures.any { it.namespace == scope.toString() }
+        val scopeIsCurrentlyLoadedForeignType: Boolean = foreignProcedures.any { it.namespace == scope.toString() }
         val scopeIsValidJavaClass: Boolean = isJavaClassName(scope.toString())
 
-        if (scopeIsCurrentlyLoadedType || scopeIsForeignProcedure || scopeIsValidJavaClass)
-            MethodNamespace(scope.toString(), NamespaceType.CLASS, false)
+        if (scopeIsCurrentlyLoadedType || scopeIsCurrentlyLoadedForeignType || scopeIsValidJavaClass)
+            Namespace(scope.toString(), false, true)
         else if (isAbstractMethodCall) when (val type = scope.calculateResolvedType()) {
-            is ResolvedReferenceType -> MethodNamespace(type.qualifiedName, NamespaceType.ABSTRACT_REFERENCE, isStaticMethodCall)
+            is ResolvedReferenceType -> Namespace(type.qualifiedName, true, false)
             else -> null
-        } else MethodNamespace(scope.getResolvedJavaType().canonicalName, NamespaceType.CONCRETE_REFERENCE, isStaticMethodCall)
+        } else Namespace(scope.getResolvedJavaType().canonicalName, false, false)
     } else null
 
 
