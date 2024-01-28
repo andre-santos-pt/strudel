@@ -14,6 +14,8 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import java.io.File
 
+import pt.iscte.strudel.javaparser.extensions.*
+
 class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
     val locations = nodes.map { SourceLocation(it) }
 
@@ -89,11 +91,11 @@ class Java2Strudel(
     }
 
     private fun IProcedureDeclaration.matches(namespace: String?, id: String, parameterTypes: List<IType>): Boolean {
-        // val paramTypeMatch = this.parameters.map { it.type.id } == parameterTypes.map { it.id }
+        val paramTypeMatch = this.parameters.map { it.type } == parameterTypes // FIXME
         val idAndNamespaceMatch =
             if (namespace == null) this.id == id
             else this.namespace == namespace && this.id == id
-        return idAndNamespaceMatch
+        return idAndNamespaceMatch // && paramTypeMatch
     }
 
     /**
@@ -121,7 +123,7 @@ class Java2Strudel(
         mapExpression: (Expression) -> IExpression,
         invoke: (IProcedureDeclaration, List<IExpression>) -> T
     ): T {
-        // val paramTypes: List<IType> = exp.arguments.map { it.getResolvedIType() }
+        val paramTypes: List<IType> = exp.arguments.map { it.getResolvedIType(types) }
 
         // Get method namespace
         val namespace: Namespace? = exp.getNamespace(types, foreignProcedures)
@@ -131,8 +133,8 @@ class Java2Strudel(
 
         // Find matching procedure declaration
         val method =
-            procedures.findProcedure(scope, exp.nameAsString, emptyList()) ?:
-            exp.asForeignProcedure() ?:
+            procedures.findProcedure(scope, exp.nameAsString, paramTypes) ?:
+            exp.asForeignProcedure(types) ?:
             error("procedure matching method call $exp not found within namespace ${namespace?.qualifiedName}", exp)
 
         // Get method call arguments

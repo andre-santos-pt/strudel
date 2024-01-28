@@ -18,6 +18,9 @@ internal val defaultTypes = mapOf(
     "char" to CHAR,
     "boolean" to BOOLEAN,
 
+    "long" to INT,
+    "float" to DOUBLE,
+
     "int[]" to INT.array().reference(),
     "double[]" to DOUBLE.array().reference(),
     "char[]" to CHAR.array().reference(),

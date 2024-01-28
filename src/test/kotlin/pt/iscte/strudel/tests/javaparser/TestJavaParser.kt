@@ -2,10 +2,9 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.proceduresExcludingConstructors
+import pt.iscte.strudel.javaparser.extensions.proceduresExcludingConstructors
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.vm.impl.VirtualMachine
-import java.io.File
 import kotlin.io.path.Path
 import kotlin.test.assertTrue
 

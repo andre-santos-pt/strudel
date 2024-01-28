@@ -1,8 +1,13 @@
 package pt.iscte.strudel.tests
 
+import org.junit.jupiter.api.Test
 import org.junit.platform.suite.api.SelectClasses
 import org.junit.platform.suite.api.Suite
 import pt.iscte.strudel.tests.javaparser.*
+import java.io.File
+import kotlin.reflect.KClass
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.hasAnnotation
 
 @Suite
 @SelectClasses(
@@ -77,7 +82,57 @@ import pt.iscte.strudel.tests.javaparser.*
 
     TestFieldInitializers::class,
 
-    TestAutomaticForeignProcedure::class
+    TestAutomaticForeignProcedure::class,
+
+    /* All of these were missing: check main() function below
+
+    TestJavaParser::class,
+    TestMultipleFieldDeclarations::class,
+    TestChars::class,
+    TestMatrix3d::class,
+    TestNaturalsTemp::class,
+    TestParser::class,
+    TestsPaper::class,
+    TestStackRecord::class,
+    TestUnboundType::class,
+    TestDocumentation::class,
+    TestGCD::class,
+    TestHeavyProcessing::class,
+    TestMatrixIndexOutOfBounds::class,
+    TestUsedMemory::class
+     */
 
 )
 class AllTests
+
+fun main() {
+    /**
+     * Prints a list of all the valid test classes.
+     *
+     * onlyMissing = true: Prints only a list of valid test classes not included in @SelectClasses above.
+     * onlyMissing = false: Prints a list of all valid test classes.
+     */
+    val onlyMissing = true
+
+    val suite: List<KClass<*>> = AllTests::class.findAnnotation<SelectClasses>()!!.value.toList()
+
+    val tests = File("src/test/kotlin")
+    val files: List<File> = tests.walk().filter { it.isFile && it.extension == "kt" }.toList()
+
+    val classes: MutableList<KClass<*>> = mutableListOf()
+    files.forEach { file ->
+        val name = file.relativeTo(tests).path.replace(File.separatorChar, '.').removeSuffix(".kt")
+        runCatching { classes.add(Class.forName(name).kotlin) }
+    }
+
+    val matches = classes.filter { cls ->
+        (!onlyMissing || cls !in suite) && cls.members.any { it.hasAnnotation<Test>() }
+    }
+
+    if (onlyMissing)
+        println("AllTests is missing the following classes:\n")
+    else
+        println("AllTests can be defined for the following classes:\n")
+
+    println(matches.joinToString(",\n") { "${it.simpleName}::class" })
+}

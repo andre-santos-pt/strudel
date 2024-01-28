@@ -4,6 +4,8 @@ import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.type.Type
+import pt.iscte.strudel.javaparser.extensions.mapType
+import pt.iscte.strudel.javaparser.extensions.translateComment
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.ProcedureCall

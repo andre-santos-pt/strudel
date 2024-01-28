@@ -2,7 +2,7 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.getStringValue
+import pt.iscte.strudel.javaparser.extensions.getStringValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 

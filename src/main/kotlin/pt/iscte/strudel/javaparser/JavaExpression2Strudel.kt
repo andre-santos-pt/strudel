@@ -3,6 +3,8 @@ package pt.iscte.strudel.javaparser
 import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
+import pt.iscte.strudel.javaparser.extensions.getOrNull
+import pt.iscte.strudel.javaparser.extensions.mapType
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.False
 import pt.iscte.strudel.model.dsl.True
