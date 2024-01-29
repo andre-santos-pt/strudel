@@ -414,6 +414,17 @@ class ProcedureInterpreter(
             is IRecordAllocation -> {
                 valStack.push(vm.allocateRecord(exp.recordType))
             }
+
+            is IConditionalExpression -> {
+                if (valStack.isEmpty())
+                    evaluateStep(exp.condition)
+                else {
+                    if (valStack.pop().isTrue)
+                        evaluateStep(exp.trueCase)
+                    else
+                        evaluateStep(exp.falseCase)
+                }
+            }
             else -> throw UnsupportedOperationException(exp.toString())
         }
     }

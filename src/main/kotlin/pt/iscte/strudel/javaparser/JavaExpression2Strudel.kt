@@ -10,6 +10,7 @@ import pt.iscte.strudel.model.dsl.False
 import pt.iscte.strudel.model.dsl.True
 import pt.iscte.strudel.model.dsl.character
 import pt.iscte.strudel.model.dsl.lit
+import pt.iscte.strudel.model.impl.Conditional
 import pt.iscte.strudel.model.impl.ProcedureCall
 import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.model.util.LogicalOperator
@@ -160,6 +161,8 @@ class JavaExpression2Strudel(
             ) { m, args ->
                 ProcedureCall(NullBlock, m, arguments = args)
             }
+
+            is ConditionalExpr -> Conditional(map(exp.condition), map(exp.thenExpr), map(exp.elseExpr))
 
             else -> unsupported("expression", exp)
         }.bind(exp)

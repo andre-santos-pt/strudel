@@ -23,20 +23,23 @@ internal abstract class Expression(vararg flags: String) : ProgramElement(*flags
     override fun conditional(trueCase: IExpression, falseCase: IExpression): IConditionalExpression {
         return Conditional(this, trueCase, falseCase)
     }
+}
 
 
-    // TODO evaluate only one
-    // ideia: decompose() -> iterador que para quando nao e preciso mais
-    internal class Conditional(
-        override val condition: IExpression,
-        override val trueCase: IExpression,
-        override val falseCase: IExpression) : Expression(),
-        IConditionalExpression {
-        override val parts: List<IExpression>
-            get() = listOf(condition)
+// TODO evaluate only one
+// ideia: decompose() -> iterador que para quando nao e preciso mais
+internal class Conditional(
+    override val condition: IExpression,
+    override val trueCase: IExpression,
+    override val falseCase: IExpression
+) : Expression(),
+    IConditionalExpression {
+    override val parts: List<IExpression>
+        get() = listOf(condition)
 
-        override fun conditional(trueCase: IExpression, falseCase: IExpression): IConditionalExpression {
-            return Conditional(this, trueCase, falseCase)
-        }
+    override fun conditional(trueCase: IExpression, falseCase: IExpression): IConditionalExpression {
+        return Conditional(this, trueCase, falseCase)
     }
+
+    override fun toString() = "$condition ? $trueCase : $falseCase"
 }
