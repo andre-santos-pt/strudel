@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 class TestSameIdentifierVariables {
 
     @Test
-    fun test() {
+    fun `test for`() {
         val src = """
             public class ExtremelyUsefulStaticMethods {
                 public static int get() {
@@ -32,9 +32,38 @@ class TestSameIdentifierVariables {
         val vm = IVirtualMachine.create()
         val get = module.getProcedure("get")
 
-        println()
-        println(get.variables.joinToString("\n"))
 
-        assertEquals(10, vm.execute(get)?.value)
+        val ret = vm.execute(get)?.value
+        assertEquals(10, ret)
+    }
+
+    @Test
+    fun `test inner var`() {
+        val src = """
+            public class ExtremelyUsefulStaticMethods {
+                public static int get(int n) {
+                    if(n % 2 == 0) {
+                        int tmp = n / 2;
+                        return tmp;
+                    } else {
+                        int tmp = n * 2;
+                        return tmp;
+                    }
+                        
+              
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+        println(module)
+
+        val vm = IVirtualMachine.create()
+        val get = module.getProcedure("get")
+
+        val ret1 = vm.execute(get, vm.getValue(4))?.value
+        assertEquals(2, ret1)
+
+        val ret2 = vm.execute(get, vm.getValue(5))?.value
+        assertEquals(10, ret2)
     }
 }

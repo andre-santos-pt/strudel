@@ -20,10 +20,12 @@ class JavaStatement2Strudel(
     val translator: Java2Strudel
 ) {
 
+    val decMap = mutableMapOf<VariableDeclarator, IVariableDeclaration<IBlock>>()
+
     fun translate(stmt: Statement, block: IBlock) {
         with(translator) {
 
-            val exp2Strudel = JavaExpression2Strudel(procedure, block, procedures, types, translator)
+            val exp2Strudel = JavaExpression2Strudel(procedure, block, procedures, types, translator, decMap)
 
             fun getType(type: Type): IType =
 //            if (type.isArrayType)
@@ -192,8 +194,8 @@ class JavaStatement2Strudel(
                     stmt.initialization.forEach { i ->
                         if (i.isVariableDeclarationExpr) {
                             i.asVariableDeclarationExpr().variables.forEach { v ->
-                                if (procedure!!.variables.any { it.id == v.nameAsString })
-                                    unsupported("variables with same identifiers within the same procedure", i)
+//                                if (procedure!!.variables.any { it.id == v.nameAsString })
+//                                    unsupported("variables with same identifiers within the same procedure", i)
                                 val varDec =
                                     addVariable(types.mapType(v.type)).apply {
                                         id = v.nameAsString
@@ -202,6 +204,7 @@ class JavaStatement2Strudel(
                                         bind(v.name, ID_LOC)
                                         bind(v.type, TYPE_LOC)
                                     }
+                                decMap[v] = varDec
                                 if (v.initializer.isPresent)
                                     Assign(
                                         varDec,
@@ -282,10 +285,11 @@ class JavaStatement2Strudel(
                     (stmt.expression as VariableDeclarationExpr).variables.forEach { dec ->
                         val type = getType(dec.type)
                         val s: IVariableDeclaration<IBlock> = run {
-                            if (procedure.variables.any { it.id == dec.nameAsString })
-                                unsupported("variables with same identifiers within the same procedure", stmt)
+                            //if (procedure.variables.any { it.id == dec.nameAsString })
+                            //    unsupported("variables with same identifiers within the same procedure", stmt)
 
                             val varDec = block.Var(type, dec.nameAsString)
+                            decMap[dec] = varDec
                             if (dec.initializer.isPresent)
                                 block.Assign(varDec, exp2Strudel.map(dec.initializer.get())).bind(stmt)
                             varDec.bind(dec.type, TYPE_LOC).bind(dec.name, ID_LOC)

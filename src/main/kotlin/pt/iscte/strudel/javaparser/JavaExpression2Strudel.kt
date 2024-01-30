@@ -3,6 +3,9 @@ package pt.iscte.strudel.javaparser
 import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
+import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
+import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserParameterDeclaration
+import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserVariableDeclaration
 import pt.iscte.strudel.javaparser.extensions.getOrNull
 import pt.iscte.strudel.javaparser.extensions.mapType
 import pt.iscte.strudel.model.*
@@ -17,21 +20,33 @@ import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.model.util.UnaryOperator
 
-
 class JavaExpression2Strudel(
     val procedure: IProcedure,
     val block: IBlock,
     val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
     private val types: MutableMap<String, IType>,
-    private val translator: Java2Strudel
+    private val translator: Java2Strudel,
+    val decMap: MutableMap<VariableDeclarator, IVariableDeclaration<IBlock>>
 
 ) {
-    private fun findVariable(id: String): IVariableDeclaration<*>? =
-        procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
-            ((p.type as IReferenceType).target as IRecordType).getField(
-                id
-            )
-        }
+
+    private fun findVariableResolve(v: NameExpr): IVariableDeclaration<*>? {
+        fun findVariable(id: String): IVariableDeclaration<*>? =
+            procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
+                ((p.type as IReferenceType).target as IRecordType).getField(
+                    id
+                )
+            }
+        val r = v.resolve()
+        return if(r is JavaParserVariableDeclaration) {
+            decMap[r.variableDeclarator]
+        } else if(r is JavaParserParameterDeclaration) {
+            findVariable(r.wrappedNode.nameAsString)
+        } else if(r is JavaParserFieldDeclaration)
+            findVariable(r.name)
+        else
+            null
+    }
 
     fun map(exp: Expression): IExpression = with(translator) {
         when (exp) {
@@ -41,7 +56,7 @@ class JavaExpression2Strudel(
             is BooleanLiteralExpr -> if (exp.value) True else False
 
             is NameExpr -> {
-                val target = findVariable(exp.nameAsString)
+                val target = findVariableResolve(exp) //findVariable(exp.nameAsString)
                 if (target?.isField == true) procedure.thisParameter.field(target as IVariableDeclaration<IRecordType>)
                 else target?.expression() ?: error("not found $exp", exp)
             }
@@ -178,6 +193,7 @@ class JavaExpression2Strudel(
     }
 }
 
+
 fun AssignExpr.Operator.map(a: AssignExpr): IBinaryOperator =
     when (this) {
         AssignExpr.Operator.PLUS -> ArithmeticOperator.ADD
@@ -219,6 +235,3 @@ fun mapBinaryOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
 
     else -> unsupported("binary operator", exp)
 }
-
-private val BinaryExpr.Operator.isShortCircuit: Boolean
-    get() = this == BinaryExpr.Operator.AND || this == BinaryExpr.Operator.OR

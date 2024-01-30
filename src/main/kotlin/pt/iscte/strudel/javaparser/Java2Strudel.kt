@@ -408,7 +408,7 @@ class Java2Strudel(
          * @param type Record type. If null, defaults to procedure's return type as a record type.
          */
         fun IProcedure.injectFieldInitializers(type: IRecordType? = null) {
-            val exp2Strudel = JavaExpression2Strudel(this, block, procedures, types, this@Java2Strudel)
+            val exp2Strudel = JavaExpression2Strudel(this, block, procedures, types, this@Java2Strudel, mutableMapOf())
             val t = type ?: thisParameter.type.asRecordType
             t.fields.reversed().forEach { field ->
                 fieldInitializers[field]?.let {
