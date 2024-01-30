@@ -1,6 +1,7 @@
 package pt.iscte.strudel.javaparser
 
 import com.github.javaparser.ast.body.CallableDeclaration
+import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.type.Type
@@ -38,72 +39,72 @@ class JavaStatement2Strudel(
                 types[type.asString()]!!
 
             fun findVariable(id: String): IVariableDeclaration<*>? =
-                procedure.variables.find { it.id == id }
-                    ?: procedure.parameters.find { it.id == THIS_PARAM }
-                        ?.let { p ->
-                            ((p.type as IReferenceType).target as IRecordType).getField(
-                                id
-                            )
-                        }
+                procedure.variables.find { it.id == id } ?:
+                procedure.parameters.find { it.id == THIS_PARAM }?.
+                let { p -> ((p.type as IReferenceType).target as IRecordType).getField(id) }
 
             fun handleAssign(block: IBlock, a: AssignExpr): IStatement {
-                if (a.target is NameExpr) {
-                    val target = findVariable(a.target.toString())
-                        ?: error(
-                            "not found",
-                            a
-                        ) // UnboundVariableDeclaration(a.target.toString(), block)
+                when (a.target) {
+                    is NameExpr -> {
+                        val target = findVariable(a.target.toString())
+                            ?: error(
+                                "not found",
+                                a
+                            ) // UnboundVariableDeclaration(a.target.toString(), block)
 
-                    val value = when (a.operator) {
-                        AssignExpr.Operator.ASSIGN -> exp2Strudel.map(a.value)
-                        else -> a.operator.map(a)
-                            .on(exp2Strudel.map(a.target), exp2Strudel.map(a.value))
-                    }
+                        val value = when (a.operator) {
+                            AssignExpr.Operator.ASSIGN -> exp2Strudel.map(a.value)
+                            else -> a.operator.map(a)
+                                .on(exp2Strudel.map(a.target), exp2Strudel.map(a.value))
+                        }
 
-                    return if (target.isField)
-                        block.FieldSet(
-                            procedure.thisParameter.expression(),
-                            target as IVariableDeclaration<IRecordType>,
-                            value
-                        )
-                    else
-                        block.Assign(target, value)
-
-                } else if (a.target is ArrayAccessExpr) {
-                    return when (a.operator) { // TODO compound assignment operators
-                        AssignExpr.Operator.ASSIGN ->
-                            block.ArraySet(
-                                exp2Strudel.map((a.target as ArrayAccessExpr).name) as ITargetExpression,
-                                exp2Strudel.map((a.target as ArrayAccessExpr).index),
-                                exp2Strudel.map(a.value)
-                            )
-
-                        else -> unsupported("assign operator ${a.operator}", a)
-                    }
-                } else if (a.target is FieldAccessExpr) {
-                    // val solve = jpFacade.solve((a.target as FieldAccessExpr).scope)
-                    val typeId = if ((a.target as FieldAccessExpr).scope.isThisExpr)
-                        procedure.namespace//(a.target as FieldAccessExpr).scope.asThisExpr().typeName.getOrNull?.id
-                    else
-                        JPFacade.solve((a.target as FieldAccessExpr).scope).correspondingDeclaration.type.asReferenceType().id
-
-                    return when (a.operator) { // TODO compound assignment operators
-                        AssignExpr.Operator.ASSIGN ->
+                        return if (target.isField)
                             block.FieldSet(
-                                exp2Strudel.map((a.target as FieldAccessExpr).scope) as ITargetExpression,
-                                types[typeId]?.asRecordType?.fields?.find { it.id == (a.target as FieldAccessExpr).nameAsString }
-                                    ?: unsupported("field access", a),
-                                exp2Strudel.map(a.value)
+                                procedure.thisParameter.expression(),
+                                target as IVariableDeclaration<IRecordType>,
+                                value
                             )
-
-                        else -> unsupported("assign operator ${a.operator}", a)
+                        else
+                            block.Assign(target, value)
                     }
-                } else
-                    unsupported("assignment", a)
+
+                    is ArrayAccessExpr -> {
+                        return when (a.operator) { // TODO compound assignment operators
+                            AssignExpr.Operator.ASSIGN ->
+                                block.ArraySet(
+                                    exp2Strudel.map((a.target as ArrayAccessExpr).name) as ITargetExpression,
+                                    exp2Strudel.map((a.target as ArrayAccessExpr).index),
+                                    exp2Strudel.map(a.value)
+                                )
+                            else -> unsupported("assign operator ${a.operator}", a)
+                        }
+                    }
+
+                    is FieldAccessExpr -> {
+                        // val solve = jpFacade.solve((a.target as FieldAccessExpr).scope)
+                        val typeId =
+                            if ((a.target as FieldAccessExpr).scope.isThisExpr)
+                                procedure.namespace //(a.target as FieldAccessExpr).scope.asThisExpr().typeName.getOrNull?.id
+                            else
+                                JPFacade.solve((a.target as FieldAccessExpr).scope).correspondingDeclaration.type.asReferenceType().id
+
+                        return when (a.operator) { // TODO compound assignment operators
+                            AssignExpr.Operator.ASSIGN ->
+                                block.FieldSet(
+                                    exp2Strudel.map((a.target as FieldAccessExpr).scope) as ITargetExpression,
+                                    types[typeId]?.asRecordType?.fields?.find { it.id == (a.target as FieldAccessExpr).nameAsString }
+                                        ?: unsupported("field access", a),
+                                    exp2Strudel.map(a.value)
+                                )
+                            else -> unsupported("assign operator ${a.operator}", a)
+                        }
+                    }
+
+                    else -> unsupported("assignment", a)
+                }
             }
 
-
-            fun handle(block: IBlock, s: Expression): IStatement =
+            fun handleExpression(block: IBlock, s: Expression): IStatement =
                 when (s) {
                     is AssignExpr -> handleAssign(block, s)
 
@@ -151,13 +152,21 @@ class JavaStatement2Strudel(
                 return
             }
 
-            val s = when (stmt) {
-                is ReturnStmt -> if (stmt.expression.isPresent)
-                    block.Return(exp2Strudel.map(stmt.expression.get())).apply { setFlag() }
-                else
-                    block.ReturnVoid()
+            // ReturnStmt
+            fun handleReturnStmt(stmt: ReturnStmt) {
+                val statement =
+                    if (stmt.expression.isPresent)
+                        block.Return(exp2Strudel.map(stmt.expression.get())).apply { setFlag() }
+                    else
+                        block.ReturnVoid()
 
-                is IfStmt -> block.If(exp2Strudel.map(stmt.condition)) {
+                stmt.comment.translateComment()?.let { statement.documentation = it }
+                statement.bind(stmt)
+            }
+
+            // IfStmt
+            fun handleIfStmt(stmt: IfStmt) {
+                val statement = block.If(exp2Strudel.map(stmt.condition)) {
                     translate(stmt.thenStmt, this)
                 }.apply {
                     if (stmt.hasElseBranch()) {
@@ -165,11 +174,21 @@ class JavaStatement2Strudel(
                     }
                 }
 
-                is WhileStmt -> block.While(exp2Strudel.map(stmt.condition)) {
-                    translate(stmt.body, this)
-                }
+                stmt.comment.translateComment()?.let { statement.documentation = it }
+                statement.bind(stmt)
+            }
 
-                is ForStmt -> block.Block(FOR) {
+            // WhileStmt
+            fun handleWhileStmt(stmt: WhileStmt) {
+                val statement = block.While(exp2Strudel.map(stmt.condition)) { translate(stmt.body, this) }
+
+                stmt.comment.translateComment()?.let { statement.documentation = it }
+                statement.bind(stmt)
+            }
+
+            // ForStmt
+            fun handleForStmt(stmt: ForStmt) {
+                val statement = block.Block(FOR) {
                     stmt.initialization.forEach { i ->
                         if (i.isVariableDeclarationExpr) {
                             i.asVariableDeclarationExpr().variables.forEach { v ->
@@ -193,13 +212,13 @@ class JavaStatement2Strudel(
                                     }
                             }
                         } else
-                            handle(this, i).bind(i)
+                            handleExpression(this, i).bind(i)
                     }
                     val guard = if (stmt.compare.isPresent) exp2Strudel.map(stmt.compare.get()) else True
                     While(guard) {
                         translate(stmt.body, this)
                         stmt.update.forEach { u ->
-                            handle(this, u).apply {
+                            handleExpression(this, u).apply {
                                 setFlag(FOR)
                                 bind(u)
                             }
@@ -209,100 +228,117 @@ class JavaStatement2Strudel(
                     }
                 }
 
-                is ForEachStmt -> block.Block(EFOR) {
-                    if (procedure!!.variables.any { it.id == stmt.variable.variables[0].nameAsString })
-                        unsupported("variables with same identifiers within the same procedure", stmt.variable)
+                stmt.comment.translateComment()?.let { statement.documentation = it }
+                statement.bind(stmt)
+            }
 
-                    val itVar =
-                        addVariable(types.mapType(stmt.variable.elementType)).apply {
-                            val v = stmt.variable.variables[0]
-                            id = v.nameAsString
+            // ForEachStmt
+            fun handleForEachStmt(stmt: ForEachStmt) {
+                val statement = block.Block(EFOR) {
+                    stmt.variable.variables.forEach { dec ->
+                        val itVar =
+                            addVariable(types.mapType(stmt.variable.elementType)).apply {
+                                id = dec.nameAsString
+                                setFlag(EFOR)
+                                bind(stmt.variable)
+                                bind(dec.name, ID_LOC)
+                                bind(dec.type, TYPE_LOC)
+                            }
+                        val indexVar = addVariable(INT).apply {
+                            id = IT + this@Block.depth
                             setFlag(EFOR)
                             bind(stmt.variable)
-                            bind(v.name, ID_LOC)
-                            bind(v.type, TYPE_LOC)
                         }
-                    val indexVar = addVariable(INT).apply {
-                        id = IT + this@Block.depth
-                        setFlag(EFOR)
-                        bind(stmt.variable)
-                    }
-                    Assign(indexVar, lit(0)).apply {
-                        setFlag(EFOR)
-                    }
-                    While(indexVar.expression() smaller exp2Strudel.map(stmt.iterable).length()) {
-                        Assign(
-                            itVar,
-                            exp2Strudel.map(stmt.iterable).element(indexVar.expression())
-                        ).apply {
+                        Assign(indexVar, lit(0)).apply {
                             setFlag(EFOR)
                         }
-                        translate(stmt.body, this)
-                        Assign(
-                            indexVar,
-                            indexVar.expression() plus lit(1)
-                        ).apply {
+                        While(indexVar.expression() smaller exp2Strudel.map(stmt.iterable).length()) {
+                            Assign(
+                                itVar,
+                                exp2Strudel.map(stmt.iterable).element(indexVar.expression())
+                            ).apply {
+                                setFlag(EFOR)
+                            }
+                            translate(stmt.body, this)
+                            Assign(
+                                indexVar,
+                                indexVar.expression() plus lit(1)
+                            ).apply {
+                                setFlag(EFOR)
+                            }
+                        }.apply {
                             setFlag(EFOR)
                         }
-                    }.apply {
-                        setFlag(EFOR)
                     }
                 }
 
-                is BreakStmt -> block.Break()
+                stmt.comment.translateComment()?.let { statement.documentation = it }
+                statement.bind(stmt)
+            }
 
-                is ContinueStmt -> block.Continue()
-
-                is ExpressionStmt ->
-                    if (stmt.expression is VariableDeclarationExpr) {
-                        if ((stmt.expression as VariableDeclarationExpr).variables.size > 1)
-                            unsupported(
-                                "multiple variable declarations",
-                                stmt.expression
-                            )
-
-                        val dec = (stmt.expression as VariableDeclarationExpr).variables[0]
-
+            // ExpressionStmt
+            fun handleExpressionStmt(stmt: ExpressionStmt) {
+                if (stmt.expression is VariableDeclarationExpr) {
+                    (stmt.expression as VariableDeclarationExpr).variables.forEach { dec ->
                         val type = getType(dec.type)
-                        run {
+                        val s: IVariableDeclaration<IBlock> = run {
                             if (procedure.variables.any { it.id == dec.nameAsString })
-                                unsupported("variables with same identifiers within the same procedure", stmt.expression)
+                                unsupported("variables with same identifiers within the same procedure", stmt)
 
                             val varDec = block.Var(type, dec.nameAsString)
-                            if (dec.initializer.isPresent) {
-                                block.Assign(
-                                    varDec,
-                                    exp2Strudel.map(dec.initializer.get())
-                                ).bind(stmt)
-                            }
-                            varDec.bind(dec.type, TYPE_LOC)
-                                .bind(dec.name, ID_LOC)
+                            if (dec.initializer.isPresent)
+                                block.Assign(varDec, exp2Strudel.map(dec.initializer.get())).bind(stmt)
+                            varDec.bind(dec.type, TYPE_LOC).bind(dec.name, ID_LOC)
                         }
-                    } else
-                        handle(block, stmt.expression)
 
-                is ThrowStmt -> {
-                    // throw statement only supported if expression is object creation with single String argument
-                    val exc = stmt.expression as? ObjectCreationExpr
+                        stmt.comment.translateComment()?.let { s.documentation = it }
+                        s.bind(stmt)
+                    }
+                }
+                else {
+                    val statement = handleExpression(block, stmt.expression)
+                    stmt.comment.translateComment()?.let { statement.documentation = it }
+                    statement.bind(stmt)
+                }
+            }
 
-                    if (exc == null ||
+            // ThrowStmt
+            fun handleThrowStmt(stmt: ThrowStmt) {
+                // throw statement only supported if expression is object creation with single String argument
+                val exc = stmt.expression as? ObjectCreationExpr
+
+                val statement =
+                    if (
+                        exc == null ||
                         exc.arguments.size !in 0..1 ||
                         exc.arguments.size == 1 && exc.arguments[0] !is StringLiteralExpr
                     )
                         unsupported("$this (${this::class})", stmt)
                     else {
-                        val msg = if (exc.arguments.isEmpty())
-                            exc.typeAsString
-                        else
-                            (exc.arguments[0] as StringLiteralExpr).value
+                        val msg =
+                            if (exc.arguments.isEmpty())
+                                exc.typeAsString
+                            else
+                                (exc.arguments[0] as StringLiteralExpr).value
                         block.ReturnError(msg)
                     }
-                }
 
+                stmt.comment.translateComment()?.let { statement.documentation = it }
+                statement.bind(stmt)
+            }
+
+            when (stmt) {
+                is ReturnStmt -> handleReturnStmt(stmt)
+                is IfStmt -> handleIfStmt(stmt)
+                is WhileStmt -> handleWhileStmt(stmt)
+                is ForStmt -> handleForStmt(stmt)
+                is ForEachStmt -> handleForEachStmt(stmt)
+                is BreakStmt -> block.Break()
+                is ContinueStmt -> block.Continue()
+                is ExpressionStmt -> handleExpressionStmt(stmt)
+                is ThrowStmt -> handleThrowStmt(stmt)
                 else -> unsupported("$this (${this::class})", stmt)
             }
-            stmt.comment.translateComment()?.let { s.documentation = it }
-            s.bind(stmt)
         }
     }
 }

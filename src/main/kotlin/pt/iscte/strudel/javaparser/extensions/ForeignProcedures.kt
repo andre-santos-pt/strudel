@@ -1,5 +1,6 @@
 package pt.iscte.strudel.javaparser.extensions
 
+import com.github.javaparser.ast.expr.FieldAccessExpr
 import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.NameExpr
 import pt.iscte.strudel.javaparser.unsupported
@@ -42,7 +43,7 @@ internal fun MethodCallExpr.asForeignProcedure(types: Map<String, IType>): IProc
     if (isAbstractMethodCall) return null
     if (scope.isPresent) {
         val namespace = scope.get()
-        if (namespace is NameExpr) {
+        if (namespace is NameExpr || namespace is FieldAccessExpr) {
             val clazz: Class<*> = runCatching {
                 getClass(namespace.toString())
             }.getOrNull() ?: namespace.getResolvedJavaType()
@@ -53,7 +54,7 @@ internal fun MethodCallExpr.asForeignProcedure(types: Map<String, IType>): IProc
             val isStaticMethod = this.resolve().isStatic
             return createForeignProcedure(namespace.toString(), method, isStaticMethod, types)
         } else
-            unsupported("automatic foreign procedure creation for method call expression: $this", this)
+            unsupported("automatic foreign procedure creation for method call expression $this: unsupported namespace $namespace of type ${namespace::class.qualifiedName}", this)
     }
     return null
 }

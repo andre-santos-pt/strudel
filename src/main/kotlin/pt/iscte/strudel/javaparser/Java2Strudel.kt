@@ -15,9 +15,12 @@ import pt.iscte.strudel.model.impl.PolymophicProcedure
 import java.io.File
 
 import pt.iscte.strudel.javaparser.extensions.*
+import kotlin.reflect.KClass
 
 class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
     val locations = nodes.map { SourceLocation(it) }
+    
+    fun getFirstNodeType(): KClass<out Node>? = nodes.firstOrNull()?.let { it::class }
 
     constructor(msg: String, node: Node) : this(msg, listOf(node))
 }

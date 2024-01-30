@@ -21,5 +21,9 @@ internal fun MethodCallExpr.getNamespace(types: Map<String, IType>, foreignProce
         else if (isAbstractMethodCall) when (val type = scope.calculateResolvedType()) {
             is ResolvedReferenceType -> Namespace(type.qualifiedName, isAbstract = true, isStatic = false)
             else -> null
-        } else Namespace(scope.getResolvedJavaType().canonicalName, isAbstract = false, isStatic = false)
+        } else {
+            // First try to load name from ITypes, and if that fails try as a Java type
+            val name = runCatching { scope.getResolvedIType(types).id }.getOrNull() ?: scope.getResolvedJavaType().canonicalName
+            Namespace(name, isAbstract = false, isStatic = false)
+        }
     } else null

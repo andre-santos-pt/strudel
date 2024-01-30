@@ -92,10 +92,15 @@ import kotlin.reflect.full.hasAnnotation
     TestLogicalOperatorsJava::class,
 
 
+    TestMultipleFieldDeclarations::class,
+
+    TestMultipleVariableDeclarations::class,
+
+    TestSameIdentifierVariables::class
+
     /* All of these were missing: check main() function below
 
     TestJavaParser::class,
-    TestMultipleFieldDeclarations::class,
     TestChars::class,
     TestMatrix3d::class,
     TestNaturalsTemp::class,
