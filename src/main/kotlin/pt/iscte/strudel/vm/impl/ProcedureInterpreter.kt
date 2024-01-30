@@ -352,18 +352,26 @@ class ProcedureInterpreter(
 
             is IArrayAccess -> eval(exp.target, exp.index)?.let {
                 val (index, array) = it
+                if(array.isNull)
+                    throw RuntimeError(RuntimeErrorType.NULL_POINTER, exp.target, "reference to array is null")
+
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
                     throw ArrayIndexError(exp, i, exp.index)
 
-                valStack.push((array.target as IArray).getElement(i))
+                valStack.push(array.target.getElement(i))
             }
 
             is IArrayLength -> eval(exp.target)?.let {
+                if(it.isNull)
+                    throw RuntimeError(RuntimeErrorType.NULL_POINTER, exp.target, "reference to array is null")
+
                 valStack.push(vm.getValue(((it as IReference<IArray>).target).length))
             }
 
             is IRecordFieldExpression -> eval(exp.target)?.let {
+                if(it.isNull)
+                    throw RuntimeError(RuntimeErrorType.NULL_POINTER, exp.target, "reference to object is null")
                 valStack.push(((it as IReference<IRecord>).target).getField(exp.field))
             }
 
@@ -384,6 +392,7 @@ class ProcedureInterpreter(
             is IProcedureCallExpression -> {
                 eval(*exp.arguments.reversed().toTypedArray())?.reversed()
                     ?.let {args ->
+                        // TODO what if first element is null in instance procedure?
                         // TODO check error
                         if (exp.procedure.isForeign) {
                             val ret =

@@ -41,5 +41,5 @@ internal class Conditional(
         return Conditional(this, trueCase, falseCase)
     }
 
-    override fun toString() = "$condition ? $trueCase : $falseCase"
+    override fun toString() = "($condition ? $trueCase : $falseCase)"
 }

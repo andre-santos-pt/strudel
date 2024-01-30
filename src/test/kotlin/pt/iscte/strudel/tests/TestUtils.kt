@@ -11,7 +11,12 @@ import kotlin.test.assertEquals
 
 fun IModule.procedure(id: String) =  procedures.find{ it.id == id }!!
 
-fun IValue.checkArrayContent(vararg values: Int) {
+fun IValue.checkIntArrayContent(vararg values: Int) {
+    require(this is IReference<*> && this.target is IArray)
+    (this.target as IArray).checkContent(*values)
+}
+
+fun IValue.checkBooleanArrayContent(vararg values: Boolean) {
     require(this is IReference<*> && this.target is IArray)
     (this.target as IArray).checkContent(*values)
 }
@@ -24,6 +29,14 @@ fun IArray.checkContent(vararg values: Int) {
     values.forEachIndexed() {
             i, e ->
         assertEquals(getElement(i).toInt(), e, "expected: ${values.toList()}, found: $this")
+    }
+}
+
+fun IArray.checkContent(vararg values: Boolean) {
+    assertEquals(length, values.size)
+    values.forEachIndexed() {
+            i, e ->
+        assertEquals(getElement(i).toBoolean(), e, "expected: ${values.toList()}, found: $this")
     }
 }
 

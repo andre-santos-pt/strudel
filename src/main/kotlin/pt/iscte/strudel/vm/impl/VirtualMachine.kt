@@ -69,6 +69,8 @@ internal class VirtualMachine(
     override fun getValue(bool: Boolean): IValue = Value(BOOLEAN, bool)
     override fun getValue(character: Char): IValue = Value(CHAR, character)
 
+
+    override fun getNullReference(): IReference<*> = Reference(NULL)
     //@JsName("execute")
     override fun execute(
         procedure: IProcedure,

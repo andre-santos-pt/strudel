@@ -3,7 +3,7 @@ package pt.iscte.strudel.vm
 import pt.iscte.strudel.model.*
 
 object NULL : IValue {
-    override val value = null
+    override val value = this
     override val type: IType get() = UnboundType()
     override fun toString() = "null"
     override fun copy() = this

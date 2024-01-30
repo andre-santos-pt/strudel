@@ -47,6 +47,8 @@ interface IVirtualMachine {
 
     fun getValue(character: Char): IValue
 
+    fun getNullReference(): IReference<*>
+
     fun addListener(l: IListener)
 
     fun removeListener(l: IListener)
@@ -119,6 +121,8 @@ interface IVirtualMachine {
         ex.init()
         return ex
     }
+
+
 
 
     interface IListener {

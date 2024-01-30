@@ -37,14 +37,14 @@ class TestInvert : BaseTest({
     fun `empty`() {
         val a = vm.allocateArrayOf(INT)
         vm.execute(procedure, a)
-        a.checkArrayContent()
+        a.checkIntArrayContent()
     }
 
     @Test
     fun `single`() {
         val a = vm.allocateArrayOf(INT, 1)
         vm.execute(procedure, a)
-        a.checkArrayContent(1)
+        a.checkIntArrayContent(1)
     }
 
     @Test
@@ -70,7 +70,7 @@ class TestInvert : BaseTest({
         }
         vm.addListener(l)
         vm.execute(procedure, a)
-        a.checkArrayContent(8, 6, 4, 2)
+        a.checkIntArrayContent(8, 6, 4, 2)
         assertTrue(l.depth == 0)
         assertTrue(l.maxDepth == 2)
     }
@@ -79,7 +79,7 @@ class TestInvert : BaseTest({
     fun `modification odd`() {
         val a = vm.allocateArrayOf(INT, 0, 2, 4, 6, 8)
         vm.execute(procedure, a)
-        a.checkArrayContent(8, 6, 4, 2, 0)
+        a.checkIntArrayContent(8, 6, 4, 2, 0)
     }
 
 

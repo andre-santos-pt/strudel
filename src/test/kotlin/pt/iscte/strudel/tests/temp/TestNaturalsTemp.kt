@@ -7,6 +7,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
 import pt.iscte.strudel.tests.BaseTest
 import pt.iscte.strudel.tests.checkArrayContent
+import pt.iscte.strudel.tests.checkIntArrayContent
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
@@ -38,7 +39,7 @@ class TestNaturalsTemp : BaseTest({
     fun `check array content`() {
         vm.addListener(TrackIntVar(procedure.find(IVariableDeclaration::class, 1), 0, 1, 2, 3, 4, 5, 6, 7))
         val ret = vm.execute(procedure, vm.getValue(7))
-        ret!!.checkArrayContent(1,2,3,4,5,6,7)
+        ret!!.checkIntArrayContent(1,2,3,4,5,6,7)
     }
 
     @Test

@@ -17,6 +17,7 @@ import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.model.util.UnaryOperator
 
+
 class JavaExpression2Strudel(
     val procedure: IProcedure,
     val block: IBlock,
@@ -27,10 +28,10 @@ class JavaExpression2Strudel(
 ) {
     private fun findVariable(id: String): IVariableDeclaration<*>? =
         procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
-                ((p.type as IReferenceType).target as IRecordType).getField(
-                    id
-                )
-            }
+            ((p.type as IReferenceType).target as IRecordType).getField(
+                id
+            )
+        }
 
     fun map(exp: Expression): IExpression = with(translator) {
         when (exp) {
@@ -70,19 +71,27 @@ class JavaExpression2Strudel(
                 )
             }
 
-            is BinaryExpr -> mapBinaryOperator(exp).on(
-                map(exp.left), map(exp.right)
-            ).apply {
-                if (exp.left.range.isPresent && exp.right.range.isPresent && exp.left.range.get().begin.line == exp.right.range.get().begin.line) {
-                    val from = exp.left.range.get().end.column + 1
-                    val to = exp.right.range.get().begin.column - 1
-                    setProperty(
-                        OPERATOR_LOC, SourceLocation(
-                            exp.left.range.get().begin.line, from, to
-                        )
-                    )
-                }
-            }
+            is BinaryExpr ->
+                // short circuit &&
+                if (exp.operator == BinaryExpr.Operator.AND)
+                    Conditional(map(exp.left), map(exp.right), False)
+                // short circuit ||
+                else if (exp.operator == BinaryExpr.Operator.OR)
+                    Conditional(map(exp.left), True, map(exp.right))
+                else
+                    mapBinaryOperator(exp).on(
+                        map(exp.left), map(exp.right)
+                    ).apply {
+                        if (exp.left.range.isPresent && exp.right.range.isPresent && exp.left.range.get().begin.line == exp.right.range.get().begin.line) {
+                            val from = exp.left.range.get().end.column + 1
+                            val to = exp.right.range.get().begin.column - 1
+                            setProperty(
+                                OPERATOR_LOC, SourceLocation(
+                                    exp.left.range.get().begin.line, from, to
+                                )
+                            )
+                        }
+                    }
 
             is EnclosedExpr -> map(exp.inner)
 
@@ -203,9 +212,13 @@ fun mapBinaryOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
     BinaryExpr.Operator.GREATER -> RelationalOperator.GREATER
     BinaryExpr.Operator.GREATER_EQUALS -> RelationalOperator.GREATER_EQUAL
 
-    BinaryExpr.Operator.AND -> LogicalOperator.AND
-    BinaryExpr.Operator.OR -> LogicalOperator.OR
+    BinaryExpr.Operator.BINARY_AND -> LogicalOperator.AND
+    BinaryExpr.Operator.BINARY_OR -> LogicalOperator.OR
+
     BinaryExpr.Operator.XOR -> LogicalOperator.XOR
 
     else -> unsupported("binary operator", exp)
 }
+
+private val BinaryExpr.Operator.isShortCircuit: Boolean
+    get() = this == BinaryExpr.Operator.AND || this == BinaryExpr.Operator.OR

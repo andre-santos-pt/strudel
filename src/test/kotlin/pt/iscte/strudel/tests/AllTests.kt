@@ -71,6 +71,10 @@ import kotlin.reflect.full.hasAnnotation
     TestJDKLinkedList::class,
     TestBuiltinString::class,
 
+    TestConditional::class,
+    TestConditionalAnd::class,
+    TestConditionalOr::class,
+
     //--- direct source
     TestSortingAlgorithms::class,
 
@@ -83,6 +87,10 @@ import kotlin.reflect.full.hasAnnotation
     TestFieldInitializers::class,
 
     TestAutomaticForeignProcedure::class,
+
+    TestConditionalJava::class,
+    TestLogicalOperatorsJava::class,
+
 
     /* All of these were missing: check main() function below
 

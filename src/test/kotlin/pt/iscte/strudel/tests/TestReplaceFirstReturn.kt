@@ -28,7 +28,7 @@ class TestReplaceFirstReturn : pt.iscte.strudel.tests.BaseTest({
         val a = vm.allocateArrayOf(INT, 2, 9, 6, 10, 6, 1)
         vm.addListener(TrackIntVar(procedure.find(IVariableDeclaration::class, 0), 0, 1, 2))
         vm.execute(procedure, a, vm.getValue(6))
-        a.checkArrayContent(2, 9, 0, 10, 6, 1)
+        a.checkIntArrayContent(2, 9, 0, 10, 6, 1)
     }
 
     @Test
@@ -36,7 +36,7 @@ class TestReplaceFirstReturn : pt.iscte.strudel.tests.BaseTest({
         val a = vm.allocateArrayOf(INT, 2, 9, 6, 10, 6, 1)
         vm.addListener(TrackIntVar(procedure.find(IVariableDeclaration::class, 0), 0, 1, 2, 3, 4, 5, 6))
         vm.execute(procedure, a, vm.getValue(7))
-        a.checkArrayContent(2, 9, 6, 10, 6, 1)
+        a.checkIntArrayContent(2, 9, 6, 10, 6, 1)
     }
 
     override fun fillCFG(p: IProcedure, cfg: IControlFlowGraph)  {

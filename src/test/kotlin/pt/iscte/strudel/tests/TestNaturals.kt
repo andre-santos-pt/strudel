@@ -29,7 +29,7 @@ class TestNaturals : BaseTest({
     @Test
     fun `empty array`() {
         val ret = vm.execute(procedure, vm.getValue(0))
-        ret!!.checkArrayContent()
+        ret!!.checkIntArrayContent()
     }
 
     @Test
@@ -43,7 +43,7 @@ class TestNaturals : BaseTest({
             )
         )
         val ret = vm.execute(procedure, vm.getValue(7))
-        ret!!.checkArrayContent(1, 2, 3, 4, 5, 6, 7)
+        ret!!.checkIntArrayContent(1, 2, 3, 4, 5, 6, 7)
     }
 
     @Test

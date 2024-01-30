@@ -26,14 +26,14 @@ class TestSwap : pt.iscte.strudel.tests.BaseTest({
     fun `modification`() {
         val a = vm.allocateArrayOf(INT, 2, 4, 6, 8)
         vm.execute(procedure, a, vm.getValue(1), vm.getValue(3))
-        a.checkArrayContent(2, 8, 6, 4)
+        a.checkIntArrayContent(2, 8, 6, 4)
     }
 
     @Test
     fun `unchanged`() {
         val a = vm.allocateArrayOf(INT, 2, 4, 6, 8)
         vm.execute(procedure, a, vm.getValue(1), vm.getValue(1))
-        a.checkArrayContent(2, 4, 6, 8)
+        a.checkIntArrayContent(2, 4, 6, 8)
     }
 
     @Test
