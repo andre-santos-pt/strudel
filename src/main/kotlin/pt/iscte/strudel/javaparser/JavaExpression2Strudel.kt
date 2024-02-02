@@ -33,19 +33,14 @@ class JavaExpression2Strudel(
     private fun findVariableResolve(v: NameExpr): IVariableDeclaration<*>? {
         fun findVariable(id: String): IVariableDeclaration<*>? =
             procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
-                ((p.type as IReferenceType).target as IRecordType).getField(
-                    id
-                )
+                ((p.type as IReferenceType).target as IRecordType).getField(id)
             }
-        val r = v.resolve()
-        return if(r is JavaParserVariableDeclaration) {
-            decMap[r.variableDeclarator]
-        } else if(r is JavaParserParameterDeclaration) {
-            findVariable(r.wrappedNode.nameAsString)
-        } else if(r is JavaParserFieldDeclaration)
-            findVariable(r.name)
-        else
-            null
+        return when (val r = v.resolve()) {
+            is JavaParserVariableDeclaration -> decMap[r.variableDeclarator]
+            is JavaParserParameterDeclaration -> findVariable(r.wrappedNode.nameAsString)
+            is JavaParserFieldDeclaration -> findVariable(r.name)
+            else -> null
+        }
     }
 
     fun map(exp: Expression): IExpression = with(translator) {
@@ -139,21 +134,15 @@ class JavaExpression2Strudel(
                 baseType.asArrayType.heapAllocationWith(values)
             }
 
-            is ArrayAccessExpr -> map(exp.name).element(
-                map(exp.index)
-            )
+            is ArrayAccessExpr -> map(exp.name).element(map(exp.index))
 
             is ObjectCreationExpr -> {
                 val const = procedures.findProcedure(
                     exp.type.nameAsString, INIT, emptyList()
                 ) // TODO params
-                    ?: unsupported("not found $exp", exp)
+                    ?: unsupported("constructor for type ${exp.type.nameWithScope}", exp)
                 val alloc = types.mapType(exp.type).asRecordType.heapAllocation()
-                const.expression(listOf(alloc) + exp.arguments.map {
-                    map(
-                        it
-                    )
-                })
+                const.expression(listOf(alloc) + exp.arguments.map { map(it) })
             }
 
             is FieldAccessExpr -> {
@@ -180,15 +169,13 @@ class JavaExpression2Strudel(
                 }
             }
 
-            is MethodCallExpr -> translator.handleMethodCall(
-                procedure, procedures, types, exp, ::map
-            ) { m, args ->
+            is MethodCallExpr -> translator.handleMethodCall(procedure, procedures, types, exp, ::map) { m, args ->
                 ProcedureCall(NullBlock, m, arguments = args)
             }
 
             is ConditionalExpr -> Conditional(map(exp.condition), map(exp.thenExpr), map(exp.elseExpr))
 
-            else -> unsupported("expression", exp)
+            else -> unsupported("expression type ${exp::class.simpleName}", exp)
         }.bind(exp)
     }
 }

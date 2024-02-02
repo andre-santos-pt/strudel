@@ -25,6 +25,8 @@ class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeE
     constructor(msg: String, node: Node) : this(msg, listOf(node))
 }
 
+class StrudelCompilationException(message: String): RuntimeException(message)
+
 @Suppress("NOTHING_TO_INLINE") // inline because otherwise test fails (KotlinNothingValueException)
 inline fun unsupported(msg: String, node: Node): Nothing {
     throw StrudelUnsupportedException("Unsupported $msg in: $node", node)
@@ -37,7 +39,7 @@ inline fun unsupported(msg: String, nodes: List<Node>): Nothing {
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun error(msg: String, node: Any): Nothing {
-    throw AssertionError("Compilation error at $node (${node::class.java}): $msg")
+    throw StrudelCompilationException("Compilation error at $node (${node::class.java}): $msg")
 }
 
 val JPFacade: JavaParserFacade = JavaParserFacade.get(typeSolver())
@@ -134,7 +136,11 @@ class Java2Strudel(
             if (namespace == null || namespace.isAbstract) null
             else namespace.qualifiedName
 
+        println("Found namespace $scope for method call $exp: ${namespace?.isStatic} // ${namespace?.isAbstract}")
+
         // Find matching procedure declaration
+        // TODO: Comparable[] arr, does not find compareTo for arr[j - 1].compareTo(arr[j]) because
+        //  namespace resolves to java.util.Comparable which is abstract so asForeignProcedure() returns null
         val method =
             procedures.findProcedure(scope, exp.nameAsString, paramTypes) ?:
             exp.asForeignProcedure(types) ?:
@@ -167,9 +173,16 @@ class Java2Strudel(
                 var t = n.type
                 while (t.isArrayType)
                     t = t.asArrayType().componentType
-
                 val typeName = t.asString()
 
+                if (typeName !in types)
+                    runCatching { getClassByName(typeName) }.onSuccess {
+                        list.add(HostRecordType(it.canonicalName))
+                    }.onFailure {
+                        // it.printStackTrace()
+                    }
+
+                /*
                 if (typeName !in types) {
                     try {
                         Class.forName(typeName)
@@ -190,6 +203,7 @@ class Java2Strudel(
                         }
                     }
                 }
+                 */
             }
         }, null)
         return list

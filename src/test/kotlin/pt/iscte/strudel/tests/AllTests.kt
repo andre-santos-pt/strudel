@@ -85,6 +85,7 @@ import kotlin.reflect.full.hasAnnotation
     TestComparator::class,
 
     TestFieldInitializers::class,
+    TestDependentFieldDeclarations::class,
 
     TestAutomaticForeignProcedure::class,
 
@@ -96,7 +97,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestMultipleVariableDeclarations::class,
 
-    TestSameIdentifierVariables::class
+    TestSameIdentifierVariables::class,
+
+    TestComparable::class,
 
     /* All of these were missing: check main() function below
 

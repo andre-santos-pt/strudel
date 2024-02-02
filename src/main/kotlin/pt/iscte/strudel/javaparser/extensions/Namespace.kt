@@ -24,6 +24,11 @@ internal fun MethodCallExpr.getNamespace(types: Map<String, IType>, foreignProce
         } else {
             // First try to load name from ITypes, and if that fails try as a Java type
             val name = runCatching { scope.getResolvedIType(types).id }.getOrNull() ?: scope.getResolvedJavaType().canonicalName
-            Namespace(name, isAbstract = false, isStatic = false)
+
+            val scopeIsSimplifiedName = name.split('.').last() == scope.toString()
+
+            // println("Namespace $scope is not a class itself, but is it simplified for $name? $scopeIsSimplifiedName")
+
+            Namespace(name, isAbstract = false, isStatic = scopeIsSimplifiedName)
         }
     } else null

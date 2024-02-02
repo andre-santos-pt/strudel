@@ -5,8 +5,7 @@ import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.type.Type
-import pt.iscte.strudel.javaparser.extensions.mapType
-import pt.iscte.strudel.javaparser.extensions.translateComment
+import pt.iscte.strudel.javaparser.extensions.*
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.ProcedureCall
@@ -27,7 +26,6 @@ class JavaStatement2Strudel(
 
             val exp2Strudel = JavaExpression2Strudel(procedure, block, procedures, types, translator, decMap)
 
-            fun getType(type: Type): IType =
 //            if (type.isArrayType)
 
 //                if(types.containsKey(type.asString()))
@@ -38,7 +36,7 @@ class JavaStatement2Strudel(
 //                    t
 //                }
 //            else
-                types[type.asString()]!!
+//                types[type.asString()]!!
 
             fun findVariable(id: String): IVariableDeclaration<*>? =
                 procedure.variables.find { it.id == id } ?:
@@ -283,7 +281,7 @@ class JavaStatement2Strudel(
             fun handleExpressionStmt(stmt: ExpressionStmt) {
                 if (stmt.expression is VariableDeclarationExpr) {
                     (stmt.expression as VariableDeclarationExpr).variables.forEach { dec ->
-                        val type = getType(dec.type)
+                        val type = getTypeFromJavaParser(stmt, dec.type, types)
                         val s: IVariableDeclaration<IBlock> = run {
                             //if (procedure.variables.any { it.id == dec.nameAsString })
                             //    unsupported("variables with same identifiers within the same procedure", stmt)
