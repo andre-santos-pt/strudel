@@ -16,8 +16,24 @@ internal class ForeignProcedure(
     val action: (IVirtualMachine, List<IValue>) -> IValue?
 ) : ProgramElement(), IProcedureDeclaration {
 
-    constructor(module: IModule? = null, namespace: String? = null, id: String, returnType: IType, param1: IType, action: (IVirtualMachine, List<IValue>) -> Unit)
-            : this(module, namespace, id, returnType, listOf(param1), { vm:IVirtualMachine, args:List<IValue> -> action(vm, args); null })
+    constructor(
+        module: IModule?,
+        namespace: String? = null,
+        id: String,
+        returnType: IType,
+        param1: IType,
+        action: (IVirtualMachine, List<IValue>) -> Unit
+    ) : this(
+        module,
+        namespace,
+        id,
+        returnType,
+        listOf(param1),
+        { vm: IVirtualMachine, args: List<IValue> -> action(vm, args); null })
+
+    init {
+        module?.members?.add(this)
+    }
 
     override var id: String? = id
 
@@ -39,11 +55,14 @@ internal class ForeignProcedure(
 
 interface IForeignProcedure {
     companion object {
-        fun create( namespace: String? = null,
-                    id: String,
-                    returnType: IType,
-                    parameterTypes: List<IType>,
-                    action: (IVirtualMachine, List<IValue>) -> IValue?): IProcedureDeclaration =
+        fun create(
+//            module: IModule?,
+            namespace: String? = null,
+            id: String,
+            returnType: IType,
+            parameterTypes: List<IType>,
+            action: (IVirtualMachine, List<IValue>) -> IValue?
+        ): IProcedureDeclaration =
             ForeignProcedure(null, namespace, id, returnType, parameterTypes, action)
     }
 }

@@ -9,12 +9,12 @@ import pt.iscte.strudel.vm.IRecord
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
 
-class TestComparable {
+class TestComparablePolymorphicParameter {
     val code = """    
         import java.util.Comparable;
   
         class Test {
-            static void bubbleSort(String[] arr) {
+            static void bubbleSort(Comparable[] arr) {
                 int n = arr.length;
                 int temp = 0;
                 for(int i=0; i < n; i++){

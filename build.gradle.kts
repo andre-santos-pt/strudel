@@ -20,6 +20,7 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib-jdk8"))
+    implementation("com.google.cloud.tools:appengine-gradle-plugin:2.2.0")
 }
 
 tasks.test {

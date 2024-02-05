@@ -2,6 +2,7 @@ package pt.iscte.strudel.tests.javaparser
 
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.INT
+import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.io.path.Path
 import kotlin.test.Test
@@ -19,7 +20,7 @@ class TestSortingAlgorithms {
         // TODO missing InsertionSort -- short-circuit  &&
         model.procedures.filter { it.id!!.endsWith("Sort") }.forEach {
             val array = vm.allocateArrayOf(INT, *case.toTypedArray())
-            vm.execute(it, array)
+            vm.execute(it  as IProcedure, array)
             expected.forEachIndexed { index, e ->
                 assertEquals(e, array.target.getElement(index).toInt())
             }

@@ -87,7 +87,7 @@ class TestLogicalOperatorsJava {
         val countCalls = CountCalls()
         vm.addListener(countCalls)
 
-        val ret = vm.execute(model.procedures.find { it.id == "testAnd" }!!)
+        val ret = vm.execute(model.procedures.find { it.id == "testAnd" }!! as IProcedure)
         ret?.checkBooleanArrayContent(false, false, false, true)
         assertEquals(4, countCalls.t)
         assertEquals(4, countCalls.f)
@@ -100,7 +100,7 @@ class TestLogicalOperatorsJava {
         val countCalls = CountCalls()
         vm.addListener(countCalls)
 
-        val ret = vm.execute(model.procedures.find { it.id == "testCAnd" }!!)
+        val ret = vm.execute(model.procedures.find { it.id == "testCAnd" }!!  as IProcedure)
         ret?.checkBooleanArrayContent(false, false, false, true)
         assertEquals(3, countCalls.t)
         assertEquals(3, countCalls.f)
@@ -113,7 +113,7 @@ class TestLogicalOperatorsJava {
         val countCalls = CountCalls()
         vm.addListener(countCalls)
 
-        val ret = vm.execute(model.procedures.find { it.id == "testOr" }!!)
+        val ret = vm.execute(model.procedures.find { it.id == "testOr" }!! as IProcedure)
         ret?.checkBooleanArrayContent(false, true, true, true)
         assertEquals(4, countCalls.t)
         assertEquals(4, countCalls.f)
@@ -126,7 +126,7 @@ class TestLogicalOperatorsJava {
         val countCalls = CountCalls()
         vm.addListener(countCalls)
 
-        val ret = vm.execute(model.procedures.find { it.id == "testCOr" }!!)
+        val ret = vm.execute(model.procedures.find { it.id == "testCOr" }!! as IProcedure)
         ret?.checkBooleanArrayContent(false, true, true, true)
         assertEquals(3, countCalls.t)
         assertEquals(3, countCalls.f)
@@ -139,7 +139,7 @@ class TestLogicalOperatorsJava {
         val countCalls = CountCalls()
         vm.addListener(countCalls)
 
-        val ret = vm.execute(model.procedures.find { it.id == "testXor" }!!)
+        val ret = vm.execute(model.procedures.find { it.id == "testXor" }!!  as IProcedure)
         ret?.checkBooleanArrayContent(false, true, true, false)
         assertEquals(4, countCalls.t)
         assertEquals(4, countCalls.f)

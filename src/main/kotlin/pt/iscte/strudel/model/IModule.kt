@@ -10,7 +10,7 @@ import pt.iscte.strudel.model.impl.Procedure
 interface IModuleView : IProgramElement {
     val constants: List<IConstantDeclaration>
     val recordTypes: List<IRecordType>
-    val procedures: List<IProcedure>
+    val procedures: List<IProcedureDeclaration>
 }
 
 interface IModule : IModuleView {
@@ -26,8 +26,8 @@ interface IModule : IModuleView {
     override val recordTypes: List<IRecordType>
         get() = members.filterIsInstance<IRecordType>()
 
-    override val procedures: List<IProcedure>
-        get() = members.filterIsInstance<IProcedure>()
+    override val procedures: List<IProcedureDeclaration>
+        get() = members.filterIsInstance<IProcedureDeclaration>()
 
     operator fun get(procedureId: String) =
         members.find { it is IProcedure && it.id == procedureId } as IProcedure
@@ -38,7 +38,7 @@ interface IModule : IModuleView {
         list.addAll(recordTypes)
 
         procedures.forEach {
-            list.addAll(it.variables.map { it ->
+            list.addAll((if (it is IProcedure) it.variables else it.parameters).map { it ->
                 if (it.type.isReference)
                     (it.type as IReferenceType).resolveTarget()
                 else
@@ -72,29 +72,29 @@ interface IModule : IModuleView {
             val set = mutableSetOf<String>()
             constants.forEach { p: IConstantDeclaration -> if (p.namespace != null) set.add(p.namespace!!) }
             recordTypes.forEach { p: IRecordType -> if (p.namespace != null) set.add(p.namespace!!) }
-            procedures.forEach { p: IProcedure -> if (p.namespace != null) set.add(p.namespace!!) }
+            procedures.forEach { p: IProcedureDeclaration -> if (p.namespace != null) set.add(p.namespace!!) }
             return set
         }
 
-    fun blendBlockStatements() {
-        procedures.forEach {
-            val blocks = mutableListOf<IBlock>()
-            it.block.accept(object : IBlock.IVisitor {
-                override fun visit(block: IBlock): Boolean {
-                    blocks.add(block)
-                    return super.visit(block)
-                }
-            })
-
-            blocks.forEach {b->
-                val i = b.index
-                b.children.reversed().forEach {c->
-                    c.copyTo(b.parent.block, i)
-                }
-                b.remove()
-            }
-        }
-    }
+//    fun blendBlockStatements() {
+//        procedures.forEach {
+//            val blocks = mutableListOf<IBlock>()
+//            it.block.accept(object : IBlock.IVisitor {
+//                override fun visit(block: IBlock): Boolean {
+//                    blocks.add(block)
+//                    return super.visit(block)
+//                }
+//            })
+//
+//            blocks.forEach {b->
+//                val i = b.index
+//                b.children.reversed().forEach {c->
+//                    c.copyTo(b.parent.block, i)
+//                }
+//                b.remove()
+//            }
+//        }
+//    }
 }
 
 interface IModuleMember : IProgramElement {

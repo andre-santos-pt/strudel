@@ -1,6 +1,6 @@
 package pt.iscte.strudel.tests.javaparser
 
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.IProcedure
@@ -9,12 +9,22 @@ import pt.iscte.strudel.vm.IRecord
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
 
-class TestComparable {
+class TestOwnComparable {
     val code = """    
         import java.util.Comparable;
   
+        class Numero implements Comparable<Numero> {
+            int valor;
+            public Numero(int valor) {
+                this.valor = valor;
+            }
+            int compareTo(Numero n) {
+                return valor - n.valor;
+            } 
+        }
+        
         class Test {
-            static void bubbleSort(String[] arr) {
+            static void bubbleSort(Numero[] arr) {
                 int n = arr.length;
                 int temp = 0;
                 for(int i=0; i < n; i++){
@@ -28,8 +38,8 @@ class TestComparable {
                 }
             }
             
-            static String[] test1() {
-                String[] array = {"dois", "quatro", "um", "tres" };
+            static Numero[] test1() {
+                Numero[] array = {new Numero(4), new Numero(1), new Numero(8), new Numero(5) };
                 bubbleSort(array);
                 return array;
             }
@@ -40,10 +50,11 @@ class TestComparable {
     fun test() {
         val model = Java2Strudel().load(code)
         val vm = IVirtualMachine.create()
+        val type = model.getRecordType("Numero")
+        val ret = (vm.execute(model.procedures.find { it.id == "test1" }!! as IProcedure) as IReference<IArray>).target
 
-        val ret = (vm.execute(model.procedures.find { it.id == "test1" }!!  as IProcedure) as IReference<IArray>).target
-        listOf("dois","quatro","tres","um").forEachIndexed { i, n ->
-            Assertions.assertEquals(n, (ret.getElement(i).value.toString()))
+        listOf(1,4,5,8).forEachIndexed { i, n ->
+            assertEquals(n, (ret.getElement(i).value as IRecord).getField(type["valor"]).toInt())
         }
     }
 }

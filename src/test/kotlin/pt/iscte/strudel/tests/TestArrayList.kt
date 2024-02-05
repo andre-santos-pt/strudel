@@ -40,13 +40,13 @@ class TestArrayList : BaseTest({
     fun test() {
        // val list = vm.allocateRecord(module.recordTypes[0])
         val list = vm.execute(
-            module.procedures[0],
+            module.procedures[0] as IProcedure,
             vm.allocateRecord(module.recordTypes[0])
         )!!
-        vm.execute(module.procedures[2], list, vm.getValue(2))
-        vm.execute(module.procedures[2], list, vm.getValue(3))
-        val r = vm.execute(module.procedures[1], list)
-        assertEquals(2, vm.execute(module.procedures[1], list)!!.toInt())
+        vm.execute(module.procedures[2] as IProcedure, list, vm.getValue(2))
+        vm.execute(module.procedures[2] as IProcedure, list, vm.getValue(3))
+        val r = vm.execute(module.procedures[1] as IProcedure, list)
+        assertEquals(2, vm.execute(module.procedures[1] as IProcedure, list)!!.toInt())
         //list.getField()
         //Assert.assertTrue(vm.error is ArrayIndexError && (vm.error as ArrayIndexError).invalidIndex == 6)
     }

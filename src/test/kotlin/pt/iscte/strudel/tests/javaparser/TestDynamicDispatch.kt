@@ -3,6 +3,7 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.INT
+import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.ArrayIndexError
@@ -52,10 +53,10 @@ class TestDynamicDispatch {
         val model = Java2Strudel().load(code)
         val vm = IVirtualMachine.create()
 
-        val ret1 = vm.execute(model.procedures.find { it.id == "test1" }!!)
+        val ret1 = vm.execute(model.procedures.find { it.id == "test1" }!! as IProcedure)
         assertEquals(vm.getValue(2).toInt(), ret1?.toInt())
 
-        val ret2 = vm.execute(model.procedures.find { it.id == "test2" }!!)
+        val ret2 = vm.execute(model.procedures.find { it.id == "test2" }!! as IProcedure)
         assertEquals(vm.getValue(0).toInt(), ret2?.toInt())
     }
 }

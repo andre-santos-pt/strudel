@@ -44,10 +44,10 @@ class TestConditionalJava {
         })
         val a = vm.getValue(3)
         val b = vm.getValue(5)
-        val ret1 = vm.execute(model.procedures.find { it.id == "max" }!!, a, b)
+        val ret1 = vm.execute(model.procedures.find { it.id == "max" }!! as IProcedure, a, b)
         assertEquals(b.toInt(), ret1?.toInt())
 
-        val ret2 = vm.execute(model.procedures.find { it.id == "max" }!!, b, a)
+        val ret2 = vm.execute(model.procedures.find { it.id == "max" }!! as IProcedure, b, a)
         assertEquals(b.toInt(), ret2?.toInt())
     }
 
@@ -66,11 +66,11 @@ class TestConditionalJava {
         val vm = IVirtualMachine.create()
 
         val a = vm.getValue(2)
-        val ret1 = vm.execute(model.procedures.find { it.id == "test" }!!, a)
+        val ret1 = vm.execute(model.procedures.find { it.id == "test" }!!  as IProcedure, a)
         assertEquals(vm.getValue(3).toInt(), ret1?.toInt())
 
         val b = vm.getValue(3)
-        val ret2 = vm.execute(model.procedures.find { it.id == "test" }!!, b)
+        val ret2 = vm.execute(model.procedures.find { it.id == "test" }!! as IProcedure, b)
         assertEquals(vm.getValue(5).toInt(), ret2?.toInt())
 
     }

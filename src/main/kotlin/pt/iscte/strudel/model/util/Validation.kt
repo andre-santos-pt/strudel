@@ -9,7 +9,7 @@ data class SemanticProblem(val element: IProgramElement, val message: String) {
 
 fun IModule.checkSemantics() :  List<SemanticProblem> {
     var invalid = mutableListOf<SemanticProblem>()
-    procedures.forEach {
+    procedures.filterIsInstance<IProcedure>().forEach {
        invalid.addAll(it.checkSemantics())
     }
     return invalid

@@ -3,6 +3,7 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.INT
+import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.ArrayIndexError
@@ -41,7 +42,7 @@ class TestThrow {
         val vm = IVirtualMachine.create(throwExceptions = false)
         val listener = Listener()
         vm.addListener(listener)
-        val ret = vm.execute(model.procedures[1], vm.getValue(-2))
+        val ret = vm.execute(model.procedures[1] as IProcedure, vm.getValue(-2))
         assertNotNull(listener.error)
         assertEquals("value is negative", listener.error?.message)
         assertNull(ret)
@@ -53,7 +54,7 @@ class TestThrow {
         val vm = IVirtualMachine.create(throwExceptions = false)
         val listener = Listener()
         vm.addListener(listener)
-        val ret = vm.execute(model.procedures[1], vm.getValue(101))
+        val ret = vm.execute(model.procedures[1] as IProcedure, vm.getValue(101))
         assertNotNull(listener.error)
         assertEquals("ArrayIndexOutOfBoundsException", listener.error?.message)
         assertNull(ret)
@@ -65,7 +66,7 @@ class TestThrow {
         val vm = IVirtualMachine.create(throwExceptions = false)
         val listener = Listener()
         vm.addListener(listener)
-        val ret = vm.execute(model.procedures[1], vm.getValue(2))
+        val ret = vm.execute(model.procedures[1] as IProcedure, vm.getValue(2))
         assertNull(listener.error)
         assertEquals(vm.getValue(-2).value, ret?.value)
     }

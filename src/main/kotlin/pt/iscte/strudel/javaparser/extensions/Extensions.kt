@@ -15,7 +15,7 @@ import java.util.*
 
 fun getStringValue(str: String): IValue = Value(stringType, java.lang.String(str))
 
-val IModule.proceduresExcludingConstructors: List<IProcedure>
+val IModule.proceduresExcludingConstructors: List<IProcedureDeclaration>
     get() = procedures.filter { it.id != INIT }
 
 val <T> Optional<T>.getOrNull: T?

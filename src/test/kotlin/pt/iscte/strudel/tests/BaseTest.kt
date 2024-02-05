@@ -41,7 +41,7 @@ abstract class BaseTest {
 //        println(Strudel2Java().translate(module))
     }
 
-    val procedure get() = module.procedures.last()
+    val procedure get() = module.procedures.last() as IProcedure
 
     @BeforeEach
     fun setup() {

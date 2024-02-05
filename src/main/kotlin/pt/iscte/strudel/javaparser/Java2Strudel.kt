@@ -116,6 +116,7 @@ class Java2Strudel(
         id: String,
         paramTypes: List<IType>  // TODO param types in find procedure
     ): IProcedureDeclaration? {
+        println("Finding procedure with namespace $namespace, id $id, and param types ${paramTypes.joinToString { it.id!! }}")
         val find = find { it.second.matches(namespace, id, paramTypes) }
         return find?.second ?: foreignProcedures.find { it.matches(namespace, id, paramTypes) }
     }
@@ -132,9 +133,7 @@ class Java2Strudel(
 
         // Get method namespace
         val namespace: Namespace? = exp.getNamespace(types, foreignProcedures)
-        val scope: String? =
-            if (namespace == null || namespace.isAbstract) null
-            else namespace.qualifiedName
+        val scope: String? = namespace?.qualifiedName
 
         println("Found namespace $scope for method call $exp: ${namespace?.isStatic} // ${namespace?.isAbstract}")
 
@@ -143,8 +142,10 @@ class Java2Strudel(
         //  namespace resolves to java.util.Comparable which is abstract so asForeignProcedure() returns null
         val method =
             procedures.findProcedure(scope, exp.nameAsString, paramTypes) ?:
-            exp.asForeignProcedure(types) ?:
+            exp.asForeignProcedure(procedure.module!!, scope, types) ?:
             error("procedure matching method call $exp not found within namespace ${namespace?.qualifiedName}", exp)
+
+        println("Found method $method for method call $exp")
 
         // Get method call arguments
         val args = exp.arguments.map { mapExpression(it) }

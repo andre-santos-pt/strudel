@@ -1,20 +1,19 @@
 package pt.iscte.strudel.javaparser.extensions
 
-import com.github.javaparser.ast.expr.FieldAccessExpr
 import com.github.javaparser.ast.expr.MethodCallExpr
-import com.github.javaparser.ast.expr.NameExpr
 import pt.iscte.strudel.javaparser.THIS_PARAM
-import pt.iscte.strudel.javaparser.unsupported
+import pt.iscte.strudel.model.IModule
 import pt.iscte.strudel.model.IProcedureDeclaration
 import pt.iscte.strudel.model.IType
+import pt.iscte.strudel.model.impl.PolymophicProcedure
 import pt.iscte.strudel.vm.impl.ForeignProcedure
 import java.lang.reflect.Method
 
-internal fun createForeignProcedure(scope: String?, method: Method, isStatic: Boolean, types: Map<String, IType>): ForeignProcedure {
+internal fun createForeignProcedure(module: IModule, scope: String?, method: Method, isStatic: Boolean, types: Map<String, IType>): ForeignProcedure {
     val thisParamType = if (isStatic) listOf() else listOf(getTypeByName(method.declaringClass.canonicalName, types))
     val parameterTypes = thisParamType + method.parameters.map { getTypeByName(it.type.canonicalName, types) }
     return ForeignProcedure(
-        null,
+        module,
         scope,
         method.name,
         getTypeByName(method.returnType.canonicalName, types),
@@ -40,9 +39,17 @@ internal fun createForeignProcedure(scope: String?, method: Method, isStatic: Bo
     }
 }
 
-internal fun MethodCallExpr.asForeignProcedure(types: Map<String, IType>): IProcedureDeclaration? {
-    if (isAbstractMethodCall) return null
-    if (scope.isPresent) {
+internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: String?, types: Map<String, IType>): IProcedureDeclaration? {
+    val returnType = resolve().returnType
+
+    if (isAbstractMethodCall)
+        return PolymophicProcedure(
+            module,
+            namespace,
+            nameAsString,
+            returnType.toIType(types)
+        )
+    else if (scope.isPresent) {
         val namespace = scope.get()
         val clazz: Class<*> = namespace.getResolvedJavaType()
 
@@ -50,7 +57,7 @@ internal fun MethodCallExpr.asForeignProcedure(types: Map<String, IType>): IProc
         val method: Method = clazz.getMethod(nameAsString, *args)
 
         val isStaticMethod = this.resolve().isStatic
-        return createForeignProcedure(clazz.canonicalName, method, isStaticMethod, types)
+        return createForeignProcedure(module, clazz.canonicalName, method, isStaticMethod, types)
     }
     return null
 }
