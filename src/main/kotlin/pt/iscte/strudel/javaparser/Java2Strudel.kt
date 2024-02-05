@@ -95,14 +95,6 @@ class Java2Strudel(
         return this
     }
 
-    private fun IProcedureDeclaration.matches(namespace: String?, id: String, parameterTypes: List<IType>): Boolean {
-        val paramTypeMatch = this.parameters.map { it.type } == parameterTypes // FIXME
-        val idAndNamespaceMatch =
-            if (namespace == null) this.id == id
-            else this.namespace == namespace && this.id == id
-        return idAndNamespaceMatch // && paramTypeMatch
-    }
-
     /**
      * Finds a procedure with matching namespace, ID, and parameter types.
      * @receiver A list of (JavaParser Declaration, IProcedureDeclaration) pairs.
@@ -114,9 +106,9 @@ class Java2Strudel(
     internal fun List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>.findProcedure(
         namespace: String?,
         id: String,
-        paramTypes: List<IType>  // TODO param types in find procedure
+        paramTypes: List<IType>
     ): IProcedureDeclaration? {
-        println("Finding procedure with namespace $namespace, id $id, and param types ${paramTypes.joinToString { it.id!! }}")
+        // println("Finding procedure $namespace.$id(${paramTypes.joinToString { it.id!! }})")
         val find = find { it.second.matches(namespace, id, paramTypes) }
         return find?.second ?: foreignProcedures.find { it.matches(namespace, id, paramTypes) }
     }
@@ -135,17 +127,11 @@ class Java2Strudel(
         val namespace: Namespace? = exp.getNamespace(types, foreignProcedures)
         val scope: String? = namespace?.qualifiedName
 
-        println("Found namespace $scope for method call $exp: ${namespace?.isStatic} // ${namespace?.isAbstract}")
-
         // Find matching procedure declaration
-        // TODO: Comparable[] arr, does not find compareTo for arr[j - 1].compareTo(arr[j]) because
-        //  namespace resolves to java.util.Comparable which is abstract so asForeignProcedure() returns null
         val method =
             procedures.findProcedure(scope, exp.nameAsString, paramTypes) ?:
             exp.asForeignProcedure(procedure.module!!, scope, types) ?:
             error("procedure matching method call $exp not found within namespace ${namespace?.qualifiedName}", exp)
-
-        println("Found method $method for method call $exp")
 
         // Get method call arguments
         val args = exp.arguments.map { mapExpression(it) }

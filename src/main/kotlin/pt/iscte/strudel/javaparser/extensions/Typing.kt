@@ -16,8 +16,8 @@ import pt.iscte.strudel.javaparser.defaultTypes
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.ArrayType
 import java.lang.reflect.Array
+import java.lang.reflect.Method
 import kotlin.jvm.optionals.getOrNull
-import kotlin.reflect.full.companionObject
 
 fun typeSolver(): TypeSolver {
     // combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-core")))
@@ -115,3 +115,20 @@ internal fun ResolvedType.toJavaType(): Class<*> = when (this) {
 internal fun Expression.getResolvedJavaType(): Class<*> = calculateResolvedType().toJavaType()
 
 internal fun Expression.getResolvedIType(types: Map<String, IType>): IType = calculateResolvedType().toIType(types)
+
+internal fun Class<*>.findCompatibleMethod(name: String, parameterTypes: Iterable<Class<*>>): Method? =
+    methods.find {
+        it.name == name && it.parameterTypes.zip(parameterTypes).all {
+            p -> p.first == p.second || p.second.isAssignableFrom(p.first)
+        }
+    }
+
+internal fun IType.isAssignableFrom(other: IType): Boolean = when(this) {
+    is IArrayType -> other is IArrayType && (componentType == other.componentType || componentType.isAssignableFrom(other.componentType))
+    is IRecordType -> other is IRecordType && this == other
+    is IReferenceType -> other is IReferenceType && (target == other.target || target.isAssignableFrom(other.target))
+    is JavaType -> other is JavaType && (type == other.type || type.isAssignableFrom(other.type))
+    is UnboundType -> other is UnboundType && (this == other || this.isSame(other))
+    is VOID -> other is VOID
+    else -> this == other || this.isSame(other)
+}

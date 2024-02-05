@@ -401,21 +401,26 @@ class ProcedureInterpreter(
                                 valStack.push(ret)
                             }
                         } else {
-                            val proc: IProcedure =
+                            val proc: IProcedureDeclaration =
                                 if (exp.procedure is IPolymorphicProcedure)
-                                    exp.procedure.module?.procedures?.filterIsInstance<IProcedure>()?.find {
-                                        p -> p.id == exp.procedure.id && p.namespace == args[0].type.id
+                                    exp.procedure.module?.procedures?.find {
+                                            p -> p.id == exp.procedure.id && p.namespace == args[0].type.id
                                     } ?: throw UnsupportedOperationException(exp.toString())
                                 else
                                     exp.procedure as IProcedure
 
-                            val call = ProcedureInterpreter(
-                                vm,
-                                proc,
-                                *args.toTypedArray()
-                            )
-                            call.run()
-                            valStack.push(call.returnValue!!) // not void
+                            if (proc.isForeign) {
+                                val run = (proc as ForeignProcedure).run(vm, args)
+                                valStack.push(run!!)
+                            } else {
+                                val call = ProcedureInterpreter(
+                                    vm,
+                                    proc as IProcedure,
+                                    *args.toTypedArray()
+                                )
+                                call.run()
+                                valStack.push(call.returnValue!!) // not void
+                            }
                         }
                     }
             }

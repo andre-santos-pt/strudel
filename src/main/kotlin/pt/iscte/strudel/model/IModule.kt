@@ -44,6 +44,7 @@ interface IModule : IModuleView {
                 else
                     it.type
             })
+            list.add(it.returnType)
         }
         return list
     }

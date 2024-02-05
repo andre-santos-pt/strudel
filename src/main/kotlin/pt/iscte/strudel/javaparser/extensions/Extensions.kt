@@ -35,3 +35,10 @@ val CallableDeclaration<*>.body: BlockStmt?
 internal val MethodCallExpr.isAbstractMethodCall: Boolean
     get() = resolve().isAbstract
 
+internal fun IProcedureDeclaration.matches(namespace: String?, id: String, parameterTypes: List<IType>): Boolean {
+    val paramTypeMatch = this.parameters.map { it.type } == parameterTypes // FIXME
+    val idAndNamespaceMatch =
+        if (namespace == null) this.id == id
+        else this.namespace == namespace && this.id == id
+    return idAndNamespaceMatch // && paramTypeMatch
+}

@@ -5,6 +5,7 @@ import pt.iscte.strudel.javaparser.THIS_PARAM
 import pt.iscte.strudel.model.IModule
 import pt.iscte.strudel.model.IProcedureDeclaration
 import pt.iscte.strudel.model.IType
+import pt.iscte.strudel.model.JavaType
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import pt.iscte.strudel.vm.impl.ForeignProcedure
 import java.lang.reflect.Method
@@ -42,16 +43,41 @@ internal fun createForeignProcedure(module: IModule, scope: String?, method: Met
 internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: String?, types: Map<String, IType>): IProcedureDeclaration? {
     val returnType = resolve().returnType
 
-    if (isAbstractMethodCall)
+    fun Class<*>.rootComponentType(): Class<*>? {
+        var current = this.componentType
+        while (current != null && current.componentType != null)
+            current = current.componentType
+        return current
+    }
+
+    if (isAbstractMethodCall) {
+        println("Handing abstract method call $this for namespace $namespace...")
+        if (namespace != null) {
+            val clazz: Class<*> = getClassByName(namespace)
+            module.types.filterIsInstance<JavaType>().forEach {
+                val t: Class<*> = it.type.rootComponentType() ?: it.type
+                if (clazz.isAssignableFrom(t) && !t.isInterface) {
+                    val args = arguments.map { arg -> arg.getResolvedJavaType() }
+                    println("\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
+                    val implementation = t.findCompatibleMethod(nameAsString, args)
+                    if (implementation != null) {
+                        println("\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
+                        val foreign: ForeignProcedure = createForeignProcedure(module, t.canonicalName, implementation, false, types)
+                        module.members.add(foreign)
+                    }
+                }
+            }
+        }
+
         return PolymophicProcedure(
             module,
             namespace,
             nameAsString,
             returnType.toIType(types)
         )
+    }
     else if (scope.isPresent) {
-        val namespace = scope.get()
-        val clazz: Class<*> = namespace.getResolvedJavaType()
+        val clazz: Class<*> = scope.get().getResolvedJavaType()
 
         val args = arguments.map { it.getResolvedJavaType() }.toTypedArray()
         val method: Method = clazz.getMethod(nameAsString, *args)
@@ -59,5 +85,6 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
         val isStaticMethod = this.resolve().isStatic
         return createForeignProcedure(module, clazz.canonicalName, method, isStaticMethod, types)
     }
+
     return null
 }
