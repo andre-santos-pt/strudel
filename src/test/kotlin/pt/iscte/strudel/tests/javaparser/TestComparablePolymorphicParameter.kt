@@ -3,11 +3,12 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.vm.IArray
-import pt.iscte.strudel.vm.IRecord
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
+import kotlin.test.assertEquals
 
 class TestComparablePolymorphicParameter {
     val code = """    
@@ -36,6 +37,23 @@ class TestComparablePolymorphicParameter {
         }
     """.trimIndent()
 
+    val insertion = """
+        import java.util.Comparable;
+        
+        class InsertionUpdated {
+            public static void sort(Comparable[] arr) {
+                for (int i = 0; i < arr.length; i++) {
+                    Comparable aux = arr[i];
+                    int j;
+                    for (j = i; j > 0 && aux.compareTo(arr[j - 1]) < 0; j--) {
+                        arr[j] = arr[j - 1];
+                    }
+                    arr[j] = aux;
+                }
+            }
+        }
+    """.trimIndent()
+
     @Test
     fun test() {
         val model = Java2Strudel().load(code)
@@ -44,6 +62,21 @@ class TestComparablePolymorphicParameter {
         val ret = (vm.execute(model.procedures.find { it.id == "test1" }!!  as IProcedure) as IReference<IArray>).target
         listOf("dois","quatro","tres","um").forEachIndexed { i, n ->
             Assertions.assertEquals(n, (ret.getElement(i).value.toString()))
+        }
+    }
+
+    @Test
+    fun testPolymorphicForeignUsage() {
+        val module = Java2Strudel().load(insertion)
+        val vm = IVirtualMachine.create()
+
+        val x = vm.allocateArrayOf(INT, 7, 3, 2, 1, 5, 6, 10, 8, 9, 4)
+
+        val sort = module.getProcedure(("sort"))
+        vm.execute(sort, x)
+
+        (1..10).forEach {
+            assertEquals(it, x.target.getElement(it - 1).value)
         }
     }
 }

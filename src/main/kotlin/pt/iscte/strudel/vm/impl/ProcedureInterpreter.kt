@@ -405,7 +405,7 @@ class ProcedureInterpreter(
                                 if (exp.procedure is IPolymorphicProcedure)
                                     exp.procedure.module?.procedures?.find {
                                             p -> p.id == exp.procedure.id && p.namespace == args[0].type.id
-                                    } ?: throw UnsupportedOperationException(exp.toString())
+                                    } ?: throw UnsupportedOperationException("Could not find procedure ${exp.procedure.id} within namespace ${args[0].type.id}")
                                 else
                                     exp.procedure as IProcedure
 

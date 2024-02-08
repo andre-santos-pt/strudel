@@ -19,22 +19,22 @@ import java.lang.reflect.Array
 import java.lang.reflect.Method
 import kotlin.jvm.optionals.getOrNull
 
-fun typeSolver(): TypeSolver {
+internal fun typeSolver(): TypeSolver {
     // combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-core")))
     // combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-generated-sources")))
     return CombinedTypeSolver().apply { add(ReflectionTypeSolver()) }
 }
 
-fun MutableMap<String, IType>.mapType(t: String): IType = this[t] ?: getTypeByName(t, this)
+internal fun MutableMap<String, IType>.mapType(t: String): IType = this[t] ?: getTypeByName(t, this)
 
-fun MutableMap<String, IType>.mapType(t: Type) = mapType(t.resolve().erasure().describe())
+internal fun MutableMap<String, IType>.mapType(t: Type) = mapType(t.resolve().erasure().describe())
 
-fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
+internal fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
     mapType(t.fullyQualifiedName.getOrNull() ?: t.nameAsString)
 
-fun isJavaClassName(name: String): Boolean = runCatching { getClassByName(name) }.isSuccess
+internal fun isJavaClassName(name: String): Boolean = runCatching { getClassByName(name) }.isSuccess
 
-fun getTypeByName(qualifiedName: String, types: Map<String, IType> = mapOf()): IType =
+internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = mapOf()): IType =
     defaultTypes[qualifiedName] ?: types[qualifiedName] ?: JavaType(getClassByName(qualifiedName))
 /*
     try {
@@ -52,7 +52,7 @@ fun getTypeByName(qualifiedName: String, types: Map<String, IType> = mapOf()): I
     }
  */
 
-fun getClassByName(qualifiedName: String): Class<*> {
+internal fun getClassByName(qualifiedName: String): Class<*> {
     val arrayTypeRegex = Regex("\\[\\]")
     val arrayTypeDepth = arrayTypeRegex.findAll(qualifiedName).count()
 
@@ -68,27 +68,11 @@ fun getClassByName(qualifiedName: String): Class<*> {
         cls
     }.getOrNull() ?: pt.iscte.strudel.javaparser.error("unsupported class $qualifiedName", qualifiedName)
 }
-    /*
-    try {
-        Class.forName(name)
-    } catch (e1: Exception) {
-        try {
-            Class.forName("java.lang.$name")
-        } catch (e2: Exception) {
-            try {
-                Class.forName("java.util.$name")
-            } catch (e3: Exception) {
-                pt.iscte.strudel.javaparser.error("could not find class with name $name", name)
-            }
-        }
-    }
-     */
 
-fun getTypeFromJavaParser(node: Node, type: Type, types: Map<String, IType>): IType =
+internal fun getTypeFromJavaParser(node: Node, type: Type, types: Map<String, IType>): IType =
     runCatching { getTypeByName(type.asString(), types) }.getOrNull() ?:
     runCatching { getTypeByName(type.resolve().describe(), types) }.getOrNull() ?:
     pt.iscte.strudel.javaparser.error("could not find IType for type $type", node)
-    // types[type.asString()] ?: pt.iscte.strudel.javaparser.error("could not find IType for type $type", node)
 
 internal fun ResolvedType.toIType(types: Map<String, IType>): IType = when (this) {
     ResolvedPrimitiveType.CHAR -> CHAR
@@ -107,7 +91,7 @@ internal fun ResolvedType.toJavaType(): Class<*> = when (this) {
     ResolvedPrimitiveType.BOOLEAN -> Boolean::class.java
     ResolvedPrimitiveType.DOUBLE, ResolvedPrimitiveType.FLOAT -> Double::class.java
     is ResolvedReferenceType -> getClassByName(this.qualifiedName)
-    is ResolvedArrayType -> Array.newInstance(this.componentType.toJavaType(), 0).javaClass // TODO: test
+    is ResolvedArrayType -> Array.newInstance(this.componentType.toJavaType(), 0).javaClass
     is LazyType -> getClassByName(this.describe())
     else -> pt.iscte.strudel.javaparser.error("unsupported expression type ${this::class.qualifiedName}", this)
 }
@@ -122,13 +106,3 @@ internal fun Class<*>.findCompatibleMethod(name: String, parameterTypes: Iterabl
             p -> p.first == p.second || p.second.isAssignableFrom(p.first)
         }
     }
-
-internal fun IType.isAssignableFrom(other: IType): Boolean = when(this) {
-    is IArrayType -> other is IArrayType && (componentType == other.componentType || componentType.isAssignableFrom(other.componentType))
-    is IRecordType -> other is IRecordType && this == other
-    is IReferenceType -> other is IReferenceType && (target == other.target || target.isAssignableFrom(other.target))
-    is JavaType -> other is JavaType && (type == other.type || type.isAssignableFrom(other.type))
-    is UnboundType -> other is UnboundType && (this == other || this.isSame(other))
-    is VOID -> other is VOID
-    else -> this == other || this.isSame(other)
-}

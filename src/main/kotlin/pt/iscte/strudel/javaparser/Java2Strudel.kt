@@ -9,12 +9,11 @@ import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade
+import pt.iscte.strudel.javaparser.extensions.*
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import java.io.File
-
-import pt.iscte.strudel.javaparser.extensions.*
 import kotlin.reflect.KClass
 
 class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
@@ -125,12 +124,11 @@ class Java2Strudel(
 
         // Get method namespace
         val namespace: Namespace? = exp.getNamespace(types, foreignProcedures)
-        val scope: String? = namespace?.qualifiedName
 
         // Find matching procedure declaration
         val method =
-            procedures.findProcedure(scope, exp.nameAsString, paramTypes) ?:
-            exp.asForeignProcedure(procedure.module!!, scope, types) ?:
+            procedures.findProcedure(namespace?.qualifiedName, exp.nameAsString, paramTypes) ?:
+            exp.asForeignProcedure(procedure.module!!, namespace?.qualifiedName, types) ?:
             error("procedure matching method call $exp not found within namespace ${namespace?.qualifiedName}", exp)
 
         // Get method call arguments

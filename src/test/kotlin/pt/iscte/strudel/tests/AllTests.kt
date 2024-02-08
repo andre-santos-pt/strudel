@@ -109,7 +109,6 @@ import kotlin.reflect.full.hasAnnotation
     TestChars::class,
     TestMatrix3d::class,
     TestNaturalsTemp::class,
-    TestParser::class,
     TestsPaper::class,
     TestStackRecord::class,
     TestUnboundType::class,
