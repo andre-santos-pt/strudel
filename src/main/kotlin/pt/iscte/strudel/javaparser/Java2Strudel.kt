@@ -392,6 +392,9 @@ class Java2Strudel(
 
             // Each of a type's methods is translated
             val methods = flatMap { it.methods }.map {
+                // Replace string concatenation with + with String.concat(String) calls
+                it.replaceStringConcatPlus()
+
                 it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
             }
 

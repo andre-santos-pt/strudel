@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "pt.iscte"
-version = "0.8.2"
+version = "0.8.3"
 
 repositories {
     mavenCentral()
@@ -20,7 +20,6 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib-jdk8"))
-    implementation("com.google.cloud.tools:appengine-gradle-plugin:2.2.0")
 }
 
 tasks.test {
@@ -70,22 +69,9 @@ tasks {
         }
     }
 }
-//val compileKotlin: KotlinCompile by tasks
-//compileKotlin.kotlinOptions {
-//    jvmTarget = "1.8"
-//}
-//
-//val compileTestKotlin: KotlinCompile by tasks
-//compileTestKotlin.kotlinOptions {
-//    jvmTarget = "1.8"
-//}
 
-//tasks.withType<KotlinCompile> {
-//    kotlinOptions.jvmTarget = "17"
-//}
 
 publishing {
-
     repositories {
         maven {
             name = "GitHubPackages"

@@ -3,6 +3,7 @@ package pt.iscte.strudel.javaparser
 import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
+import com.github.javaparser.resolution.types.ResolvedReferenceType
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserParameterDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserVariableDeclaration
@@ -177,6 +178,16 @@ class JavaExpression2Strudel(
 
             else -> unsupported("expression type ${exp::class.simpleName}", exp)
         }.bind(exp)
+    }
+
+    private fun isStringConcat(exp: BinaryExpr): Boolean {
+        if(exp.operator != BinaryExpr.Operator.PLUS)
+            return false
+
+        val leftType = exp.left.calculateResolvedType()
+        val rightType = exp.right.calculateResolvedType()
+
+        return (leftType is ResolvedReferenceType && leftType.qualifiedName == String::class.java.name) //|| rightType.isString
     }
 }
 

@@ -68,22 +68,23 @@ internal val defaultForeignProcedures = listOf(
             Value(stringType, String(chars))
 
     },
-    ForeignProcedure(
-        null,
-        null,
-        "concat",
-        stringType,
-        listOf(ANY, ANY)
-    ) { m, args ->
-        Value(stringType, args[0].value.toString() + args[1].value.toString())
-    },
-    ForeignProcedure(
-        null,
-        null,
-        "length",
-        INT,
-        listOf(stringType)
-    ) { m, args ->
-        Value(INT, args[0].value.toString().length)
-    },
+//    ForeignProcedure(
+//        null,
+//        null,
+//        "concat",
+//        stringType,
+//        listOf(ANY, ANY)
+//    ) { m, args ->
+//        Value(stringType, args[0].value.toString() + args[1].value.toString())
+//    },
+//    ,
+//    ForeignProcedure(
+//        null,
+//        null,
+//        "length",
+//        INT,
+//        listOf(stringType)
+//    ) { m, args ->
+//        Value(INT, args[0].value.toString().length)
+//    },
 )

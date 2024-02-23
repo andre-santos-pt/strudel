@@ -7,6 +7,7 @@ import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.impl.IForeignProcedure
 import pt.iscte.strudel.vm.impl.Value
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 val stringType = JavaType(String::class.java)
@@ -53,5 +54,22 @@ class TestBuiltinStringJ {
         val module = Java2Strudel().load(code)
 
 
+    }
+
+    @Test
+    fun testConcatPlus() {
+        val code = """
+            class Test {
+            static String p() {
+                int i = 3;
+                return  "ola" + 12 + "!" + i;
+                
+                }
+                }
+        """.trimIndent()
+        val module = Java2Strudel().load(code)
+        println(module)
+        val exp = (module.procedure("p").block.children[2] as IReturn).expression
+        assertTrue(exp is IProcedureCall && exp.procedure.id == "concat")
     }
 }

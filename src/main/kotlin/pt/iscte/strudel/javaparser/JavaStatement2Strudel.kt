@@ -226,6 +226,7 @@ class JavaStatement2Strudel(
                         }
                     }.apply {
                         setFlag(FOR)
+                        bind(stmt)
                     }
                 }
 

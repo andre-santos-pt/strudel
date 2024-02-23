@@ -21,12 +21,14 @@ fun IVirtualMachine.addRecursiveCallCounter(): IRecursiveCallCounter {
 }
 
 interface ILoopCounter {
+    val allLoops: Set<ILoop>
     operator fun get(loop: ILoop): Int
 }
 
 fun IVirtualMachine.addLoopCounter(): ILoopCounter {
     val map = mutableMapOf<ILoop, Int>()
     val counter = object : ILoopCounter {
+        override val allLoops: Set<ILoop> get() = map.keys
         override fun get(loop: ILoop): Int = map[loop] ?: 0
     }
     addListener(object : IVirtualMachine.IListener {
@@ -39,12 +41,14 @@ fun IVirtualMachine.addLoopCounter(): ILoopCounter {
 
 
 interface IVariableTracker {
+    val allVariables : Set<IVariableDeclaration<*>>
     operator fun get(v: IVariableDeclaration<*>): List<IValue>
 }
 
 fun IVirtualMachine.addVariableTracker(): IVariableTracker {
     val map = mutableMapOf<IVariableDeclaration<*>, List<IValue>>()
     val tracker = object : IVariableTracker {
+        override val allVariables: Set<IVariableDeclaration<*>> get() = map.keys
         override fun get(v: IVariableDeclaration<*>): List<IValue> = map[v] ?: emptyList()
     }
     addListener(object : IVirtualMachine.IListener {

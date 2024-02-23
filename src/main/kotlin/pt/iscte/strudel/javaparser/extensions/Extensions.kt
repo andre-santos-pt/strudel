@@ -1,11 +1,14 @@
 package pt.iscte.strudel.javaparser.extensions
 
+import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.ConstructorDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.comments.Comment
-import com.github.javaparser.ast.expr.MethodCallExpr
+import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.BlockStmt
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter
+import com.github.javaparser.resolution.types.ResolvedPrimitiveType
 import pt.iscte.strudel.javaparser.INIT
 import pt.iscte.strudel.javaparser.stringType
 import pt.iscte.strudel.model.*
@@ -41,4 +44,37 @@ internal fun IProcedureDeclaration.matches(namespace: String?, id: String, param
         if (namespace == null) this.id == id
         else this.namespace == namespace && this.id == id
     return idAndNamespaceMatch // && paramTypeMatch
+}
+
+internal fun MethodDeclaration.replaceStringConcatPlus() {
+    fun Expression.isStringType() = try {
+        calculateResolvedType().describe() == "java.lang.String"
+    } catch (e: Exception) {
+        false
+    }
+
+    fun Expression.toStringExpression(): Expression {
+        val type = calculateResolvedType()
+        return if(this is CharLiteralExpr) StringLiteralExpr(value)
+        else if(isLiteralExpr && this !is StringLiteralExpr) StringLiteralExpr(toString())
+        else if(isNameExpr && type.isReferenceType) MethodCallExpr(this, "toString")
+        else if(isNameExpr && type.isPrimitive)
+            MethodCallExpr(NameExpr(type.asPrimitive().boxTypeClass.simpleName), SimpleName("toString"), NodeList(this))
+        else this
+    }
+
+    val visitor = object : VoidVisitorAdapter<Any>() {
+        override fun visit(n: BinaryExpr, arg: Any?) {
+            if (n.operator == BinaryExpr.Operator.PLUS && (n.left.isStringType() || n.right.isStringType())) {
+                val left = n.left.toStringExpression()
+                val right = n.right.toStringExpression()
+                val newCall = MethodCallExpr(left, "concat", NodeList.nodeList(right))
+                n.replace(newCall)
+                left.accept(this, arg)
+                right.accept(this, arg)
+            } else
+                super.visit(n, arg)
+        }
+    }
+    accept(visitor, null)
 }
