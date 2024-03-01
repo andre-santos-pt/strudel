@@ -34,7 +34,7 @@ internal fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
 
 internal fun isJavaClassName(name: String): Boolean = runCatching { getClassByName(name) }.isSuccess
 
-internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = mapOf()): IType =
+internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = defaultTypes): IType =
     defaultTypes[qualifiedName] ?: types[qualifiedName] ?: JavaType(getClassByName(qualifiedName))
 /*
     try {
@@ -79,7 +79,7 @@ internal fun ResolvedType.toIType(types: Map<String, IType>): IType = when (this
     ResolvedPrimitiveType.INT, ResolvedPrimitiveType.LONG -> INT
     ResolvedPrimitiveType.BOOLEAN -> BOOLEAN
     ResolvedPrimitiveType.DOUBLE, ResolvedPrimitiveType.FLOAT -> DOUBLE
-    is ResolvedReferenceType -> types[this.qualifiedName] ?: HostRecordType(this.qualifiedName)
+    is ResolvedReferenceType -> getTypeByName(this.qualifiedName, types)
     is ResolvedArrayType -> ArrayType(componentType.toIType(types))
     is LazyType -> getTypeByName(this.describe(), types)
     else -> pt.iscte.strudel.javaparser.error("unsupported expression type ${this::class.qualifiedName}", this)

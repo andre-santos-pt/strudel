@@ -1,11 +1,9 @@
 package pt.iscte.strudel.javaparser.extensions
 
 import com.github.javaparser.ast.expr.MethodCallExpr
+import com.github.javaparser.ast.expr.ObjectCreationExpr
 import pt.iscte.strudel.javaparser.THIS_PARAM
-import pt.iscte.strudel.model.IModule
-import pt.iscte.strudel.model.IProcedureDeclaration
-import pt.iscte.strudel.model.IType
-import pt.iscte.strudel.model.JavaType
+import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import pt.iscte.strudel.vm.impl.ForeignProcedure
 import java.lang.reflect.Method
@@ -79,4 +77,25 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
         return foreign(module, method, types)
     }
     return null
+}
+
+internal fun ObjectCreationExpr.asForeignProcedure(module: IModule, types: Map<String, IType>): ForeignProcedure {
+    val parameterTypes = arguments.map { it.getResolvedJavaType() }.toTypedArray()
+    val constructor = getResolvedJavaType().getConstructor(*parameterTypes)
+
+    return ForeignProcedure(
+        module,
+        constructor.declaringClass.canonicalName,
+        constructor.name,
+        getTypeByName(constructor.declaringClass.canonicalName, types),
+        arguments.map { it.getResolvedIType(types) }
+    )
+    { vm, args ->
+        val type = getResolvedIType(types) as HostRecordType // FIXME HostRecordType cannot be cast to IReferenceType
+        val ref = vm.allocateRecord(type)
+
+        // TODO constructor
+
+        ref
+    }
 }

@@ -29,7 +29,7 @@ interface IType : IProgramElement {
         get() = (this as IReferenceType).target as IArrayType
 
     val asRecordType: IRecordType
-        get() = (this as IReferenceType).target as IRecordType
+        get() = if (this is IRecordType) this else (this as IReferenceType).target as IRecordType
     fun reference(): IReferenceType =
         if(TypeCache.reference.containsKey(this))
             TypeCache.reference[this]!!

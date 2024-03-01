@@ -158,7 +158,7 @@ class Java2Strudel(
                 var t = n.type
                 while (t.isArrayType)
                     t = t.asArrayType().componentType
-                val typeName = t.asString()
+                val typeName = t.resolve().describe()
 
                 if (typeName !in types)
                     runCatching { getClassByName(typeName) }.onSuccess {

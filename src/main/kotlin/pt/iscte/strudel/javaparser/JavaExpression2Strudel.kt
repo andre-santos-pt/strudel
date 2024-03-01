@@ -6,6 +6,7 @@ import com.github.javaparser.ast.expr.*
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserParameterDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserVariableDeclaration
+import pt.iscte.strudel.javaparser.extensions.asForeignProcedure
 import pt.iscte.strudel.javaparser.extensions.getOrNull
 import pt.iscte.strudel.javaparser.extensions.mapType
 import pt.iscte.strudel.model.*
@@ -137,9 +138,9 @@ class JavaExpression2Strudel(
             is ArrayAccessExpr -> map(exp.name).element(map(exp.index))
 
             is ObjectCreationExpr -> {
-                val const = procedures.findProcedure(
-                    exp.type.nameAsString, INIT, emptyList()
-                ) // TODO params
+                val const =
+                    procedures.findProcedure(exp.type.nameAsString, INIT, emptyList()) // TODO params
+                    ?: exp.asForeignProcedure(procedure.module!!, types)
                     ?: unsupported("constructor for type ${exp.type.nameWithScope}", exp)
                 val alloc = types.mapType(exp.type).asRecordType.heapAllocation()
                 const.expression(listOf(alloc) + exp.arguments.map { map(it) })
