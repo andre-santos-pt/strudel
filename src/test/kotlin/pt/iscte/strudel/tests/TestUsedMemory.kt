@@ -87,7 +87,7 @@ class TestUsedMemory {
 
         val vm = IVirtualMachine.create()
         vm.addListener(object : IVirtualMachine.IListener {
-            override fun procedureEnd(procedure: IProcedure, args: List<IValue>, result: IValue?) {
+            override fun procedureEnd(procedure: IProcedureDeclaration, args: List<IValue>, result: IValue?) {
                 callStackMemoryBytes = vm.callStack.memory
             }
         })

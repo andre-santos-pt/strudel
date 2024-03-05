@@ -210,7 +210,7 @@ class TestsPaper {
         var recCalls = 0
         vm.addListener(object : IVirtualMachine.IListener {
             override fun procedureCall(
-                procedure: IProcedure,
+                procedure: IProcedureDeclaration,
                 args: List<IValue>,
                 caller: IProcedure?
             ) {

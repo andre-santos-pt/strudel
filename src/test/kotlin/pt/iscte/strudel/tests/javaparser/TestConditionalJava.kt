@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.IProcedure
+import pt.iscte.strudel.model.IProcedureDeclaration
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
 
@@ -30,7 +31,7 @@ class TestConditionalJava {
         val vm = IVirtualMachine.create()
         vm.addListener(object : IVirtualMachine.IListener {
             var i = 0
-            override fun procedureCall(procedure: IProcedure, args: List<IValue>, caller: IProcedure?) {
+            override fun procedureCall(procedure: IProcedureDeclaration, args: List<IValue>, caller: IProcedure?) {
                 if(procedure.id != "max") {
                     if (i == 0)
                         assertEquals("caseFalse", procedure.id)

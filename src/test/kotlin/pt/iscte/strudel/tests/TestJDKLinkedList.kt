@@ -28,7 +28,7 @@ class TestJDKLinkedList : pt.iscte.strudel.tests.BaseTest({
         val r = vm.execute(procedure)
         val list = r!!.value as List<*>
         assertTrue(3 == list.size)
-        (1..3).forEachIndexed() { i, e -> assertTrue((list[i] as IValue).value == e)}
+        (1..3).forEachIndexed() { i, e -> assertTrue((list[i] as IValue).value == e) }
     }
 }
 
@@ -42,5 +42,5 @@ val LListCreate = IForeignProcedure.create("LinkedList", "create", linkedList, e
 
 val LListAdd = IForeignProcedure.create("LinkedList", "add", VOID, listOf(linkedList, objectType)) { m, args ->
     (args[0].value as MutableList<Any>).add(args[1])
-    pt.iscte.strudel.vm.VOID
+    null
 }

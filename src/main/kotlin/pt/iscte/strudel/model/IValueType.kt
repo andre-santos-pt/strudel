@@ -25,7 +25,7 @@ internal abstract class ValueType<T> : ProgramElement(), IValueType<T> {
 
 val INT: IValueType<Int> = object : ValueType<Int>() {
     override fun matchesLiteral(literal: String): Boolean {
-        return literal.matches(Regex("[0-9]+"))
+        return literal.matches(Regex("-?[0-9]+"))
     }
 
     override val defaultExpression: IExpression
@@ -41,7 +41,7 @@ val INT: IValueType<Int> = object : ValueType<Int>() {
 
 val DOUBLE: IValueType<Double> = object : ValueType<Double>() {
     override fun matchesLiteral(literal: String): Boolean {
-        return literal.matches(Regex("[0-9]+\\.[0-9]+"))
+        return literal.matches(Regex("-?[0-9]+\\.[0-9]+"))
     }
 
     override val defaultExpression: IExpression

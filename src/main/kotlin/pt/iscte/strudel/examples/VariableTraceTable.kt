@@ -28,13 +28,15 @@ fun main() {
         var vars: List<IVariableDeclaration<IBlock>>? = null
 
         override fun procedureCall(
-            procedure: IProcedure,
+            procedure: IProcedureDeclaration,
             args: List<IValue>,
             caller: IProcedure?
         ) {
-            vars = procedure.localVariables
-            println(procedure.id + "(${args.joinToString()})")
-            println(vars?.joinToString(separator = " | ") { "${it.id}" })
+            if(procedure is IProcedure) {
+                vars = procedure.localVariables
+                println(procedure.id + "(${args.joinToString()})")
+                println(vars?.joinToString(separator = " | ") { "${it.id}" })
+            }
         }
 
         override fun loopIteration(loop: ILoop) {
@@ -42,7 +44,7 @@ fun main() {
         }
 
         override fun procedureEnd(
-            procedure: IProcedure,
+            procedure: IProcedureDeclaration,
             args: List<IValue>,
             result: IValue?
         ) {

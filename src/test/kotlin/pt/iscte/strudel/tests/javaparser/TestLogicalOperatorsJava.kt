@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.model.IProcedure
+import pt.iscte.strudel.model.IProcedureDeclaration
 import pt.iscte.strudel.tests.checkBooleanArrayContent
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
@@ -71,7 +72,7 @@ class TestLogicalOperatorsJava {
     class CountCalls : IVirtualMachine.IListener {
         var t = 0
         var f = 0
-        override fun procedureCall(procedure: IProcedure, args: List<IValue>, caller: IProcedure?) {
+        override fun procedureCall(procedure: IProcedureDeclaration, args: List<IValue>, caller: IProcedure?) {
             if (procedure.id == "t") {
                 t++
             } else if (procedure.id == "f") {

@@ -85,7 +85,7 @@ abstract class BaseTest {
             }
         }
 
-        override fun procedureEnd(p: IProcedure, args: List<IValue>, result: IValue?) {
+        override fun procedureEnd(p: IProcedureDeclaration, args: List<IValue>, result: IValue?) {
             assertEquals(i, vals.size)
         }
     }
@@ -104,7 +104,7 @@ abstract class BaseTest {
             }
         }
 
-        override fun procedureEnd(p: IProcedure, args: List<IValue>, result: IValue?) {
+        override fun procedureEnd(p: IProcedureDeclaration, args: List<IValue>, result: IValue?) {
             assertEquals(i, vals.size)
         }
     }

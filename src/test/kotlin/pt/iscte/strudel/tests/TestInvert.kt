@@ -55,7 +55,7 @@ class TestInvert : BaseTest({
             var depth = 0
             var maxDepth = 0
             override fun procedureCall(
-                p: IProcedure,
+                p: IProcedureDeclaration,
                 args: List<IValue>,
                 caller: IProcedure?
             ) {
@@ -64,7 +64,7 @@ class TestInvert : BaseTest({
                     maxDepth = depth
             }
 
-            override fun procedureEnd(p: IProcedure, args: List<IValue>, result: IValue?) {
+            override fun procedureEnd(p: IProcedureDeclaration, args: List<IValue>, result: IValue?) {
                 depth--
             }
         }

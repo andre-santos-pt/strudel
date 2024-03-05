@@ -24,7 +24,7 @@ class TestOwnComparable {
         }
         
         class Test {
-            static void bubbleSort(Numero[] arr) {
+            static void bubbleSort(Comparable[] arr) {
                 int n = arr.length;
                 int temp = 0;
                 for(int i=0; i < n; i++){
@@ -43,11 +43,17 @@ class TestOwnComparable {
                 bubbleSort(array);
                 return array;
             }
+            
+             static void test2() {
+                Comparable a = new Numero(4);
+                Comparable b = new Numero(5);
+                a.compareTo(b);
+            }
         }
     """.trimIndent()
 
     @Test
-    fun test() {
+    fun testOnExpression() {
         val model = Java2Strudel().load(code)
         val vm = IVirtualMachine.create()
         val type = model.getRecordType("Numero")
@@ -56,5 +62,13 @@ class TestOwnComparable {
         listOf(1,4,5,8).forEachIndexed { i, n ->
             assertEquals(n, (ret.getElement(i).value as IRecord).getField(type["valor"]).toInt())
         }
+    }
+
+    @Test
+    fun testOnStatement() {
+        val model = Java2Strudel().load(code)
+        val vm = IVirtualMachine.create()
+        vm.execute(model.procedures.find { it.id == "test2" }!! as IProcedure)
+
     }
 }
