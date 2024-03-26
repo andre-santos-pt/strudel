@@ -19,7 +19,7 @@ class JavaStatement2Strudel(
     val translator: Java2Strudel
 ) {
 
-    val decMap = mutableMapOf<VariableDeclarator, IVariableDeclaration<IBlock>>()
+    private val decMap = mutableMapOf<VariableDeclarator, IVariableDeclaration<IBlock>>()
 
     fun translate(stmt: Statement, block: IBlock) {
         with(translator) {

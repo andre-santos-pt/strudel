@@ -103,6 +103,8 @@ import kotlin.reflect.full.hasAnnotation
     TestOwnComparable::class,
     TestComparablePolymorphicParameter::class,
 
+    TestForeignObjectCreation::class
+
     /* All of these were missing: check main() function below
 
     TestJavaParser::class,

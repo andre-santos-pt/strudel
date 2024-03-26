@@ -2,6 +2,7 @@ package pt.iscte.strudel.tests
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.javaparser.JavaType
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*

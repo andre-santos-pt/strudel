@@ -7,6 +7,7 @@ import com.github.javaparser.resolution.types.ResolvedReferenceType
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserParameterDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserVariableDeclaration
+import pt.iscte.strudel.javaparser.extensions.asForeignProcedure
 import pt.iscte.strudel.javaparser.extensions.getOrNull
 import pt.iscte.strudel.javaparser.extensions.mapType
 import pt.iscte.strudel.model.*
@@ -115,7 +116,7 @@ class JavaExpression2Strudel(
                     exp
                 )
 
-                val arrayType = types.mapType(exp.elementType.asString()).array()
+                val arrayType = types.mapType(exp.elementType).array()
 
                 if (exp.levels[0].dimension.isPresent) arrayType.heapAllocation(exp.levels.map {
                     map(
@@ -129,7 +130,7 @@ class JavaExpression2Strudel(
                 val values = exp.values.map { map(it) }
                 val baseType =
                     if (exp.parentNode.getOrNull is ArrayCreationExpr) types.mapType((exp.parentNode.get() as ArrayCreationExpr).elementType)
-                    else if (exp.parentNode.getOrNull is VariableDeclarator) types.mapType((exp.parentNode.get() as VariableDeclarator).typeAsString)
+                    else if (exp.parentNode.getOrNull is VariableDeclarator) types.mapType((exp.parentNode.get() as VariableDeclarator).type)
                     else unsupported("array initializer", exp)
 
                 baseType.asArrayType.heapAllocationWith(values)
@@ -138,9 +139,9 @@ class JavaExpression2Strudel(
             is ArrayAccessExpr -> map(exp.name).element(map(exp.index))
 
             is ObjectCreationExpr -> {
-                val const = procedures.findProcedure(
-                    exp.type.nameAsString, INIT, emptyList()
-                ) // TODO params
+                val const =
+                    procedures.findProcedure(exp.type.nameAsString, INIT, emptyList()) // TODO params
+                    ?: exp.asForeignProcedure(procedure.module!!, types)
                     ?: unsupported("constructor for type ${exp.type.nameWithScope}", exp)
                 val alloc = types.mapType(exp.type).asRecordType.heapAllocation()
                 const.expression(listOf(alloc) + exp.arguments.map { map(it) })

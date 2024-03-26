@@ -1,13 +1,18 @@
 package pt.iscte.strudel.javaparser.extensions
 
 import com.github.javaparser.ast.expr.MethodCallExpr
+import com.github.javaparser.ast.expr.ObjectCreationExpr
+import pt.iscte.strudel.javaparser.JavaType
 import pt.iscte.strudel.javaparser.THIS_PARAM
-import pt.iscte.strudel.model.IModule
-import pt.iscte.strudel.model.IProcedureDeclaration
-import pt.iscte.strudel.model.IType
-import pt.iscte.strudel.model.JavaType
+import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
+import pt.iscte.strudel.vm.IRecord
+import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.impl.ForeignProcedure
+import pt.iscte.strudel.vm.impl.Reference
+import pt.iscte.strudel.vm.impl.Value
+import pt.iscte.strudel.vm.impl.VirtualMachine
+import java.lang.IllegalArgumentException
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
@@ -16,7 +21,7 @@ internal fun foreign(module: IModule, method: Method, types: Map<String, IType>)
     val parameterTypes = thisParamType + method.parameters.map { getTypeByName(it.type.canonicalName, types) }
     return ForeignProcedure(
         module,
-        method.declaringClass.canonicalName,
+        method.declaringClass.primitiveType.canonicalName,
         method.name,
         getTypeByName(method.returnType.canonicalName, types),
         parameterTypes
@@ -28,7 +33,10 @@ internal fun foreign(module: IModule, method: Method, types: Map<String, IType>)
             else if (args.size == 1) { // not static --> caller is $this parameter
                 method.invoke(args.first().value)
             } else if (args.size > 1) {
-                val caller = args.first().value // should be $this
+                val caller = when (val first = args.first().value) {
+                    is IValue -> first.value
+                    else -> first
+                }
                 if (caller!!.javaClass != method.declaringClass)
                     error("Cannot invoke instance method $method with object instance $caller: is ${caller.javaClass.canonicalName}, should be ${method.declaringClass.canonicalName}")
                 val arguments = args.slice(1 until args.size).map { it.value }
@@ -52,18 +60,21 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
     }
 
     if (isAbstractMethodCall) {
-        println("Handing abstract method call $this for namespace $namespace...")
+        println("Handling abstract method call $this for namespace $namespace...")
         if (namespace != null) {
             val clazz: Class<*> = getClassByName(namespace)
-            module.types.filterIsInstance<JavaType>().forEach {
-                val t: Class<*> = it.type.rootComponentType() ?: it.type
-                if (clazz.isAssignableFrom(t) && !t.isInterface) {
-                    val args = arguments.map { arg -> arg.getResolvedJavaType() }
-                    //println("\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
-                    val implementation = t.findCompatibleMethod(nameAsString, args)
-                    if (implementation != null) {
-                        println("\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
-                        module.members.add(foreign(module, implementation, types))
+            module.types.forEach {
+                kotlin.runCatching { it.toJavaType() }.onSuccess {
+                    val t: Class<*> = (it.rootComponentType() ?: it).wrapperType
+                    println("\tFound type: ${t.canonicalName}. Is ${clazz.simpleName} assignable from ${t.simpleName}? ${clazz.isAssignableFrom(t)}")
+                    if (clazz.isAssignableFrom(t) && !t.isInterface) {
+                        val args = arguments.map { arg -> arg.getResolvedJavaType() }
+                        println("\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
+                        val implementation = t.findCompatibleMethod(nameAsString, args)
+                        if (implementation != null) {
+                            println("\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
+                            module.members.add(foreign(module, implementation, types))
+                        }
                     }
                 }
             }
@@ -79,4 +90,23 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
         return foreign(module, method, types)
     }
     return null
+}
+
+internal fun ObjectCreationExpr.asForeignProcedure(module: IModule, types: Map<String, IType>): ForeignProcedure {
+    val parameterTypes = arguments.map { it.getResolvedJavaType() }.toTypedArray()
+    val constructor = getResolvedJavaType().getConstructor(*parameterTypes)
+
+    return ForeignProcedure(
+        module,
+        constructor.declaringClass.canonicalName,
+        constructor.name,
+        getTypeByName(constructor.declaringClass.canonicalName, types),
+        arguments.map { it.getResolvedIType(types) }
+    )
+    { vm, args ->
+        Value(
+            HostRecordType(constructor.declaringClass.canonicalName),
+            constructor.newInstance(*args.slice(1 until args.size).map { it.value }.toTypedArray())
+        )
+    }
 }
