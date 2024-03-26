@@ -2,7 +2,10 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.vm.IReference
+import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
+import pt.iscte.strudel.vm.impl.Value
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -15,6 +18,10 @@ class TestForeignObjectCreation {
             public static int rand() {
                 Random random = new Random();
                 return random.nextInt(11);
+            }
+            
+            public static Random newRandom() {
+                return new Random();
             }
         }
     """.trimIndent()
@@ -29,5 +36,9 @@ class TestForeignObjectCreation {
 
         assertIs<Int>(result)
         assertTrue(result in 0..10)
+
+        val newRandom = module.getProcedure("newRandom")
+        val ref = vm.execute(newRandom)?.value
+        assertIs<java.util.Random>(ref)
     }
 }

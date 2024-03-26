@@ -12,6 +12,7 @@ import com.github.javaparser.resolution.types.ResolvedReferenceType
 import com.github.javaparser.resolution.types.ResolvedType
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
+import pt.iscte.strudel.javaparser.JavaType
 import pt.iscte.strudel.javaparser.defaultTypes
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.ArrayType
@@ -27,15 +28,17 @@ internal fun typeSolver(): TypeSolver {
 
 internal fun MutableMap<String, IType>.mapType(t: String): IType = this[t] ?: getTypeByName(t, this)
 
-internal fun MutableMap<String, IType>.mapType(t: Type) = mapType(t.resolve().erasure().describe())
+internal fun MutableMap<String, IType>.mapType(t: Type) = mapType(kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString()))
 
 internal fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
     mapType(t.fullyQualifiedName.getOrNull() ?: t.nameAsString)
 
-internal fun isJavaClassName(name: String): Boolean = runCatching { getClassByName(name) }.isSuccess
+internal fun isJavaClassName(qualifiedName: String): Boolean = runCatching { getClassByName(qualifiedName) }.isSuccess
 
-internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = defaultTypes): IType =
-    defaultTypes[qualifiedName] ?: types[qualifiedName] ?: JavaType(getClassByName(qualifiedName))
+internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = defaultTypes): IType {
+    //println("Getting type with name $qualifiedName from [${types.keys.joinToString()}]")
+    return defaultTypes[qualifiedName] ?: types[qualifiedName] ?: JavaType(getClassByName(qualifiedName))
+}
 /*
     try {
         JavaType(Class.forName(name))
@@ -53,8 +56,7 @@ internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = de
  */
 
 internal fun getClassByName(qualifiedName: String): Class<*> {
-    val arrayTypeRegex = Regex("\\[\\]")
-    val arrayTypeDepth = arrayTypeRegex.findAll(qualifiedName).count()
+    val arrayTypeDepth = Regex("\\[\\]").findAll(qualifiedName).count()
 
     if (arrayTypeDepth == 0)
         return runCatching { Class.forName(qualifiedName) }.getOrNull() ?:
@@ -70,8 +72,8 @@ internal fun getClassByName(qualifiedName: String): Class<*> {
 }
 
 internal fun getTypeFromJavaParser(node: Node, type: Type, types: Map<String, IType>): IType =
+    runCatching { getTypeByName(type.resolve().erasure().describe(), types) }.getOrNull() ?:
     runCatching { getTypeByName(type.asString(), types) }.getOrNull() ?:
-    runCatching { getTypeByName(type.resolve().describe(), types) }.getOrNull() ?:
     pt.iscte.strudel.javaparser.error("could not find IType for type $type", node)
 
 internal fun ResolvedType.toIType(types: Map<String, IType>): IType = when (this) {
@@ -81,7 +83,7 @@ internal fun ResolvedType.toIType(types: Map<String, IType>): IType = when (this
     ResolvedPrimitiveType.DOUBLE, ResolvedPrimitiveType.FLOAT -> DOUBLE
     is ResolvedReferenceType -> getTypeByName(this.qualifiedName, types)
     is ResolvedArrayType -> ArrayType(componentType.toIType(types))
-    is LazyType -> getTypeByName(this.describe(), types)
+    is LazyType -> getTypeByName(this.erasure().describe(), types)
     else -> pt.iscte.strudel.javaparser.error("unsupported expression type ${this::class.qualifiedName}", this)
 }
 
@@ -105,4 +107,42 @@ internal fun Class<*>.findCompatibleMethod(name: String, parameterTypes: Iterabl
         it.name == name && it.parameterTypes.zip(parameterTypes).all {
             p -> p.first == p.second || p.second.isAssignableFrom(p.first)
         }
+    }
+
+internal fun IType.toJavaType(): Class<*> = when(this) {
+    is IReferenceType -> target.toJavaType()
+    is IArrayType -> Array.newInstance(this.componentType.toJavaType(), 0).javaClass
+    is JavaType -> this.type
+    is HostRecordType -> this.type
+    INT -> Int::class.java
+    DOUBLE -> Double::class.java
+    BOOLEAN -> Boolean::class.java
+    CHAR -> Char::class.java
+    VOID -> Void::class.java
+    else -> error("IType $this has no matching Java type")
+}
+
+// Trying collapsing into a single "when" branch, but it didn't work the same
+internal val Class<*>.wrapperType: Class<*>
+    get() = when (this) {
+        Int::class.java -> Int::class.javaObjectType
+        Long::class.java -> Long::class.javaObjectType
+        Double::class.java -> Double::class.javaObjectType
+        Float::class.java -> Float::class.javaObjectType
+        Char::class.java -> Char::class.javaObjectType
+        Byte::class.java -> Byte::class.javaObjectType
+        Boolean::class.java -> Boolean::class.javaObjectType
+        else -> this
+    }
+
+internal val Class<*>.primitiveType: Class<*>
+    get() = when (this) {
+        Int::class.javaObjectType -> Int::class.java
+        Long::class.javaObjectType -> Long::class.java
+        Double::class.javaObjectType -> Double::class.java
+        Float::class.javaObjectType -> Float::class.java
+        Char::class.javaObjectType -> Char::class.java
+        Byte::class.javaObjectType -> Byte::class.java
+        Boolean::class.javaObjectType -> Boolean::class.java
+        else -> this
     }

@@ -115,7 +115,7 @@ class JavaExpression2Strudel(
                     exp
                 )
 
-                val arrayType = types.mapType(exp.elementType.asString()).array()
+                val arrayType = types.mapType(exp.elementType).array()
 
                 if (exp.levels[0].dimension.isPresent) arrayType.heapAllocation(exp.levels.map {
                     map(
@@ -129,7 +129,7 @@ class JavaExpression2Strudel(
                 val values = exp.values.map { map(it) }
                 val baseType =
                     if (exp.parentNode.getOrNull is ArrayCreationExpr) types.mapType((exp.parentNode.get() as ArrayCreationExpr).elementType)
-                    else if (exp.parentNode.getOrNull is VariableDeclarator) types.mapType((exp.parentNode.get() as VariableDeclarator).typeAsString)
+                    else if (exp.parentNode.getOrNull is VariableDeclarator) types.mapType((exp.parentNode.get() as VariableDeclarator).type)
                     else unsupported("array initializer", exp)
 
                 baseType.asArrayType.heapAllocationWith(values)

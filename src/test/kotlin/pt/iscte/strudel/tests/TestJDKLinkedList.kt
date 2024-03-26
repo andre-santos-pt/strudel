@@ -1,8 +1,8 @@
 package pt.iscte.strudel.tests
 
 import org.junit.jupiter.api.Test
+import pt.iscte.strudel.javaparser.JavaType
 import pt.iscte.strudel.model.INT
-import pt.iscte.strudel.model.JavaType
 import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*

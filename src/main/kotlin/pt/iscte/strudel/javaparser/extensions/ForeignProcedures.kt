@@ -2,6 +2,7 @@ package pt.iscte.strudel.javaparser.extensions
 
 import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.ObjectCreationExpr
+import pt.iscte.strudel.javaparser.JavaType
 import pt.iscte.strudel.javaparser.THIS_PARAM
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
@@ -20,7 +21,7 @@ internal fun foreign(module: IModule, method: Method, types: Map<String, IType>)
     val parameterTypes = thisParamType + method.parameters.map { getTypeByName(it.type.canonicalName, types) }
     return ForeignProcedure(
         module,
-        method.declaringClass.canonicalName,
+        method.declaringClass.primitiveType.canonicalName,
         method.name,
         getTypeByName(method.returnType.canonicalName, types),
         parameterTypes
@@ -62,15 +63,18 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
         println("Handling abstract method call $this for namespace $namespace...")
         if (namespace != null) {
             val clazz: Class<*> = getClassByName(namespace)
-            module.types.filterIsInstance<JavaType>().forEach {
-                val t: Class<*> = it.type.rootComponentType() ?: it.type
-                if (clazz.isAssignableFrom(t) && !t.isInterface) {
-                    val args = arguments.map { arg -> arg.getResolvedJavaType() }
-                    println("\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
-                    val implementation = t.findCompatibleMethod(nameAsString, args)
-                    if (implementation != null) {
-                        println("\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
-                        module.members.add(foreign(module, implementation, types))
+            module.types.forEach {
+                kotlin.runCatching { it.toJavaType() }.onSuccess {
+                    val t: Class<*> = (it.rootComponentType() ?: it).wrapperType
+                    println("\tFound type: ${t.canonicalName}. Is ${clazz.simpleName} assignable from ${t.simpleName}? ${clazz.isAssignableFrom(t)}")
+                    if (clazz.isAssignableFrom(t) && !t.isInterface) {
+                        val args = arguments.map { arg -> arg.getResolvedJavaType() }
+                        println("\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
+                        val implementation = t.findCompatibleMethod(nameAsString, args)
+                        if (implementation != null) {
+                            println("\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
+                            module.members.add(foreign(module, implementation, types))
+                        }
                     }
                 }
             }
@@ -100,9 +104,9 @@ internal fun ObjectCreationExpr.asForeignProcedure(module: IModule, types: Map<S
         arguments.map { it.getResolvedIType(types) }
     )
     { vm, args ->
-        Reference(Value(
+        Value(
             HostRecordType(constructor.declaringClass.canonicalName),
-            constructor.newInstance(*args.slice(1 until args.size).map { it.value }.toTypedArray()))
+            constructor.newInstance(*args.slice(1 until args.size).map { it.value }.toTypedArray())
         )
     }
 }

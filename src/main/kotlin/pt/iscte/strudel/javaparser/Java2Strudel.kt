@@ -14,6 +14,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import java.io.File
+import kotlin.jvm.optionals.getOrDefault
 import kotlin.reflect.KClass
 
 class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
@@ -158,7 +159,7 @@ class Java2Strudel(
                 var t = n.type
                 while (t.isArrayType)
                     t = t.asArrayType().componentType
-                val typeName = t.resolve().describe()
+                val typeName = kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString())
 
                 if (typeName !in types)
                     runCatching { getClassByName(typeName) }.onSuccess {
@@ -274,7 +275,7 @@ class Java2Strudel(
          */
         fun ConstructorDeclaration.translateConstructor(namespace: String) =
             Procedure(
-                types.mapType(this.nameAsString),
+                types.mapType(runCatching { this.resolve().declaringType().qualifiedName }.getOrDefault(this.nameAsString)),
                 INIT
             ).apply {
                 comment.translateComment()?.let { this.documentation = it }
@@ -314,14 +315,14 @@ class Java2Strudel(
          */
         fun createDefaultConstructor(type: ClassOrInterfaceDeclaration) =
             Procedure(
-                types.mapType(type.nameAsString),
+                types.mapType(type.qualifiedName),
                 INIT
             ).apply {
                 setFlag("public")
                 setFlag(CONSTRUCTOR_FLAG)
                 val instance = addParameter(returnType).apply { id = THIS_PARAM }
                 block.Return(instance)
-                setProperty(NAMESPACE_PROP, type.nameAsString)
+                setProperty(NAMESPACE_PROP, type.qualifiedName)
             }
 
         classes.forEach { c ->
@@ -342,9 +343,9 @@ class Java2Strudel(
                 c.comment.translateComment()?.let { documentation = it }
             }
 
-            types[c.nameAsString] = type.reference()
-            types[c.nameAsString + "[]"] = type.array().reference()
-            types[c.nameAsString + "[][]"] = type.array().array().reference()
+            types[c.qualifiedName] = type.reference()
+            types[c.qualifiedName + "[]"] = type.array().reference()
+            types[c.qualifiedName + "[][]"] = type.array().array().reference()
         }
 
         classes.forEach { c ->
@@ -357,10 +358,13 @@ class Java2Strudel(
 
         // Translate field declarations for each class
         classes.filter { !it.isInterface }.forEach { c ->
-            val recordType = (types[c.nameAsString] as IReferenceType).target as IRecordType
+            val recordType = (types[c.qualifiedName] as IReferenceType).target as IRecordType
             c.fields.forEach { field ->
                 field.variables.forEach { variableDeclaration ->
-                    val f = recordType.addField(types[variableDeclaration.typeAsString]!!) {
+                    val fieldType = types[variableDeclaration.typeAsString] ?: types[kotlin.runCatching { variableDeclaration.type.resolve().describe() }.getOrDefault(variableDeclaration.type.asString())]
+                    if (fieldType == null)
+                        error("Could not find type for variable declaration", variableDeclaration)
+                    val f = recordType.addField(fieldType) {
                         id = variableDeclaration.nameAsString
                     }
 
@@ -387,12 +391,12 @@ class Java2Strudel(
 
             // Each explicit constructor declarations are translated
             val explicitConstructors = flatMap { it.constructors }.map {
-                it to it.translateConstructor((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
+                it to it.translateConstructor((it.parentNode.get() as ClassOrInterfaceDeclaration).qualifiedName)
             }
 
             // Each of a type's methods is translated
             val methods = flatMap { it.methods }.map {
-                it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).nameAsString)
+                it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).qualifiedName)
             }
 
             return defaultConstructors + explicitConstructors + methods
