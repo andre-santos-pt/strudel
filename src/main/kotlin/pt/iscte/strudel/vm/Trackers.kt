@@ -1,6 +1,8 @@
 package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.*
+import pt.iscte.strudel.model.roles.impl.putMulti
+import kotlin.math.sign
 
 interface IRecursiveCallCounter {
     operator fun get(procedure: IProcedureDeclaration): Int
@@ -99,6 +101,49 @@ fun IVirtualMachine.addAllocationTracker(): IAllocationTracker {
             val key = ref.target.type
             if(!map.containsKey(key)) map[key] = mutableListOf(ref.target as IMemory)
             else (map[key] as MutableList).add(ref.target as IMemory)
+        }
+    })
+    return tracker
+}
+
+interface IArraySwapTracker {
+    val totalSwaps: Int
+    val arrays: Set<IArray>
+    operator fun get(array: IArray): List<Pair<Int,Int>>
+}
+
+fun IVirtualMachine.addArraySwapTracker(): IArraySwapTracker {
+
+    val counts = mutableMapOf<IArray, MutableList<Pair<Int,Int>>>()
+
+    val tracker = object : IArraySwapTracker {
+
+        override val totalSwaps: Int
+            get() = counts.values.sumOf { it.size }
+
+        override val arrays: Set<IArray>
+            get() = counts.keys
+
+        override fun get(array: IArray): List<Pair<Int,Int>> = counts[array] ?: emptyList()
+    }
+
+    addListener(object : IVirtualMachine.IListener {
+        override fun arrayAllocated(ref: IReference<IArray>) {
+            ref.target.addListener(object : IArray.IListener {
+                var prevIndex: Int? = null
+                var prevOld: IValue? = null
+
+                override fun elementChanged(index: Int, oldValue: IValue, newValue: IValue) {
+                    if (newValue.value == prevOld?.value) {
+                        counts.putMulti(ref.target, Pair(prevIndex!!, index))
+                        prevIndex = null
+                        prevOld = null
+                    } else {
+                        prevIndex = index
+                        prevOld = oldValue
+                    }
+                }
+            })
         }
     })
     return tracker
