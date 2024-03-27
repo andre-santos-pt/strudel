@@ -105,7 +105,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestForeignObjectCreation::class,
 
-    TestStringConcat::class
+    TestStringConcat::class,
+
+    TestForeignStaticField::class
 
     /* All of these were missing: check main() function below
 

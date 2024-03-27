@@ -160,13 +160,16 @@ class JavaExpression2Strudel(
                     } else {
                         val type = kotlin.runCatching { JPFacade.solve(exp.scope).correspondingDeclaration.type }.getOrDefault(exp.scope.calculateResolvedType())
                         val typeId = type.describe()
-                        if (isJavaClassName(typeId)) // Foreign field is translated to foreign getter procedure :)
+                        val isJavaStatic = "$typeId.${exp.nameAsString}".endsWith(exp.toString())
+
+                        if (type.isArray && exp.nameAsString == "length") map(exp.scope).length()
+                        else if (isJavaClassName(typeId) && isJavaStatic) { // Foreign field is translated to foreign getter procedure :)
                             ProcedureCall(
                                 NullBlock,
                                 type.foreignStaticFieldAccess(procedure.module!!, types),
                                 arguments = listOf(Literal(stringType, exp.nameAsString))
                             )
-                        else if (type.isArray && exp.nameAsString == "length") map(exp.scope).length()
+                        }
                         else {
                             val f = types[typeId]?.asRecordType?.fields?.find { it.id == exp.nameAsString } ?: error(
                                 "could not find field \"${exp.nameAsString}\" within record type $typeId", exp
