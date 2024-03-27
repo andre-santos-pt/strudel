@@ -9,9 +9,6 @@ import com.github.javaparser.ast.comments.Comment
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.BlockStmt
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
-import com.github.javaparser.resolution.types.ResolvedPrimitiveType
-import com.github.javaparser.ast.type.Type
-import com.github.javaparser.resolution.types.ResolvedType
 import pt.iscte.strudel.javaparser.INIT
 import pt.iscte.strudel.javaparser.stringType
 import pt.iscte.strudel.model.*
@@ -20,7 +17,7 @@ import pt.iscte.strudel.vm.impl.Value
 import java.util.*
 import kotlin.jvm.optionals.getOrDefault
 
-fun getStringValue(str: String): IValue = Value(stringType, java.lang.String(str))
+fun string(str: String): IValue = Value(stringType, java.lang.String(str))
 
 val IModule.proceduresExcludingConstructors: List<IProcedureDeclaration>
     get() = procedures.filter { it.id != INIT }
@@ -40,7 +37,7 @@ val CallableDeclaration<*>.body: BlockStmt?
     get() = if (this is ConstructorDeclaration) this.body else (this as MethodDeclaration).body.getOrNull
 
 internal val MethodCallExpr.isAbstractMethodCall: Boolean
-    get() = resolve().isAbstract
+    get() = kotlin.runCatching { resolve().isAbstract }.getOrDefault(false)
 
 internal fun IProcedureDeclaration.matches(namespace: String?, id: String, parameterTypes: List<IType>): Boolean {
     val paramTypeMatch = this.parameters.map { it.type } == parameterTypes // FIXME
@@ -54,21 +51,18 @@ internal val ClassOrInterfaceDeclaration.qualifiedName: String
     get() = fullyQualifiedName.getOrDefault(nameAsString)
 
 internal fun MethodDeclaration.replaceStringConcatPlus() {
-    fun Expression.isStringType() = try {
-        calculateResolvedType().describe() == "java.lang.String"
-    } catch (e: Exception) {
-        false
-    }
+    fun Expression.isStringType(): Boolean = calculateResolvedType().describe() == "java.lang.String"
 
-    fun Expression.toStringExpression(): Expression {
-        val type = calculateResolvedType()
-        return if(this is CharLiteralExpr) StringLiteralExpr(value)
-        else if(isLiteralExpr && this !is StringLiteralExpr) StringLiteralExpr(toString())
-        else if(isNameExpr && type.isReferenceType) MethodCallExpr(this, "toString")
-        else if(isNameExpr && type.isPrimitive)
-            MethodCallExpr(NameExpr(type.asPrimitive().boxTypeClass.simpleName), SimpleName("toString"), NodeList(this))
-        else this
-    }
+    fun Expression.toStringExpression(): Expression =
+        if (this is CharLiteralExpr) StringLiteralExpr(value)
+        else if (isLiteralExpr && this !is StringLiteralExpr) StringLiteralExpr(toString())
+        else run {
+            val type = calculateResolvedType()
+            if (isNameExpr && type.isReferenceType) MethodCallExpr(this, "toString")
+            else if (isNameExpr && type.isPrimitive) MethodCallExpr(NameExpr(type.asPrimitive().boxTypeClass.simpleName), SimpleName("toString"), NodeList(this))
+            else if (type.isPrimitive) MethodCallExpr(NameExpr("String"), "valueOf", NodeList.nodeList(this))
+            else MethodCallExpr(this, "toString")
+        }
 
     val visitor = object : VoidVisitorAdapter<Any>() {
         override fun visit(n: BinaryExpr, arg: Any?) {

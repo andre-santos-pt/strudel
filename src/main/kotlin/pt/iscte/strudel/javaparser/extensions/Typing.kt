@@ -100,7 +100,9 @@ internal fun ResolvedType.toJavaType(): Class<*> = when (this) {
 
 internal fun Expression.getResolvedJavaType(): Class<*> = calculateResolvedType().toJavaType()
 
-internal fun Expression.getResolvedIType(types: Map<String, IType>): IType = calculateResolvedType().toIType(types)
+internal fun Expression.getResolvedIType(types: Map<String, IType>): IType = kotlin.runCatching {
+    calculateResolvedType().toIType(types)
+}.onFailure { println("Failed to resolve type of $this: $it")  }.getOrThrow()
 
 internal fun Class<*>.findCompatibleMethod(name: String, parameterTypes: Iterable<Class<*>>): Method? =
     methods.find {

@@ -7,8 +7,9 @@ import com.github.javaparser.resolution.types.ResolvedReferenceType
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserParameterDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserVariableDeclaration
+import pt.iscte.strudel.javaparser.extensions.*
 import pt.iscte.strudel.javaparser.extensions.asForeignProcedure
-import pt.iscte.strudel.javaparser.extensions.getOrNull
+import pt.iscte.strudel.javaparser.extensions.isJavaClassName
 import pt.iscte.strudel.javaparser.extensions.mapType
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.False
@@ -16,6 +17,7 @@ import pt.iscte.strudel.model.dsl.True
 import pt.iscte.strudel.model.dsl.character
 import pt.iscte.strudel.model.dsl.lit
 import pt.iscte.strudel.model.impl.Conditional
+import pt.iscte.strudel.model.impl.Literal
 import pt.iscte.strudel.model.impl.ProcedureCall
 import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.model.util.LogicalOperator
@@ -156,13 +158,18 @@ class JavaExpression2Strudel(
                         val thisType = (thisParam.type as IReferenceType).target as IRecordType
                         thisParam.field(thisType.getField(exp.nameAsString)!!)
                     } else {
-                        val solve = JPFacade.solve(exp.scope)
-                        val type = solve.correspondingDeclaration.type
+                        val type = kotlin.runCatching { JPFacade.solve(exp.scope).correspondingDeclaration.type }.getOrDefault(exp.scope.calculateResolvedType())
                         val typeId = type.describe()
-                        if (type.isArray && exp.nameAsString == "length") map(exp.scope).length()
+                        if (isJavaClassName(typeId)) // Foreign field is translated to foreign getter procedure :)
+                            ProcedureCall(
+                                NullBlock,
+                                type.foreignStaticFieldAccess(procedure.module!!, types),
+                                arguments = listOf(Literal(stringType, exp.nameAsString))
+                            )
+                        else if (type.isArray && exp.nameAsString == "length") map(exp.scope).length()
                         else {
                             val f = types[typeId]?.asRecordType?.fields?.find { it.id == exp.nameAsString } ?: error(
-                                "not found $exp", exp
+                                "could not find field \"${exp.nameAsString}\" within record type $typeId", exp
                             ) // UnboundVariableDeclaration(exp.nameAsString, procedure)
 
                             map(exp.scope).field(f)
