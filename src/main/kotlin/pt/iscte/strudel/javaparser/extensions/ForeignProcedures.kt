@@ -2,17 +2,14 @@ package pt.iscte.strudel.javaparser.extensions
 
 import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.ObjectCreationExpr
-import pt.iscte.strudel.javaparser.JavaType
+import com.github.javaparser.resolution.types.ResolvedType
 import pt.iscte.strudel.javaparser.THIS_PARAM
+import pt.iscte.strudel.javaparser.stringType
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
-import pt.iscte.strudel.vm.IRecord
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.impl.ForeignProcedure
-import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
-import pt.iscte.strudel.vm.impl.VirtualMachine
-import java.lang.IllegalArgumentException
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
@@ -43,15 +40,13 @@ internal fun foreign(module: IModule, method: Method, types: Map<String, IType>)
                 method.invoke(caller, *arguments.toTypedArray())
             } else error("Cannot invoke instance method $method with 0 arguments: missing (at least) object reference $THIS_PARAM")
         when (res) {
-            is String -> getStringValue(res)
+            is String -> string(res)
             else -> vm.getValue(res)
         }
     }
 }
 
 internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: String?, types: Map<String, IType>): IProcedureDeclaration? {
-    val returnType = resolve().returnType
-
     fun Class<*>.rootComponentType(): Class<*>? {
         var current = this.componentType
         while (current != null && current.componentType != null)
@@ -79,15 +74,20 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
                 }
             }
         }
-        return PolymophicProcedure(module, namespace, nameAsString, returnType.toIType(types))
+        return PolymophicProcedure(module, namespace, nameAsString, this.resolve().returnType.toIType(types))
     }
     else if (scope.isPresent) {
-        val clazz: Class<*> = scope.get().getResolvedJavaType()
+        kotlin.runCatching {
+            val clazz: Class<*> = scope.get().getResolvedJavaType()
 
-        val args = arguments.map { it.getResolvedJavaType() }.toTypedArray()
-        val method: Method = clazz.getMethod(nameAsString, *args)
+            val args = arguments.map { it.getResolvedJavaType() }.toTypedArray()
+            val method: Method = clazz.getMethod(nameAsString, *args)
 
-        return foreign(module, method, types)
+            return foreign(module, method, types)
+        }.getOrElse {
+            println("Failed to find method for method call $this: $it")
+            return null
+        }
     }
     return null
 }
@@ -108,5 +108,20 @@ internal fun ObjectCreationExpr.asForeignProcedure(module: IModule, types: Map<S
             HostRecordType(constructor.declaringClass.canonicalName),
             constructor.newInstance(*args.slice(1 until args.size).map { it.value }.toTypedArray())
         )
+    }
+}
+
+internal fun ResolvedType.foreignStaticFieldAccess(module: IModule, types: Map<String, IType>): ForeignProcedure {
+    val java = toJavaType()
+    return ForeignProcedure(
+        module,
+        java.canonicalName,
+        "getField",
+        getTypeByName(java.canonicalName, types),
+        listOf(stringType)
+    )
+    { vm, args ->
+        val fieldId = args.first().value as String
+        Value(HostRecordType(java.canonicalName), java.getField(fieldId).get(null))
     }
 }
