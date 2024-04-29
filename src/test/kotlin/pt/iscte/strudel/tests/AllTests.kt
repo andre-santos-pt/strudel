@@ -107,7 +107,11 @@ import kotlin.reflect.full.hasAnnotation
 
     TestStringConcat::class,
 
-    TestForeignStaticField::class
+    TestForeignStaticField::class,
+
+    TestGenericType::class,
+
+    TestNestedType::class
 
     /* All of these were missing: check main() function below
 

@@ -5,6 +5,7 @@ import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
 import com.github.javaparser.ast.body.ConstructorDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
+import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.comments.Comment
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.BlockStmt
@@ -15,6 +16,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
+import java.util.function.Predicate
 import kotlin.jvm.optionals.getOrDefault
 
 fun string(str: String): IValue = Value(stringType, java.lang.String(str))
@@ -49,6 +51,13 @@ internal fun IProcedureDeclaration.matches(namespace: String?, id: String, param
 
 internal val ClassOrInterfaceDeclaration.qualifiedName: String
     get() = fullyQualifiedName.getOrDefault(nameAsString)
+
+internal fun VariableDeclarator.isGeneric(type: ClassOrInterfaceDeclaration): Boolean {
+    return typeAsString in type.typeParameters.map { it.nameAsString } || (type.findAncestor(ClassOrInterfaceDeclaration::class.java).getOrNull?.let { isGeneric(it) } ?: false)
+}
+
+internal fun VariableDeclarator.getGenericDeclarator(): ClassOrInterfaceDeclaration? =
+    this.findAncestor({ typeAsString in it.typeParameters.map { type -> type.nameAsString } }, ClassOrInterfaceDeclaration::class.java).getOrNull
 
 internal fun MethodDeclaration.replaceStringConcatPlus() {
     fun Expression.isStringType(): Boolean = calculateResolvedType().describe() == "java.lang.String"

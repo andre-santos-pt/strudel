@@ -55,19 +55,19 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
     }
 
     if (isAbstractMethodCall) {
-        println("Handling abstract method call $this for namespace $namespace...")
+        //println("Handling abstract method call $this for namespace $namespace...")
         if (namespace != null) {
             val clazz: Class<*> = getClassByName(namespace)
             module.types.forEach {
                 kotlin.runCatching { it.toJavaType() }.onSuccess {
                     val t: Class<*> = (it.rootComponentType() ?: it).wrapperType
-                    println("\tFound type: ${t.canonicalName}. Is ${clazz.simpleName} assignable from ${t.simpleName}? ${clazz.isAssignableFrom(t)}")
+                    //println("\tFound type: ${t.canonicalName}. Is ${clazz.simpleName} assignable from ${t.simpleName}? ${clazz.isAssignableFrom(t)}")
                     if (clazz.isAssignableFrom(t) && !t.isInterface) {
                         val args = arguments.map { arg -> arg.getResolvedJavaType() }
-                        println("\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
+                        //println("\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
                         val implementation = t.findCompatibleMethod(nameAsString, args)
                         if (implementation != null) {
-                            println("\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
+                            //println("\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
                             module.members.add(foreign(module, implementation, types))
                         }
                     }
@@ -85,7 +85,7 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
 
             return foreign(module, method, types)
         }.getOrElse {
-            println("Failed to find method for method call $this: $it")
+            //println("Failed to find method for method call $this: $it")
             return null
         }
     }

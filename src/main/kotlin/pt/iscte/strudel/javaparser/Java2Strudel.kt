@@ -65,14 +65,14 @@ class Java2Strudel(
     }
 
     fun load(file: File): IModule =
-        translate(StaticJavaParser.parse(file).types.filterIsInstance<ClassOrInterfaceDeclaration>())
+        translate(StaticJavaParser.parse(file).apply { removePackageDeclaration() }.findAll(ClassOrInterfaceDeclaration::class.java))
 
     fun load(files: List<File>): IModule = translate(files.map {
-        StaticJavaParser.parse(it).types.filterIsInstance<ClassOrInterfaceDeclaration>()
+        StaticJavaParser.parse(it).apply { removePackageDeclaration() }.findAll(ClassOrInterfaceDeclaration::class.java)
     }.flatten())
 
     fun load(src: String): IModule =
-        translate(StaticJavaParser.parse(src).types.filterIsInstance<ClassOrInterfaceDeclaration>())
+        translate(StaticJavaParser.parse(src).apply { removePackageDeclaration() }.findAll(ClassOrInterfaceDeclaration::class.java))
 
     internal fun <T : IProgramElement> T.bind(
         node: Node,
@@ -338,7 +338,7 @@ class Java2Strudel(
                 unsupported("method name overloading", nodes)
             }
 
-            val type = Record(c.nameAsString) {
+            val type = Record(c.qualifiedName) {
                 bind(c.name, ID_LOC)
                 c.comment.translateComment()?.let { documentation = it }
             }
@@ -356,14 +356,23 @@ class Java2Strudel(
             }
         }
 
+
         // Translate field declarations for each class
         classes.filter { !it.isInterface }.forEach { c ->
             val recordType = (types[c.qualifiedName] as IReferenceType).target as IRecordType
             c.fields.forEach { field ->
                 field.variables.forEach { variableDeclaration ->
-                    val fieldType = types[variableDeclaration.typeAsString] ?: types[kotlin.runCatching { variableDeclaration.type.resolve().describe() }.getOrDefault(variableDeclaration.type.asString())]
-                    if (fieldType == null)
-                        error("Could not find type for variable declaration", variableDeclaration)
+                    val fieldType =
+                        if (variableDeclaration.isGeneric(c)) {
+                            //println("$variableDeclaration has generic type declared in ${variableDeclaration.getGenericDeclarator()?.nameAsString}")
+                            types["java.lang.Object"]
+                        }
+                        else types[variableDeclaration.typeAsString] ?: types[kotlin.runCatching { variableDeclaration.type.resolve().describe() }.getOrDefault(variableDeclaration.type.asString())]
+                    if (fieldType == null) {
+                        //println("Types:")
+                        //types.forEach { (name, type) -> println("\t $name = $type") }
+                        error("Could not find type for variable declaration ${variableDeclaration.typeAsString} / ${variableDeclaration.type.resolve().describe()}", variableDeclaration)
+                    }
                     val f = recordType.addField(fieldType) {
                         id = variableDeclaration.nameAsString
                     }
