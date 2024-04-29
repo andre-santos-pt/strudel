@@ -132,6 +132,7 @@ interface IVirtualMachine {
         fun variableAssignment(a: IVariableAssignment, value: IValue) { }
         fun arrayElementAssignment(a: IArrayElementAssignment, ref: IReference<IArray>, index: Int, value: IValue) { }
         fun loopIteration(loop: ILoop) { }
+        fun loopEnd(loop: ILoop) { }
         fun arrayAllocated(ref: IReference<IArray>) { }
         fun recordAllocated(ref: IReference<IRecord>) { }
         fun fieldAssignment(a: IRecordFieldAssignment, value: IValue) { }

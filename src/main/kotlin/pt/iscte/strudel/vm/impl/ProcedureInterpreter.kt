@@ -105,6 +105,9 @@ class ProcedureInterpreter(
                         } else {
                             index++
                             loopCount[next] = 0
+                            vm.listeners.forEach {
+                                it.loopEnd(next)
+                            }
                         }
                     }
                 }
