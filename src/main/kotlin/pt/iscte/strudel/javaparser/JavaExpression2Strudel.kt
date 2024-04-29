@@ -142,7 +142,8 @@ class JavaExpression2Strudel(
 
             is ObjectCreationExpr -> {
                 val const =
-                    procedures.findProcedure(exp.type.nameAsString, INIT, emptyList()) // TODO params
+                    kotlin.runCatching { procedures.findProcedure(exp.type.resolve().describe(), INIT, emptyList()) }.getOrNull()
+                    ?: procedures.findProcedure(exp.type.nameAsString, INIT, emptyList()) // TODO params
                     ?: exp.asForeignProcedure(procedure.module!!, types)
                     ?: unsupported("constructor for type ${exp.type.nameWithScope}", exp)
                 val alloc = types.mapType(exp.type).asRecordType.heapAllocation()

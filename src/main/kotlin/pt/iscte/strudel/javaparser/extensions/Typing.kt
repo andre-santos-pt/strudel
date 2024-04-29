@@ -6,16 +6,19 @@ import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.type.Type
 import com.github.javaparser.resolution.TypeSolver
 import com.github.javaparser.resolution.model.typesystem.LazyType
+import com.github.javaparser.resolution.model.typesystem.NullType
 import com.github.javaparser.resolution.types.ResolvedArrayType
 import com.github.javaparser.resolution.types.ResolvedPrimitiveType
 import com.github.javaparser.resolution.types.ResolvedReferenceType
 import com.github.javaparser.resolution.types.ResolvedType
+import com.github.javaparser.resolution.types.ResolvedTypeVariable
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
 import pt.iscte.strudel.javaparser.JavaType
 import pt.iscte.strudel.javaparser.defaultTypes
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.ArrayType
+import pt.iscte.strudel.vm.IValue
 import java.lang.reflect.Array
 import java.lang.reflect.Method
 import kotlin.jvm.optionals.getOrNull
@@ -84,6 +87,7 @@ internal fun ResolvedType.toIType(types: Map<String, IType>): IType = when (this
     is ResolvedReferenceType -> getTypeByName(this.qualifiedName, types)
     is ResolvedArrayType -> ArrayType(componentType.toIType(types))
     is LazyType -> getTypeByName(this.erasure().describe(), types)
+    is ResolvedTypeVariable -> types["java.lang.Object"]!!
     else -> pt.iscte.strudel.javaparser.error("unsupported expression type ${this::class.qualifiedName}", this)
 }
 
@@ -95,10 +99,14 @@ internal fun ResolvedType.toJavaType(): Class<*> = when (this) {
     is ResolvedReferenceType -> getClassByName(this.qualifiedName)
     is ResolvedArrayType -> Array.newInstance(this.componentType.toJavaType(), 0).javaClass
     is LazyType -> getClassByName(this.describe())
+    is ResolvedTypeVariable -> Any::class.java // Generics compile to Object
+    is NullType -> Nothing::class.java
     else -> pt.iscte.strudel.javaparser.error("unsupported expression type ${this::class.qualifiedName}", this)
 }
 
-internal fun Expression.getResolvedJavaType(): Class<*> = calculateResolvedType().toJavaType()
+internal fun Expression.getResolvedJavaType(): Class<*> = kotlin.runCatching {
+    calculateResolvedType().toJavaType()
+}.onFailure { println("Failed to resolve Java type of $this: $it") }.getOrThrow()
 
 internal fun Expression.getResolvedIType(types: Map<String, IType>): IType = kotlin.runCatching {
     calculateResolvedType().toIType(types)
