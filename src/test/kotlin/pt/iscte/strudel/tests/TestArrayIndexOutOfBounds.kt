@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.ArrayIndexError
+import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.RuntimeError
 import kotlin.test.assertEquals
@@ -20,11 +21,12 @@ class TestArrayIndexOutOfBounds : pt.iscte.strudel.tests.BaseTest({
 
     class Listener(val invalid: Int) : IVirtualMachine.IListener {
         var hit = false
+        var array: IArray? = null
         override fun executionError(e: RuntimeError) {
             hit = true
             assertTrue(e is ArrayIndexError)
-            e as ArrayIndexError
             assertEquals(invalid, e.invalidIndex)
+            array = e.array
         }
     }
 
@@ -35,6 +37,7 @@ class TestArrayIndexOutOfBounds : pt.iscte.strudel.tests.BaseTest({
         vm.addListener(listener)
         vm.execute(procedure, a, vm.getValue(-1))
         assertTrue(listener.hit)
+        assertEquals(a.target, listener.array)
     }
 
     @Test
@@ -44,6 +47,7 @@ class TestArrayIndexOutOfBounds : pt.iscte.strudel.tests.BaseTest({
         vm.addListener(listener)
         vm.execute(procedure, a, vm.getValue(0))
         assertTrue(listener.hit)
+        assertEquals(a.target, listener.array)
     }
 
     @Test
@@ -53,5 +57,6 @@ class TestArrayIndexOutOfBounds : pt.iscte.strudel.tests.BaseTest({
         vm.addListener(listener)
         vm.execute(procedure, a, vm.getValue(4))
         assertTrue(listener.hit)
+        assertEquals(a.target, listener.array)
     }
 }

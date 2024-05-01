@@ -131,7 +131,7 @@ class ProcedureExecution(
                 val (array, index, value) = it
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
-                    throw ArrayIndexError(s.arrayAccess, i, s.arrayAccess.index)
+                    throw ArrayIndexError(s.arrayAccess, i, s.arrayAccess.index, (array as IReference<IArray>).target)
 
                 (array.target as IArray).setElement(i, value)
                 vm.listeners.forEach { l -> l.arrayElementAssignment(s, array, i, value) }
@@ -240,7 +240,7 @@ class ProcedureExecution(
                 val (index, array) = it
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
-                    throw ArrayIndexError(exp, i, exp.index)
+                    throw ArrayIndexError(exp, i, exp.index, (array as IReference<IArray>).target)
 
                 valStack.push((array.target as IArray).getElement(i))
             }

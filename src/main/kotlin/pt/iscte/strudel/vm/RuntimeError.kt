@@ -25,7 +25,8 @@ class ExceptionError(sourceElement: IProgramElement, msg: String?)
 class ArrayIndexError(
     element: IArrayAccess,
     val invalidIndex: Int,
-    val indexExpression: IExpression
+    val indexExpression: IExpression,
+    val array: IArray
 ) : RuntimeError(
     RuntimeErrorType.ARRAY_INDEX_BOUNDS, element, "invalid array index access"
 ) {
