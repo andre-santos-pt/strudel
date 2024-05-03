@@ -14,7 +14,6 @@ import com.github.javaparser.resolution.types.ResolvedType
 import com.github.javaparser.resolution.types.ResolvedTypeVariable
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
-import pt.iscte.strudel.javaparser.JavaType
 import pt.iscte.strudel.javaparser.defaultTypes
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.ArrayType
@@ -40,7 +39,20 @@ internal fun isJavaClassName(qualifiedName: String): Boolean = runCatching { get
 
 internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = defaultTypes): IType {
     //println("Getting type with name $qualifiedName from [${types.keys.joinToString()}]")
-    return defaultTypes[qualifiedName] ?: types[qualifiedName] ?: JavaType(getClassByName(qualifiedName))
+
+    val arrayTypeDepth = Regex("\\[\\]").findAll(qualifiedName).count()
+
+    if (arrayTypeDepth == 0)
+        return defaultTypes[qualifiedName] ?: types[qualifiedName] ?: HostRecordType(getClassByName(qualifiedName).canonicalName)
+
+    return runCatching {
+        val componentTypeName = qualifiedName.replace("[]", "")
+        var type = defaultTypes[componentTypeName] ?: types[componentTypeName] ?: HostRecordType(getClassByName(componentTypeName).canonicalName)
+        (0 until arrayTypeDepth).forEach { _ -> type = type.array() }
+        type
+    }.getOrNull() ?: pt.iscte.strudel.javaparser.error("unsupported type $qualifiedName", qualifiedName)
+
+    //return defaultTypes[qualifiedName] ?: types[qualifiedName] ?: JavaType(getClassByName(qualifiedName))
 }
 /*
     try {
@@ -122,7 +134,6 @@ internal fun Class<*>.findCompatibleMethod(name: String, parameterTypes: Iterabl
 internal fun IType.toJavaType(): Class<*> = when(this) {
     is IReferenceType -> target.toJavaType()
     is IArrayType -> Array.newInstance(this.componentType.toJavaType(), 0).javaClass
-    is JavaType -> this.type
     is HostRecordType -> this.type
     INT -> Int::class.java
     DOUBLE -> Double::class.java

@@ -56,6 +56,8 @@ class JavaExpression2Strudel(
 
             is NameExpr -> {
                 val target = findVariableResolve(exp) //findVariable(exp.nameAsString)
+                if (target == null)
+                    println("Could not find variable for expression ${exp.parentNode}")
                 if (target?.isField == true) procedure.thisParameter.field(target as IVariableDeclaration<IRecordType>)
                 else target?.expression() ?: error("not found $exp", exp)
             }

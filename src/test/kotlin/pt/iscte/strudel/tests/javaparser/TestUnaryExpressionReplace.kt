@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.javaparser.StrudelUnsupportedException
+import pt.iscte.strudel.model.IProcedureCall
+import pt.iscte.strudel.model.IReturn
+import pt.iscte.strudel.model.IVariableAssignment
 import pt.iscte.strudel.model.impl.ArrayElementAssignment
 import pt.iscte.strudel.model.impl.RecordFieldAssignment
 import pt.iscte.strudel.vm.IVirtualMachine
@@ -11,9 +14,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class TestUnaryExpressionReplace {
-  @Test
-  fun test() {
-    val src = """
+    @Test
+    fun test() {
+        val src = """
             public class ArrayList {
                 int[] array = {1,2,3};
                 int next = 0;
@@ -31,15 +34,15 @@ class TestUnaryExpressionReplace {
                 }
             }
         """.trimIndent()
-    val module = Java2Strudel().load(src)
-    val body = module.get("add").block
-    assertIs<ArrayElementAssignment>(body.children[0])
-    assertIs<RecordFieldAssignment>(body.children[1])
-  }
+        val module = Java2Strudel().load(src)
+        val body = module.get("add").block
+        assertIs<ArrayElementAssignment>(body.children[0])
+        assertIs<RecordFieldAssignment>(body.children[1])
+    }
 
-  @Test
-  fun testIf() {
-    val src = """
+    @Test
+    fun testIf() {
+        val src = """
             public class ArrayList {
                 int[] array = {1,2,3};
                 int next = 0;
@@ -50,15 +53,32 @@ class TestUnaryExpressionReplace {
                 }
             }
         """.trimIndent()
-    assertThrows<StrudelUnsupportedException> {
-      Java2Strudel().load(src)
+        assertThrows<StrudelUnsupportedException> {
+            Java2Strudel().load(src)
+        }
     }
-  }
 
+    @Test
+    fun testWithinIf() {
+        val src = """
+            public class Test {
+                int inc(int n) {
+                    return n + 1;
+                }
+                
+                int test(int n) {
+                    if (true)
+                        return inc(--n);
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+        println(module)
+    }
 
-  @Test
-  fun testUnsupport() {
-    val src = """
+    @Test
+    fun testUnsupport() {
+        val src = """
             public class ArrayList {
                 int[] array = {1,2,3};
                 int next = 0;
@@ -68,8 +88,26 @@ class TestUnaryExpressionReplace {
                 }
             }
         """.trimIndent()
-    assertThrows<StrudelUnsupportedException> {
-      Java2Strudel().load(src)
+        assertThrows<StrudelUnsupportedException> {
+            Java2Strudel().load(src)
+        }
     }
-  }
+
+    @Test
+    fun testFor() {
+        val src = """
+            public class ArrayList {
+                int[] list = {1,2,3};
+            
+                int test() {
+                    int sum = 0;
+                    for (int i = 0; i < list.length; i++)
+                        sum = sum + list[i];
+                    return sum;
+                }
+            }
+        """.trimIndent()
+        val model = Java2Strudel().load(src)
+        println(model)
+    }
 }

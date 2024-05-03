@@ -65,14 +65,23 @@ class Java2Strudel(
     }
 
     fun load(file: File): IModule =
-        translate(StaticJavaParser.parse(file).apply { removePackageDeclaration() }.findAll(ClassOrInterfaceDeclaration::class.java))
+        translate(StaticJavaParser.parse(file).apply {
+            removePackageDeclaration()
+            removeMainMethod()
+        }.findAll(ClassOrInterfaceDeclaration::class.java))
 
     fun load(files: List<File>): IModule = translate(files.map {
-        StaticJavaParser.parse(it).apply { removePackageDeclaration() }.findAll(ClassOrInterfaceDeclaration::class.java)
+        StaticJavaParser.parse(it).apply {
+            removePackageDeclaration()
+            removeMainMethod()
+        }.findAll(ClassOrInterfaceDeclaration::class.java)
     }.flatten())
 
     fun load(src: String): IModule =
-        translate(StaticJavaParser.parse(src).apply { removePackageDeclaration() }.findAll(ClassOrInterfaceDeclaration::class.java))
+        translate(StaticJavaParser.parse(src).apply {
+            removePackageDeclaration()
+            removeMainMethod()
+        }.findAll(ClassOrInterfaceDeclaration::class.java))
 
     internal fun <T : IProgramElement> T.bind(
         node: Node,
@@ -348,6 +357,7 @@ class Java2Strudel(
             types[c.qualifiedName + "[][]"] = type.array().array().reference()
         }
 
+        /*
         classes.forEach { c ->
             collectHostTypes(types, c).forEach {
                 types[it.id] = it
@@ -355,6 +365,7 @@ class Java2Strudel(
                 types[it.id + "[][]"] = it
             }
         }
+         */
 
 
         // Translate field declarations for each class
@@ -407,6 +418,7 @@ class Java2Strudel(
             val methods = flatMap { it.methods }.map {
                 // Replace string concatenation with + with String.concat(String) calls
                 it.replaceStringConcatPlus()
+                it.substituteControlBlocks()
                 it.replaceIncDecAsExpressions()
                 it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).qualifiedName)
             }
