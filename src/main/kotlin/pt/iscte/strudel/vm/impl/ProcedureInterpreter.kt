@@ -251,17 +251,6 @@ class ProcedureInterpreter(
                 *s.arguments.reversed().toTypedArray()
             )?.reversed()?.let { args ->
                 handleProcedureCall(s.procedure, args)
-//                if (s.procedure.isForeign) {
-//                    (s.procedure as ForeignProcedure).run(vm, it)
-//                } else {
-//                    val call = ProcedureInterpreter(
-//                        vm,
-//                        s.procedure as IProcedure,
-//                        *it.toTypedArray()
-//                    );
-//                    call.run()
-//                    // TODO check error
-//                }
                 return true
             }
 

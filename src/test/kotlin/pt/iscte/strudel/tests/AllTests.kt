@@ -50,6 +50,8 @@ import kotlin.reflect.full.hasAnnotation
 
     TestLoopIterationMax::class,
 
+    TestLoopEnd::class,
+
     // matrix functions
     TestMatrixSum::class,
     TestMatrixIdentity::class,
@@ -111,7 +113,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestGenericType::class,
 
-    TestNestedType::class
+    TestNestedType::class,
+
+    TestUnaryExpressionReplace::class
 
     /* All of these were missing: check main() function below
 

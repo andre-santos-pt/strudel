@@ -407,7 +407,7 @@ class Java2Strudel(
             val methods = flatMap { it.methods }.map {
                 // Replace string concatenation with + with String.concat(String) calls
                 it.replaceStringConcatPlus()
-
+                it.replaceIncDecAsExpressions()
                 it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).qualifiedName)
             }
 
@@ -448,7 +448,9 @@ class Java2Strudel(
                 )
 
                 // Translate statements in declaration body
-                it.first!!.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
+                it.first!!.body?.let { body ->
+                    stmtTranslator.translate(body, (it.second as IProcedure).block)
+                }
 
                 // Inject field initializers and return statement in constructors
                 if (it.first is ConstructorDeclaration) {
