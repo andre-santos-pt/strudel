@@ -9,20 +9,9 @@ package pt.iscte.strudel.model
 interface IExpression : IProgramElement {
     val type: IType
 
-
-
-
     fun length(): IArrayLength
-//    fun length(vararg indexes: IExpression): IArrayLength {
-//        return length(listOf(*indexes))
-//    }
 
     fun element(index: IExpression): IArrayAccess
-//    fun element(vararg indexes: IExpression): IArrayElement {
-//        return element(listOf(*indexes))
-//    }
-
-    //operator fun get(index: IExpression) = element(*indexes)
 
     fun field(field: IVariableDeclaration<IRecordType>): IRecordFieldExpression
     val isSimple: Boolean
@@ -117,3 +106,7 @@ interface IExpression : IProgramElement {
 }
 
 interface ITargetExpression : IExpression
+
+interface IExpressionHolder {
+    val expression: IExpression?
+}

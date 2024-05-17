@@ -1,10 +1,12 @@
 package pt.iscte.strudel.vm.impl
 
 import pt.iscte.strudel.model.*
+import pt.iscte.strudel.model.dsl.get
+import pt.iscte.strudel.model.impl.Literal
 import pt.iscte.strudel.model.impl.PredefinedArrayAllocation
 import pt.iscte.strudel.model.util.*
 import pt.iscte.strudel.vm.*
-
+import java.lang.RuntimeException
 
 
 class ProcedureInterpreter(
@@ -90,7 +92,9 @@ class ProcedureInterpreter(
                     if (valStack.isEmpty())
                         evaluateStep(next.guard)
                     else {
-                        if (valStack.pop().isTrue) {
+                        val guardEval = valStack.pop()
+                        vm.listeners.forEach { l -> l.expressionEvaluation(next.expression, next, guardEval, next.expression.materialize()) }
+                        if (guardEval.isTrue) {
                             blockStack.push(BlockExec(next.block, true))
                             if (loopCount[next] == vm.loopIterationMaximum)
                                 throw RuntimeError(
@@ -115,7 +119,9 @@ class ProcedureInterpreter(
                     if (valStack.isEmpty())
                         evaluateStep(next.guard)
                     else {
-                        if (valStack.pop().isTrue) {
+                        val guardEval = valStack.pop()
+                        vm.listeners.forEach { l -> l.expressionEvaluation(next.expression, next, guardEval, next.expression.materialize()) }
+                        if (guardEval.isTrue) {
                             blockStack.push(BlockExec(next.block, false))
                         }
                         else if (next.hasAlternativeBlock()) {
@@ -158,6 +164,44 @@ class ProcedureInterpreter(
 
     }
 
+
+
+    private fun IExpression.materialize(): IExpression =
+        try {
+            when (this) {
+                is IVariableExpression -> if(type.isValueType)
+                    Literal(type, vm.callStack.topFrame.variables[variable].toString())
+                else
+                    this
+
+                is IBinaryExpression -> operator.on(leftOperand.materialize(), rightOperand.materialize())
+
+//                is IUnaryExpression -> "${e.operator}${materialize(e.operand)}"
+//                is IProcedureCallExpression -> "${e.procedure.id}(${e.arguments.joinToString(", ") { materialize(it) }})"
+                is IArrayAccess -> if (target is IVariableExpression)
+                    (target as IVariableExpression).variable[index.materialize()]
+                else
+                    this
+//
+////                is IArrayAccess -> if (e.target is IVariableExpression)
+////                    (vm.topFrame.variables[(e.target as IVariableExpression).variable] as IReference<IArray>).target.getElement((materialize(e.index) as IValue).toInt()).toString()
+////                else
+////                    this.toString()
+                is IArrayLength -> if (target is IVariableExpression)
+                    Literal(INT, (vm.topFrame.variables[(target as IVariableExpression).variable] as IReference<IArray>).target.length.toString())
+                else
+                    this
+//                //  is IRecordFieldExpression -> "${materialize(e.target)}.${e.field}"
+//                is IConditionalExpression -> "${materialize(e.condition)} ? ${materialize(e.trueCase)} : ${materialize(e.falseCase)}"
+//                is IArrayAllocation -> "new ${e.componentType}[${e.dimensions.joinToString(", ") { materialize(it) }}]"
+                else -> this
+            }
+        }
+        catch (e: Exception) {
+            throw RuntimeException("Invalid expression for current context: $e")
+        }
+
+
     private fun eval(e: IExpression): IValue? =
         if (valStack.isEmpty()) {
             evaluateStep(e)
@@ -190,6 +234,7 @@ class ProcedureInterpreter(
     private fun execute(s: IStatement): Boolean {
         when (s) {
             is IVariableAssignment -> eval(s.expression)?.let {
+                vm.listeners.forEach { l -> l.expressionEvaluation(s.expression, s, it, s.expression.materialize()) }
                 vm.callStack.topFrame[s.target] = it
                 vm.listeners.forEach { l -> l.variableAssignment(s, it) }
                 return true
@@ -201,6 +246,7 @@ class ProcedureInterpreter(
                 s.expression
             )?.let {
                 val (array, index, value) = it
+                vm.listeners.forEach { l -> l.expressionEvaluation(s.expression, s, value, s.expression.materialize()) }
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
                     throw ArrayIndexError(s.arrayAccess, i, s.arrayAccess.index, (array as IReference<IArray>).target)
@@ -214,11 +260,10 @@ class ProcedureInterpreter(
 
             is IRecordFieldAssignment -> eval(s.target, s.expression)?.let {
                 val (target, value) = it
-                ((target as IReference<IRecord>).target).setField(
-                    s.field,
-                    value
-                )
-                vm.listeners.forEach { l -> l.fieldAssignment(s, value) }
+                vm.listeners.forEach { l -> l.expressionEvaluation(s.expression, s, value, s.expression.materialize()) }
+                val recordRef = target as IReference<IRecord>
+                recordRef.target.setField(s.field, value)
+                vm.listeners.forEach { l -> l.fieldAssignment(s, recordRef, value) }
                 return true
             }
 
@@ -229,6 +274,7 @@ class ProcedureInterpreter(
                 else if (s.expression != null) {
                     val e = eval(s.expression!!)
                     e?.let {
+                        vm.listeners.forEach { l -> l.expressionEvaluation(s.expression!!, s, it, s.expression!!.materialize()) }
                         returnValue = it
                         vm.callStack.topFrame.returnValue = it
                         blockStack.clear()

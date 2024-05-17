@@ -1,9 +1,12 @@
 package pt.iscte.strudel.model
 
 
-interface IControlStructure : IBlockElement, IBlockHolder {
+interface IControlStructure : IBlockElement, IBlockHolder, IExpressionHolder {
     override var parent: IBlock
     var guard: IExpression
+
+    override val expression: IExpression
+        get() = guard
 }
 
 interface ISelection : IControlStructure {

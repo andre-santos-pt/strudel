@@ -1,10 +1,10 @@
 package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.*
-import pt.iscte.strudel.vm.impl.ProcedureExecution
 import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.VirtualMachine
 import pt.iscte.strudel.vm.impl.defaultValue
+import java.lang.RuntimeException
 
 
 // TODO GC
@@ -112,19 +112,6 @@ interface IVirtualMachine {
         })
     }
 
-    fun debug(procedure: IProcedure, vararg arguments: IValue) : ProcedureExecution {
-        require(arguments.size == procedure.parameters.size) {
-            "number of arguments (${arguments.size}) do not match ${procedure.id}(${procedure.parameters.size})"
-        }
-
-        val ex = ProcedureExecution(this, procedure, *arguments)
-        ex.init()
-        return ex
-    }
-
-
-
-
     interface IListener {
         fun procedureCall(procedure: IProcedureDeclaration, args: List<IValue>, caller: IProcedure?) { }
         fun procedureEnd(procedure: IProcedureDeclaration, args: List<IValue>, result: IValue?) { }
@@ -135,7 +122,8 @@ interface IVirtualMachine {
         fun loopEnd(loop: ILoop) { }
         fun arrayAllocated(ref: IReference<IArray>) { }
         fun recordAllocated(ref: IReference<IRecord>) { }
-        fun fieldAssignment(a: IRecordFieldAssignment, value: IValue) { }
+        fun fieldAssignment(a: IRecordFieldAssignment, ref: IReference<IRecord>, value: IValue) { }
+        fun expressionEvaluation(e: IExpression, context: IExpressionHolder, value: IValue, concreteExpression: IExpression) { }
         fun executionError(e: RuntimeError) { }
         fun systemOutput(text: String) { }
     }

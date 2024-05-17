@@ -30,8 +30,8 @@ interface IContinue : IStatement {
     override fun isSame(s: IProgramElement) = s is IContinue
 }
 
-interface IReturn : IStatement {
-    var expression: IExpression?
+interface IReturn : IStatement, IExpressionHolder {
+    override var expression: IExpression?
     override val parent: IBlock
     val isError: Boolean
     val errorMessage: String?
@@ -51,10 +51,10 @@ interface IReturn : IStatement {
     }
 }
 
-interface IVariableAssignment : IStatement {
+interface IVariableAssignment : IStatement, IExpressionHolder {
     // OCL: variable must be owned by the same procedure
     var target: IVariableDeclaration<*>
-    var expression: IExpression
+    override var expression: IExpression
     override val parent: IBlock
 
     override val expressionParts: List<IExpression>
@@ -77,9 +77,9 @@ interface IVariableAssignment : IStatement {
     }
 }
 
-interface IArrayElementAssignment : IStatement {
+interface IArrayElementAssignment : IStatement, IExpressionHolder {
     val arrayAccess: IArrayAccess
-    val expression: IExpression
+    override val expression: IExpression
     override val parent: IBlock
     val dimensions: Int
         get() = 1
@@ -95,10 +95,10 @@ interface IArrayElementAssignment : IStatement {
 }
 
 
-interface IRecordFieldAssignment : IStatement {
+interface IRecordFieldAssignment : IStatement, IExpressionHolder {
     val target: ITargetExpression
     val field: IVariableDeclaration<IRecordType>
-    val expression: IExpression
+    override val expression: IExpression
     override val expressionParts: List<IExpression>
         get() = listOf(expression)
 }

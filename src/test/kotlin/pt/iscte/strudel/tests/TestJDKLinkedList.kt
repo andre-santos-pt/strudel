@@ -1,7 +1,7 @@
 package pt.iscte.strudel.tests
 
 import org.junit.jupiter.api.Test
-import pt.iscte.strudel.javaparser.JavaType
+import pt.iscte.strudel.model.HostRecordType
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.cfg.createCFG
@@ -32,9 +32,9 @@ class TestJDKLinkedList : pt.iscte.strudel.tests.BaseTest({
     }
 }
 
-val objectType = JavaType(Object::class.java)
+val objectType = HostRecordType(Object::class.java.name)
 
-val linkedList = JavaType(LinkedList::class.java)
+val linkedList = HostRecordType(LinkedList::class.java.name)
 
 val LListCreate = IForeignProcedure.create("LinkedList", "create", linkedList, emptyList()) { m, args ->
     Value(linkedList, LinkedList<Any>())
