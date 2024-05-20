@@ -89,7 +89,10 @@ interface IVirtualMachine {
                 allocateRecord(baseType as IRecordType)
 
             require(baseType.isSame(v.type))
-            (a.target as IArray).setElement(i, v)
+            // to avoid listener notification
+            val array = a.target as pt.iscte.strudel.vm.impl.Array
+            array.elements[i] = v
+            //a.target.setElement(i, v)
         }
         return a
     }
@@ -113,19 +116,26 @@ interface IVirtualMachine {
     }
 
     interface IListener {
-        fun procedureCall(procedure: IProcedureDeclaration, args: List<IValue>, caller: IProcedure?) { }
-        fun procedureEnd(procedure: IProcedureDeclaration, args: List<IValue>, result: IValue?) { }
-        fun returnCall(s: IReturn, returnValue: IValue?) { }
-        fun variableAssignment(a: IVariableAssignment, value: IValue) { }
-        fun arrayElementAssignment(a: IArrayElementAssignment, ref: IReference<IArray>, index: Int, value: IValue) { }
-        fun loopIteration(loop: ILoop) { }
-        fun loopEnd(loop: ILoop) { }
-        fun arrayAllocated(ref: IReference<IArray>) { }
-        fun recordAllocated(ref: IReference<IRecord>) { }
-        fun fieldAssignment(a: IRecordFieldAssignment, ref: IReference<IRecord>, value: IValue) { }
-        fun expressionEvaluation(e: IExpression, context: IExpressionHolder, value: IValue, concreteExpression: IExpression) { }
-        fun executionError(e: RuntimeError) { }
-        fun systemOutput(text: String) { }
+        fun procedureCall(procedure: IProcedureDeclaration, args: List<IValue>, caller: IProcedure?) {}
+        fun procedureEnd(procedure: IProcedureDeclaration, args: List<IValue>, result: IValue?) {}
+        fun returnCall(s: IReturn, returnValue: IValue?) {}
+        fun variableAssignment(a: IVariableAssignment, value: IValue) {}
+        fun arrayElementAssignment(a: IArrayElementAssignment, ref: IReference<IArray>, index: Int, value: IValue) {}
+        fun loopIteration(loop: ILoop) {}
+        fun loopEnd(loop: ILoop) {}
+        fun arrayAllocated(ref: IReference<IArray>) {}
+        fun recordAllocated(ref: IReference<IRecord>) {}
+        fun fieldAssignment(a: IRecordFieldAssignment, ref: IReference<IRecord>, value: IValue) {}
+        fun expressionEvaluation(
+            e: IExpression,
+            context: IExpressionHolder,
+            value: IValue,
+            concreteExpression: IExpression
+        ) {
+        }
+
+        fun executionError(e: RuntimeError) {}
+        fun systemOutput(text: String) {}
     }
 
     companion object {

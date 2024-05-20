@@ -6,7 +6,7 @@ import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.NULL
 
 internal class Array(private val t: IArrayType, length: Int) : IArray {
-    private val elements: kotlin.Array<IValue> = Array(length) { NULL }
+    internal val elements: kotlin.Array<IValue> = Array(length) { NULL }
     override val type get() = t
 
     private val listeners = mutableListOf<IArray.IListener>()
