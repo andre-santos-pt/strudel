@@ -170,6 +170,17 @@ interface IBlock : IBlockElement, Iterable<IBlockElement>, IBlockHolder {
         return list.iterator()
     }
 
+    fun variablesInScope(): List<IVariableDeclaration<*>> {
+        val vars = mutableListOf<IVariableDeclaration<*>>()
+        var block: IBlock? = this
+        while (block != null) {
+            vars.addAll(block.children.filterIsInstance<IVariableDeclaration<*>>())
+            block = if(block.parent is ILoop) (block.parent as ILoop).parent else block.parent as? IBlock
+        }
+        vars.addAll(ownerProcedure.parameters)
+        return vars
+    }
+
     val isInLoop: Boolean
         get() {
             var p = parent
