@@ -6,6 +6,10 @@ import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.*
 import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.expr.MethodCallExpr
+import com.github.javaparser.ast.stmt.DoStmt
+import com.github.javaparser.ast.stmt.ForEachStmt
+import com.github.javaparser.ast.stmt.ForStmt
+import com.github.javaparser.ast.stmt.WhileStmt
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade
@@ -14,18 +18,17 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import java.io.File
-import kotlin.jvm.optionals.getOrDefault
 import kotlin.reflect.KClass
 
 class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
     val locations = nodes.map { SourceLocation(it) }
-    
+
     fun getFirstNodeType(): KClass<out Node>? = nodes.firstOrNull()?.let { it::class }
 
     constructor(msg: String, node: Node) : this(msg, listOf(node))
 }
 
-class StrudelCompilationException(message: String): RuntimeException(message)
+class StrudelCompilationException(message: String) : RuntimeException(message)
 
 @Suppress("NOTHING_TO_INLINE") // inline because otherwise test fails (KotlinNothingValueException)
 inline fun unsupported(msg: String, node: Node): Nothing {
@@ -89,6 +92,7 @@ class Java2Strudel(
     ): T {
         if (bindSource && node.range.isPresent) {
             val range = node.range.get()
+
             val sourceLocation = SourceLocation(
                 range.begin.line,
                 range.begin.column,
@@ -98,6 +102,16 @@ class Java2Strudel(
                 setProperty(sourceLocation)
             else
                 setProperty(prop, sourceLocation)
+
+            if(this is ILoop) {
+                val len = when(node) {
+                    is WhileStmt -> 4
+                    is ForStmt, is ForEachStmt -> 2
+                    is DoStmt -> 1
+                    else -> 0
+                }
+                setProperty(KEYWORD_LOC, SourceLocation(range.begin.line, range.begin.column,  range.begin.column + len))
+            }
         }
         if (bindJavaParser && prop == null)
             setProperty(JP, node)
@@ -137,9 +151,14 @@ class Java2Strudel(
 
         // Find matching procedure declaration
         val method =
-            procedures.findProcedure(namespace?.qualifiedName, exp.nameAsString, paramTypes) ?:
-            exp.asForeignProcedure(procedure.module!!, namespace?.qualifiedName, types) ?:
-            error("procedure matching method call $exp not found within namespace ${namespace?.qualifiedName}", exp)
+            procedures.findProcedure(namespace?.qualifiedName, exp.nameAsString, paramTypes) ?: exp.asForeignProcedure(
+                procedure.module!!,
+                namespace?.qualifiedName,
+                types
+            ) ?: error(
+                "procedure matching method call $exp not found within namespace ${namespace?.qualifiedName}",
+                exp
+            )
 
         // Get method call arguments
         val args = exp.arguments.map { mapExpression(it) }
@@ -148,14 +167,11 @@ class Java2Strudel(
             if (namespace == null || !namespace.isStatic) { // No namespace or instance method
                 val thisParam = mapExpression(exp.scope.get())
                 invoke(method, listOf(thisParam) + args)
-            }
-            else invoke(method, args) // Static method
-        }
-        else if (method.parameters.isNotEmpty() && method.parameters[0].id == THIS_PARAM) {
+            } else invoke(method, args) // Static method
+        } else if (method.parameters.isNotEmpty() && method.parameters[0].id == THIS_PARAM) {
             val thisParam = procedure.thisParameter.expression()
             invoke(method, listOf(thisParam) + args)
-        }
-        else invoke(method, args)
+        } else invoke(method, args)
     }
 
     private fun collectHostTypes(
@@ -284,7 +300,9 @@ class Java2Strudel(
          */
         fun ConstructorDeclaration.translateConstructor(namespace: String) =
             Procedure(
-                types.mapType(runCatching { this.resolve().declaringType().qualifiedName }.getOrDefault(this.nameAsString)),
+                types.mapType(runCatching {
+                    this.resolve().declaringType().qualifiedName
+                }.getOrDefault(this.nameAsString)),
                 INIT
             ).apply {
                 comment.translateComment()?.let { this.documentation = it }
@@ -377,12 +395,17 @@ class Java2Strudel(
                         if (variableDeclaration.isGeneric(c)) {
                             //println("$variableDeclaration has generic type declared in ${variableDeclaration.getGenericDeclarator()?.nameAsString}")
                             types["java.lang.Object"]
-                        }
-                        else types[variableDeclaration.typeAsString] ?: types[kotlin.runCatching { variableDeclaration.type.resolve().describe() }.getOrDefault(variableDeclaration.type.asString())]
+                        } else types[variableDeclaration.typeAsString]
+                            ?: types[kotlin.runCatching { variableDeclaration.type.resolve().describe() }
+                                .getOrDefault(variableDeclaration.type.asString())]
                     if (fieldType == null) {
                         //println("Types:")
                         //types.forEach { (name, type) -> println("\t $name = $type") }
-                        error("Could not find type for variable declaration ${variableDeclaration.typeAsString} / ${variableDeclaration.type.resolve().describe()}", variableDeclaration)
+                        error(
+                            "Could not find type for variable declaration ${variableDeclaration.typeAsString} / ${
+                                variableDeclaration.type.resolve().describe()
+                            }", variableDeclaration
+                        )
                     }
                     val f = recordType.addField(fieldType) {
                         id = variableDeclaration.nameAsString
