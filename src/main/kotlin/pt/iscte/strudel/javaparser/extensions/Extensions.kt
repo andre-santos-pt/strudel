@@ -11,21 +11,23 @@ import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.comments.Comment
 import com.github.javaparser.ast.comments.JavadocComment
 import com.github.javaparser.ast.expr.*
-import com.github.javaparser.ast.nodeTypes.NodeWithBody
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.visitor.ModifierVisitor
 import com.github.javaparser.ast.visitor.Visitable
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import pt.iscte.strudel.javaparser.INIT
-import pt.iscte.strudel.javaparser.stringType
+import pt.iscte.strudel.javaparser.StringType
 import pt.iscte.strudel.model.*
+import pt.iscte.strudel.vm.IArray
+import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IValue
+import pt.iscte.strudel.vm.IVirtualMachine
+import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
-import java.util.function.Predicate
 import kotlin.jvm.optionals.getOrDefault
 
-fun string(str: String): IValue = Value(stringType, java.lang.String(str))
+fun getString(value: String): IValue = Value(StringType, java.lang.String(value))
 
 val IModule.proceduresExcludingConstructors: List<IProcedureDeclaration>
     get() = procedures.filter { it.id != INIT }

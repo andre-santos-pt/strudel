@@ -4,7 +4,6 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.VirtualMachine
 import pt.iscte.strudel.vm.impl.defaultValue
-import java.lang.RuntimeException
 
 
 // TODO GC
@@ -75,20 +74,17 @@ interface IVirtualMachine {
         val a = allocateArray(baseType, values.size)
         values.forEachIndexed { i, e ->
 
-            val v = if (baseType.isValueType)
-                getValue(e)
-            else if (baseType.isArrayReference) {
-                e as IReference<IArray>
-//                val array = (e as IReference).target as IArray
-//
-//                val ref = allocateArray(((baseType as IReferenceType).target as IArrayType).componentType, array.size)
-//                for (j in array.indices)
-//                    (ref.target as IArray).setElement(j, getValue(array[j]))
-//                ref
-            } else
-                allocateRecord(baseType as IRecordType)
+            val v =
+                if (baseType.isValueType) getValue(e)
+                else if (baseType.isArrayReference) e as IReference<IArray>
+                else if (baseType.isRecordReference) e as IReference<IRecord>
+                else if (e is IValue) e // Can leave as IValue since require() checks types after anyway
+                else allocateRecord(baseType as IRecordType)
 
-            require(baseType.isSame(v.type))
+            // || (v.type.isReference && baseType.isSame((v.type as IReferenceType).target))
+            require(baseType.isSame(v.type) || (v.type.isReference && baseType.isSame((v.type as IReferenceType).target))) {
+                "Cannot add element $e of IType ${v.type::class.simpleName} ${v.type.id} to array with base IType ${baseType::class.simpleName} ${baseType.id}"
+            }
             // to avoid listener notification
             val array = a.target as pt.iscte.strudel.vm.impl.Array
             array.elements[i] = v

@@ -170,7 +170,7 @@ class JavaExpression2Strudel(
                             ProcedureCall(
                                 NullBlock,
                                 type.foreignStaticFieldAccess(procedure.module!!, types),
-                                arguments = listOf(Literal(stringType, exp.nameAsString))
+                                arguments = listOf(Literal(StringType, exp.nameAsString))
                             )
                         }
                         else {

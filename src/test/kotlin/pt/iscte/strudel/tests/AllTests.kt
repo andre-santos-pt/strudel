@@ -115,7 +115,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestNestedType::class,
 
-    TestUnaryExpressionReplace::class
+    TestUnaryExpressionReplace::class,
+
+    TestRecordArray::class
 
     /* All of these were missing: check main() function below
 

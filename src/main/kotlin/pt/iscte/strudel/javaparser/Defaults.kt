@@ -5,8 +5,8 @@ import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.impl.ForeignProcedure
 import pt.iscte.strudel.vm.impl.Value
 
-internal val objectType = HostRecordType(Object::class.java.canonicalName)
-internal val stringType = HostRecordType(String::class.java.canonicalName)
+internal val ObjectType = HostRecordType(Object::class.java.canonicalName)
+internal val StringType = HostRecordType(String::class.java.canonicalName)
 
 internal val defaultTypes = mapOf(
     "void" to VOID,
@@ -31,11 +31,11 @@ internal val defaultTypes = mapOf(
     "char[][]" to CHAR.array().reference().array().reference(),
     "boolean[][]" to BOOLEAN.array().reference().array().reference(),
 
-    Object::class.java.canonicalName to objectType.reference(),
-    Object::class.java.canonicalName + "[]" to objectType.array().reference(),
+    Object::class.java.canonicalName to ObjectType.reference(),
+    Object::class.java.canonicalName + "[]" to ObjectType.array().reference(),
 
-    String::class.java.canonicalName to stringType.reference(),
-    String::class.java.canonicalName + "[]" to stringType.array().reference()
+    String::class.java.canonicalName to StringType.reference(),
+    String::class.java.canonicalName + "[]" to StringType.array().reference()
 )
 
 internal const val NEW_STRING = "\$newString"
@@ -61,11 +61,11 @@ internal val defaultForeignProcedures = listOf(
         null,
         null,
         NEW_STRING,
-        stringType,
+        StringType,
         listOf(CHAR.array().reference())
     ) { m, args ->
             val chars = ((args[0].value as pt.iscte.strudel.vm.impl.Array).value as Array<IValue>).map { it.toChar() }.toCharArray()
-            Value(stringType, String(chars))
+            Value(StringType, String(chars))
 
     },
 //    ForeignProcedure(

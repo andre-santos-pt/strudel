@@ -398,7 +398,8 @@ class ProcedureInterpreter(
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
                     throw ArrayIndexError(exp, i, exp.index, (array as IReference<IArray>).target)
 
-                valStack.push(array.target.getElement(i))
+                val elem = array.target.getElement(i)
+                valStack.push(elem)
             }
 
             is IArrayLength -> eval(exp.target)?.let {

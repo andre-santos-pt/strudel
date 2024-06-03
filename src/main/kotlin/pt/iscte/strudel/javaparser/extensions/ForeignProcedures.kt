@@ -4,7 +4,7 @@ import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.ObjectCreationExpr
 import com.github.javaparser.resolution.types.ResolvedType
 import pt.iscte.strudel.javaparser.THIS_PARAM
-import pt.iscte.strudel.javaparser.stringType
+import pt.iscte.strudel.javaparser.StringType
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import pt.iscte.strudel.vm.IValue
@@ -40,7 +40,7 @@ internal fun foreign(module: IModule, method: Method, types: Map<String, IType>)
                 method.invoke(caller, *arguments.toTypedArray())
             } else error("Cannot invoke instance method $method with 0 arguments: missing (at least) object reference $THIS_PARAM")
         when (res) {
-            is String -> string(res)
+            is String -> getString(res)
             else -> vm.getValue(res)
         }
     }
@@ -118,7 +118,7 @@ internal fun ResolvedType.foreignStaticFieldAccess(module: IModule, types: Map<S
         java.canonicalName,
         "getField",
         getTypeByName(java.canonicalName, types),
-        listOf(stringType)
+        listOf(StringType)
     )
     { vm, args ->
         val fieldId = args.first().value as String

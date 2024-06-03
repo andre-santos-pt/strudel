@@ -2,7 +2,7 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.extensions.string
+import pt.iscte.strudel.javaparser.extensions.getString
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 
@@ -48,7 +48,7 @@ class TestAutomaticForeignProcedure {
 
         assertEquals(3, vm.execute(round, vm.getValue(3.14))?.value)
 
-        val str = string("8")
+        val str = getString("8")
         assertEquals(8, vm.execute(valueOf, str)?.value)
     }
 
@@ -78,12 +78,12 @@ class TestAutomaticForeignProcedure {
         val substrToEnd = module.getProcedure("substrToEnd")
         val length = module.getProcedure("length")
 
-        val str = string("hello world")
+        val str = getString("hello world")
         assertEquals("ello wo", vm.execute(substr, str)?.value)
         assertEquals("ello world", vm.execute(substrToEnd, str)?.value)
 
-        assertEquals(0, vm.execute(length, string(""))?.value)
-        assertEquals(1, vm.execute(length, string("a"))?.value)
-        assertEquals(3, vm.execute(length, string("abc"))?.value)
+        assertEquals(0, vm.execute(length, getString(""))?.value)
+        assertEquals(1, vm.execute(length, getString("a"))?.value)
+        assertEquals(3, vm.execute(length, getString("abc"))?.value)
     }
 }

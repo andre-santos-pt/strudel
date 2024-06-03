@@ -1,6 +1,7 @@
 package pt.iscte.strudel.javaparser
 
 import com.github.javaparser.StaticJavaParser
+import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.Modifier
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.*
@@ -67,24 +68,20 @@ class Java2Strudel(
         StaticJavaParser.getParserConfiguration().setSymbolResolver(JavaSymbolSolver(typeSolver()))
     }
 
+    private fun CompilationUnit.clean() {
+        removePackageDeclaration()
+        removeMainMethod()
+    }
+
     fun load(file: File): IModule =
-        translate(StaticJavaParser.parse(file).apply {
-            removePackageDeclaration()
-            removeMainMethod()
-        }.findAll(ClassOrInterfaceDeclaration::class.java))
+        translate(StaticJavaParser.parse(file).findAll(ClassOrInterfaceDeclaration::class.java))
 
     fun load(files: List<File>): IModule = translate(files.map {
-        StaticJavaParser.parse(it).apply {
-            removePackageDeclaration()
-            removeMainMethod()
-        }.findAll(ClassOrInterfaceDeclaration::class.java)
+        StaticJavaParser.parse(it).findAll(ClassOrInterfaceDeclaration::class.java)
     }.flatten())
 
     fun load(src: String): IModule =
-        translate(StaticJavaParser.parse(src).apply {
-            removePackageDeclaration()
-            removeMainMethod()
-        }.findAll(ClassOrInterfaceDeclaration::class.java))
+        translate(StaticJavaParser.parse(src).findAll(ClassOrInterfaceDeclaration::class.java))
 
     internal fun <T : IProgramElement> T.bind(
         node: Node,

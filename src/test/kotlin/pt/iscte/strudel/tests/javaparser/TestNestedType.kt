@@ -3,7 +3,7 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.extensions.string
+import pt.iscte.strudel.javaparser.extensions.getString
 import pt.iscte.strudel.vm.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -35,6 +35,57 @@ class TestNestedType {
         val list = vm.allocateRecord(listType).target
         assertEquals(NULL, list.getField(listType["first"]))
         assertEquals(NULL, list.getField(listType["last"]))
+    }
+
+    @Test
+    fun `Not static`() {
+        val src = """
+            public class LinkedList<T> implements Iterable<T> {
+                private class Node {
+                    public T item;
+                    public Node next;
+                    
+                    public Node(T item, Node next) {
+                        this.item = item;
+                        this.next = next;
+                    }
+                }
+                
+                private Node first;
+                private Node last;
+                
+                public LinkedList(T init) {
+                    first = new Node(init, null);
+                    last = first;
+                }
+                
+                public T first() {
+                    return first.item;
+                }
+                
+                private class LinkedListIterator implements Iterator<T> {
+                    private Node current = first;
+                    
+                    public boolean hasNext() {
+                        return current != null;
+                    }
+                    
+                    public T next() {
+                        T item = current;
+                        current = current.next;
+                        return item;
+                    }
+                }
+            }
+        """.trimIndent()
+        val module = assertDoesNotThrow { Java2Strudel().load(src) }
+
+        val listType = assertDoesNotThrow { module.getRecordType("LinkedList") }
+        val nodeType = assertDoesNotThrow { module.getRecordType("LinkedList.Node") }
+        val iteratorType = assertDoesNotThrow { module.getRecordType("LinkedList.LinkedListIterator") }
+        assertNotNull(listType)
+        assertNotNull(nodeType)
+        assertNotNull(iteratorType)
     }
 
     @Test

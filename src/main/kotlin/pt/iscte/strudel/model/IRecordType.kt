@@ -138,8 +138,11 @@ class HostRecordType(
 
     override fun toString(): String = type.name
 
+    override fun isSame(e: IProgramElement): Boolean {
+        return e is HostRecordType && type == e.type
+    }
+
     override val bytes: Int
         get() = TODO("Not yet implemented")
-
 
 }

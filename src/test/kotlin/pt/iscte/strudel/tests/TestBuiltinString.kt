@@ -2,29 +2,29 @@ package pt.iscte.strudel.tests
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.javaparser.StringType
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.impl.IForeignProcedure
 import pt.iscte.strudel.vm.impl.Value
+import pt.iscte.strudel.model.impl.ReferenceType
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-val stringType = HostRecordType(String::class.java.name)
-
-val StringCreate = IForeignProcedure.create("String", "create", stringType, listOf(CHAR)) { m, args ->
-    Value(stringType, args[0].toString())
+val StringCreate = IForeignProcedure.create("String", "create", StringType, listOf(CHAR)) { m, args ->
+    Value(StringType, args[0].toString())
 }
 
-val StringConcat = IForeignProcedure.create("String", "concat", stringType, listOf(stringType, stringType)) { m, args ->
-    Value(stringType, (args[0].value.toString()) + (args[1].value.toString()))
+val StringConcat = IForeignProcedure.create("String", "concat", StringType, listOf(StringType, StringType)) { m, args ->
+    Value(StringType, (args[0].value.toString()) + (args[1].value.toString()))
 }
 
 class TestBuiltinString : pt.iscte.strudel.tests.BaseTest({
     Procedure(StringCreate).setProperty(NAMESPACE_PROP, "String")
     Procedure(StringConcat)
-    Procedure(stringType, "strConcat") {
-        val str = Var(stringType, "str")
+    Procedure(StringType, "strConcat") {
+        val str = Var(StringType, "str")
         Assign(str, callExpression(StringCreate, CHAR.literal('a')))
         Assign(str, callExpression(StringConcat, str.expression(), CHAR.literal('b')))
         Return(callExpression(StringConcat, str.expression(), CHAR.literal('c')))

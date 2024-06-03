@@ -2,7 +2,7 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.extensions.string
+import pt.iscte.strudel.javaparser.extensions.getString
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.math.sqrt
 import kotlin.test.assertEquals
@@ -23,7 +23,7 @@ class TestStringConcat {
         val vm = IVirtualMachine.create()
         val concat = module.getProcedure("concatStringString")
 
-        val result = vm.execute(concat, string("hello "), string("world"))
+        val result = vm.execute(concat, getString("hello "), getString("world"))
         assertEquals("hello world", result?.value)
     }
 
@@ -41,7 +41,7 @@ class TestStringConcat {
         val vm = IVirtualMachine.create()
         val concat = module.getProcedure("concatStringPrimitive")
 
-        val result = vm.execute(concat, string("hello "), vm.getValue(2))
+        val result = vm.execute(concat, getString("hello "), vm.getValue(2))
         assertEquals("hello 2", result?.value)
     }
 
@@ -61,7 +61,7 @@ class TestStringConcat {
         val vm = IVirtualMachine.create()
         val concat = module.getProcedure("concatLeft")
 
-        val result = vm.execute(concat, string("hello "))
+        val result = vm.execute(concat, getString("hello "))
         assertEquals("hello ${sqrt(2.0)}", result?.value)
     }
 
@@ -81,7 +81,7 @@ class TestStringConcat {
         val vm = IVirtualMachine.create()
         val concat = module.getProcedure("concatRight")
 
-        val result = vm.execute(concat, string(" hello"))
+        val result = vm.execute(concat, getString(" hello"))
         assertEquals("${sqrt(2.0)} hello", result?.value)
     }
 }
