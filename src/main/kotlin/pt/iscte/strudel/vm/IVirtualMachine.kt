@@ -71,9 +71,8 @@ interface IVirtualMachine {
     fun execute(procedure: IProcedure, vararg arguments: IValue): IValue?
 
     fun allocateArrayOf(baseType: IType, vararg values: Any): IReference<IArray> {
-        val a = allocateArray(baseType, values.size)
+        val array = heapMemory.allocateArray(baseType, values.size)
         values.forEachIndexed { i, e ->
-
             val v =
                 if (baseType.isValueType) getValue(e)
                 else if (baseType.isArrayReference) e as IReference<IArray>
@@ -86,11 +85,13 @@ interface IVirtualMachine {
                 "Cannot add element $e of IType ${v.type::class.simpleName} ${v.type.id} to array with base IType ${baseType::class.simpleName} ${baseType.id}"
             }
             // to avoid listener notification
-            val array = a.target as pt.iscte.strudel.vm.impl.Array
-            array.elements[i] = v
-            //a.target.setElement(i, v)
+            (array as pt.iscte.strudel.vm.impl.Array).elements[i] = v
         }
-        return a
+        val ref = Reference(array)
+        listeners.forEach {
+            it.arrayAllocated(ref)
+        }
+        return ref
     }
 
     fun allocateRecord(type: IRecordType): IReference<IRecord> {
