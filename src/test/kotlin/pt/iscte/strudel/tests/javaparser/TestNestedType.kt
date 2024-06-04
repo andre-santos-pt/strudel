@@ -6,7 +6,9 @@ import pt.iscte.strudel.javaparser.Java2Strudel
 import pt.iscte.strudel.javaparser.extensions.getString
 import pt.iscte.strudel.vm.*
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class TestNestedType {
 
@@ -25,6 +27,8 @@ class TestNestedType {
         """.trimIndent()
         val module = Java2Strudel().load(src)
 
+        println(module)
+
         val listType = assertDoesNotThrow { module.getRecordType("LinkedList") }
         val nodeType = assertDoesNotThrow { module.getRecordType("LinkedList.Node") }
         assertNotNull(listType)
@@ -40,8 +44,10 @@ class TestNestedType {
     @Test
     fun `Not static`() {
         val src = """
+            import java.util.Iterator;
+                
             public class LinkedList<T> implements Iterable<T> {
-                private class Node {
+                private static class Node {
                     public T item;
                     public Node next;
                     
@@ -63,10 +69,15 @@ class TestNestedType {
                     return first.item;
                 }
                 
+                public Iterator<T> iterator() {
+                    return new LinkedListIterator();
+                }
+                
                 private class LinkedListIterator implements Iterator<T> {
                     private Node current = first;
                     
                     public boolean hasNext() {
+                        T ignored = last.item;
                         return current != null;
                     }
                     
@@ -80,19 +91,47 @@ class TestNestedType {
         """.trimIndent()
         val module = assertDoesNotThrow { Java2Strudel().load(src) }
 
+        println(module)
+
         val listType = assertDoesNotThrow { module.getRecordType("LinkedList") }
         val nodeType = assertDoesNotThrow { module.getRecordType("LinkedList.Node") }
         val iteratorType = assertDoesNotThrow { module.getRecordType("LinkedList.LinkedListIterator") }
         assertNotNull(listType)
         assertNotNull(nodeType)
         assertNotNull(iteratorType)
+
+        val vm = IVirtualMachine.create()
+
+        val list = vm.allocateRecord(listType)
+        val constructor = module.getProcedure("\$init", "LinkedList")
+
+        vm.execute(constructor, list, vm.getValue(12345))
+
+        val first = list.target.getField(listType["first"]) as IReference<IRecord>
+        val last = list.target.getField(listType["last"]) as IReference<IRecord>
+
+        val firstItem = first.target.getField(nodeType["item"]) as IReference<IValue>
+        val lastItem = last.target.getField(nodeType["item"]) as IReference<IValue>
+
+        assertEquals(12345, firstItem.target.value)
+        assertEquals(12345, lastItem.target.value)
+
+        val iteratorMethod = module.getProcedure("iterator", "LinkedList")
+        val ref = vm.execute(iteratorMethod, list)
+        assertIs<IReference<IRecord>>(ref)
+        val iterator: IRecord = ref.target
+
+        val current = iterator.getField(iteratorType["current"]) as IReference<IRecord>
+        assertTrue(current.target.type.isSame(nodeType))
+        val currentItem = current.target.getField(nodeType["item"]) as IReference<IValue>
+        assertEquals(12345, currentItem.target.value)
     }
 
     @Test
     fun `Declared and used`() {
         val src = """
             public class LinkedList<T> {
-                private class Node {
+                private static class Node {
                     public T item;
                     public Node next;
                     
@@ -116,6 +155,8 @@ class TestNestedType {
             }
         """.trimIndent()
         val module = Java2Strudel().load(src)
+
+        println(module)
 
         val listType = assertDoesNotThrow { module.getRecordType("LinkedList") }
         val nodeType = assertDoesNotThrow { module.getRecordType("LinkedList.Node") }

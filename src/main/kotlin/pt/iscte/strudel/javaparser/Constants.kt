@@ -20,6 +20,8 @@ const val CONSTRUCTOR_FLAG = "CONSTRUCTOR"
 
 internal const val THIS_PARAM = "\$this"
 
+internal const val OUTER_PARAM = "\$outer"
+
 internal const val INIT = "\$init"
 
 internal const val IT = "\$it"

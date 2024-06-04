@@ -16,6 +16,7 @@ import com.github.javaparser.ast.visitor.ModifierVisitor
 import com.github.javaparser.ast.visitor.Visitable
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import pt.iscte.strudel.javaparser.INIT
+import pt.iscte.strudel.javaparser.OUTER_PARAM
 import pt.iscte.strudel.javaparser.StringType
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.vm.IArray
@@ -26,6 +27,12 @@ import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
 import kotlin.jvm.optionals.getOrDefault
+
+val IProcedureDeclaration.outerParameter: IParameter
+    get() = parameters.find { it.id == OUTER_PARAM }!!
+
+val IProcedureDeclaration.hasOuterParameter: Boolean
+    get() = kotlin.runCatching { this.outerParameter }.isSuccess
 
 fun getString(value: String): IValue = Value(StringType, java.lang.String(value))
 
@@ -153,27 +160,6 @@ internal fun Statement.getSingleUnary(): List<UnaryExpr> {
             }.size == 1
         }
     else emptyList()
-}
-
-internal fun CompilationUnit.removeMainMethod() {
-    val visitor = object : ModifierVisitor<Void>() {
-        private fun isMain(n: MethodDeclaration): Boolean =
-            n.isPublic
-            && n.isStatic
-            && n.typeAsString == "void"
-            && n.nameAsString == "main"
-            && n.parameters.size == 1
-            && n.parameters.first().typeAsString == "String[]"
-
-        override fun visit(n: MethodDeclaration?, arg: Void?): Visitable? {
-            if (n != null && isMain(n)) {
-                n.body.ifPresent { n.setComment(JavadocComment(it.toString())) }
-                n.setBody(BlockStmt())
-            }
-            return super.visit(n, arg)
-        }
-    }
-    accept(visitor, null)
 }
 
 internal fun Node.substituteControlBlocks() {

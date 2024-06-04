@@ -12,10 +12,7 @@ import pt.iscte.strudel.javaparser.extensions.asForeignProcedure
 import pt.iscte.strudel.javaparser.extensions.isJavaClassName
 import pt.iscte.strudel.javaparser.extensions.mapType
 import pt.iscte.strudel.model.*
-import pt.iscte.strudel.model.dsl.False
-import pt.iscte.strudel.model.dsl.True
-import pt.iscte.strudel.model.dsl.character
-import pt.iscte.strudel.model.dsl.lit
+import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.Conditional
 import pt.iscte.strudel.model.impl.Literal
 import pt.iscte.strudel.model.impl.ProcedureCall
@@ -34,10 +31,19 @@ class JavaExpression2Strudel(
 
 ) {
 
+    private fun IRecordType.findFieldInHierarchy(id: String): IField? {
+        val f = getField(id)
+        if (f == null) {
+            return if (declaringType != null) declaringType!!.findFieldInHierarchy(id) else null
+        } else {
+            return f
+        }
+    }
+
     private fun findVariableResolve(v: NameExpr): IVariableDeclaration<*>? {
         fun findVariable(id: String): IVariableDeclaration<*>? =
             procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
-                ((p.type as IReferenceType).target as IRecordType).getField(id)
+                ((p.type as IReferenceType).target as IRecordType).findFieldInHierarchy(id)
             }
         return when (val r = v.resolve()) {
             is JavaParserVariableDeclaration -> decMap[r.variableDeclarator]
@@ -55,10 +61,21 @@ class JavaExpression2Strudel(
             is BooleanLiteralExpr -> if (exp.value) True else False
 
             is NameExpr -> {
-                val target = findVariableResolve(exp) //findVariable(exp.nameAsString)
+                val target = findVariableResolve(exp) // findVariable(exp.nameAsString)
                 if (target == null)
-                    println("Could not find variable for expression ${exp.parentNode}")
-                if (target?.isField == true) procedure.thisParameter.field(target as IVariableDeclaration<IRecordType>)
+                    System.err.println("Could not find variable for expression ${exp.parentNode.getOrNull ?: exp}")
+                if (target?.isField == true) {
+                    val fieldOwnerType = target.owner as IRecordType
+                    val procedureDeclaringType = procedure.thisParameter.type.asRecordType
+                    val outerType = procedureDeclaringType.declaringType
+                    if (outerType != null && outerType.isSame(fieldOwnerType))
+                        if (procedure.hasOuterParameter) procedure.outerParameter.field(target as IField)
+                        else procedureDeclaringType.getField(OUTER_PARAM)!!.field(target as IField)
+                    else if (procedureDeclaringType.isSame(fieldOwnerType))
+                        procedure.thisParameter.field(target as IField)
+                    else
+                        unsupported("inner class variable more than 1 nested types deep", exp)
+                }
                 else target?.expression() ?: error("not found $exp", exp)
             }
 
@@ -143,13 +160,16 @@ class JavaExpression2Strudel(
             is ArrayAccessExpr -> map(exp.name).element(map(exp.index))
 
             is ObjectCreationExpr -> {
-                val const =
+                val const: IProcedureDeclaration =
                     kotlin.runCatching { procedures.findProcedure(exp.type.resolve().describe(), INIT, emptyList()) }.getOrNull()
                     ?: procedures.findProcedure(exp.type.nameAsString, INIT, emptyList()) // TODO params
                     ?: exp.asForeignProcedure(procedure.module!!, types)
                     ?: unsupported("constructor for type ${exp.type.nameWithScope}", exp)
                 val alloc = types.mapType(exp.type).asRecordType.heapAllocation()
-                const.expression(listOf(alloc) + exp.arguments.map { map(it) })
+                if (const.hasOuterParameter)
+                    const.expression(listOf(procedure.thisParameter.exp(), alloc) + exp.arguments.map { map(it) })
+                else
+                    const.expression(listOf(alloc) + exp.arguments.map { map(it) })
             }
 
             is FieldAccessExpr -> {

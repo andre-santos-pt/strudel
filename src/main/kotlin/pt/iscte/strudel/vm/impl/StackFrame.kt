@@ -18,7 +18,7 @@ internal class StackFrame(callStack: ICallStack, procedure: IProcedure, override
     override var returnValue: IValue? = null
 
     init {
-        require(procedure.parameters.size == arguments.size) { "number of arguments do not match (${procedure.id})"}
+        require(procedure.parameters.size == arguments.size) { "number of arguments do not match (${procedure.namespace}.${procedure.id})"}
         procedure.parameters.forEachIndexed {
             i, p ->
 //           require(p.type.isSame(arguments[i].type) || p.type.isReference && arguments[i] == NULL) {

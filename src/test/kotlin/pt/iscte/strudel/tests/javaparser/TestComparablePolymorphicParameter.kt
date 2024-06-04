@@ -3,6 +3,8 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.javaparser.StringType
+import pt.iscte.strudel.javaparser.extensions.getString
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.vm.IArray
@@ -78,5 +80,23 @@ class TestComparablePolymorphicParameter {
         (1..10).forEach {
             assertEquals(it, x.target.getElement(it - 1).value)
         }
+    }
+
+    @Test
+    fun testPolymorphicForeignUsage2() {
+        val module = Java2Strudel().load(insertion)
+        val vm = IVirtualMachine.create()
+
+        val x = vm.allocateArrayOf(StringType, getString("dois"), getString("quatro"), getString("um"), getString("tres"))
+
+        val sort = module.getProcedure(("sort"))
+        vm.execute(sort, x)
+
+        println(x)
+
+        assertEquals("dois", x.target.getElement(0).value)
+        assertEquals("quatro", x.target.getElement(1).value)
+        assertEquals("tres", x.target.getElement(2).value)
+        assertEquals("um", x.target.getElement(3).value)
     }
 }

@@ -1,5 +1,7 @@
 package pt.iscte.strudel.model
 
+import pt.iscte.strudel.javaparser.THIS_PARAM
+
 
 typealias IParameter = IVariableDeclaration<IProcedureDeclaration>
 
@@ -31,7 +33,7 @@ interface IProcedureDeclaration : IModuleMember {
 //        return matchesSignature(id, *args.map { it.type })
 //    }
 
-    val thisParameter: IParameter get() = parameters.find { it.id == "\$this" }!!
+    val thisParameter: IParameter get() = parameters.find { it.id == THIS_PARAM }!!
 
     /*
     fun matchesSignature(id: String, vararg paramTypes: IType): Boolean {

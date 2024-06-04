@@ -5,6 +5,7 @@ import com.github.javaparser.ast.expr.ObjectCreationExpr
 import com.github.javaparser.resolution.types.ResolvedType
 import pt.iscte.strudel.javaparser.THIS_PARAM
 import pt.iscte.strudel.javaparser.StringType
+import pt.iscte.strudel.javaparser.defaultTypes
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import pt.iscte.strudel.vm.IValue
@@ -58,16 +59,16 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
         //println("Handling abstract method call $this for namespace $namespace...")
         if (namespace != null) {
             val clazz: Class<*> = getClassByName(namespace)
-            module.types.forEach {
+            (module.types + defaultTypes.values).forEach {
                 kotlin.runCatching { it.toJavaType() }.onSuccess {
                     val t: Class<*> = (it.rootComponentType() ?: it).wrapperType
                     //println("\tFound type: ${t.canonicalName}. Is ${clazz.simpleName} assignable from ${t.simpleName}? ${clazz.isAssignableFrom(t)}")
                     if (clazz.isAssignableFrom(t) && !t.isInterface) {
                         val args = arguments.map { arg -> arg.getResolvedJavaType() }
-                        //println("\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
+                        //println("\t\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
                         val implementation = t.findCompatibleMethod(nameAsString, args)
                         if (implementation != null) {
-                            //println("\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
+                            //println("\t\t\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
                             module.members.add(foreign(module, implementation, types))
                         }
                     }
@@ -78,6 +79,15 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
     }
     else if (scope.isPresent) {
         kotlin.runCatching {
+            if (nameAsString == "equals")
+                return ForeignProcedure(
+                module,
+                namespace,
+                "equals",
+                BOOLEAN,
+                arguments.map { it.getResolvedIType(types) }
+            ) {  vm, args -> vm.getValue(args.all { it == args.first() }) }
+
             val clazz: Class<*> = scope.get().getResolvedJavaType()
 
             val args = arguments.map { it.getResolvedJavaType() }.toTypedArray()
