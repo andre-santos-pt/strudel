@@ -117,7 +117,10 @@ import kotlin.reflect.full.hasAnnotation
 
     TestUnaryExpressionReplace::class,
 
-    TestRecordArray::class
+    TestRecordArray::class,
+
+    TestBugNoUseOfReturnValue::class,
+    TestArrayAllocationEvent::class
 
     /* All of these were missing: check main() function below
 

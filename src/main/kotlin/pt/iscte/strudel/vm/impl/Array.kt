@@ -6,21 +6,21 @@ import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.NULL
 
 internal class Array(private val t: IArrayType, length: Int) : IArray {
-    internal val elements: kotlin.Array<IValue> = Array(length) { NULL }
+    internal val array: kotlin.Array<IValue> = Array(length) { NULL }
     override val type get() = t
 
     private val listeners = mutableListOf<IArray.IListener>()
 
     override fun copy(): IArray {
-        val copy = Array(type, elements.size)
-        for (i in elements.indices) copy.elements[i] = elements[i]
+        val copy = Array(type, array.size)
+        for (i in array.indices) copy.array[i] = array[i]
         return copy
     }
 
-    override val length: Int  get() = elements.size
+    override val length: Int  get() = array.size
 
     override fun getElement(i: Int): IValue {
-        val elem = elements[i]
+        val elem = array[i]
         listeners.forEach {
             it.elementRead(i, elem)
         }
@@ -28,17 +28,17 @@ internal class Array(private val t: IArrayType, length: Int) : IArray {
     }
 
     override fun setElement(i: Int, value: IValue) {
-        val old = elements[i]
-        elements[i] = value
+        val old = array[i]
+        array[i] = value
         listeners.forEach {
             it.elementChanged(i, old, value)
         }
     }
 
     override val value: Any
-        get() = elements
+        get() = array
 
-    override fun toString() = "[" + elements.joinToString(", ") + "]"
+    override fun toString() = "[" + array.joinToString(", ") + "]"
 
     override val isNull: Boolean = false
     override val isTrue: Boolean = false

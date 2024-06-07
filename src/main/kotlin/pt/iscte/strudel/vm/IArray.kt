@@ -14,12 +14,13 @@ interface IArray : IMemory {
     override val memory: Int
         get() = length * (type as IArrayType).bytes + ARRAY_OVERHEAD
 
-    fun setElements(vararg values: IValue) {
-        require(values.size <= length)
-        values.forEachIndexed {
-            i, e -> setElement(i, e)
+    var elements: List<IValue>
+        get() = (0 until length).map { getElement(it) }
+        set(value) {
+            require(value.size == length)
+            value.forEachIndexed { i, e -> setElement(i, e) }
         }
-    }
+
 
     fun addListener(listener: IListener)
 

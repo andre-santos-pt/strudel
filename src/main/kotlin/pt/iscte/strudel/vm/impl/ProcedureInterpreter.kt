@@ -297,6 +297,9 @@ class ProcedureInterpreter(
                 *s.arguments.reversed().toTypedArray()
             )?.reversed()?.let { args ->
                 handleProcedureCall(s.procedure, args)
+                // to clear the return value from the stack
+                if(!s.procedure.returnType.isVoid)
+                    valStack.pop()
                 return true
             }
 
@@ -350,11 +353,11 @@ class ProcedureInterpreter(
 
             // TODO only works for 1 dim
             is PredefinedArrayAllocation -> eval(exp.elements)?.let {
-                val arrayRef =
-                    vm.allocateArray(exp.componentType, exp.elements.size)
-                it.reversed().forEachIndexed { index, e ->
-                    arrayRef.target.setElement(index, e)
-                }
+               val arrayRef = vm.allocateArrayOfValues(exp.componentType, it.reversed())
+//                val arrayRef = vm.allocateArray(exp.componentType, exp.elements.size)
+//                it.reversed().forEachIndexed { index, e ->
+//                    arrayRef.target.setElement(index, e)
+//                }
                 valStack.push(arrayRef)
             }
 
@@ -570,4 +573,17 @@ class ProcedureInterpreter(
         }
         throw UnsupportedOperationException(operator.toString())
     }
+}
+
+internal fun IVirtualMachine.allocateArrayOfValues(baseType: IType, values: List<IValue>): IReference<IArray> {
+    val array = heapMemory.allocateArray(baseType, values.size)
+    // to avoid listener notification
+    values.forEachIndexed { i, e ->
+        (array as Array).array[i] = e
+    }
+    val ref = Reference(array)
+    listeners.forEach {
+        it.arrayAllocated(ref)
+    }
+    return ref
 }
