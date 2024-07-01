@@ -18,11 +18,10 @@ import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import pt.iscte.strudel.javaparser.INIT
 import pt.iscte.strudel.javaparser.OUTER_PARAM
 import pt.iscte.strudel.javaparser.StringType
+import pt.iscte.strudel.javaparser.defaultTypes
 import pt.iscte.strudel.model.*
-import pt.iscte.strudel.vm.IArray
-import pt.iscte.strudel.vm.IReference
-import pt.iscte.strudel.vm.IValue
-import pt.iscte.strudel.vm.IVirtualMachine
+import pt.iscte.strudel.model.VOID
+import pt.iscte.strudel.vm.*
 import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
@@ -33,6 +32,9 @@ val IProcedureDeclaration.outerParameter: IParameter
 
 val IProcedureDeclaration.hasOuterParameter: Boolean
     get() = kotlin.runCatching { this.outerParameter }.isSuccess
+
+val IProcedureDeclaration.hasThisParameter: Boolean
+    get() = kotlin.runCatching { this.thisParameter }.isSuccess
 
 fun getString(value: String): IValue = Value(StringType, java.lang.String(value))
 
@@ -57,11 +59,35 @@ internal val MethodCallExpr.isAbstractMethodCall: Boolean
     get() = kotlin.runCatching { resolve().isAbstract }.getOrDefault(false)
 
 internal fun IProcedureDeclaration.matches(namespace: String?, id: String, parameterTypes: List<IType>): Boolean {
-    val paramTypeMatch = this.parameters.map { it.type } == parameterTypes // FIXME
+    //println("Does ${this.namespace}.${this.id}(${this.parameters.joinToString { it.type.id!! }}) match $namespace.$id(${parameterTypes.joinToString { it.id!! }})?")
+
     val idAndNamespaceMatch =
         if (namespace == null) this.id == id
         else this.namespace == namespace && this.id == id
-    return idAndNamespaceMatch // && paramTypeMatch
+    if (!idAndNamespaceMatch) {
+        //println("\tNope: ID and/or namespace do not match.")
+        return false
+    }
+
+    var paramTypes: List<IType> = this.parameters.map { it.type }
+    if (this.hasOuterParameter)
+        paramTypes = paramTypes.subList(1, paramTypes.size)
+    if (this.hasThisParameter)
+        paramTypes = paramTypes.subList(1, paramTypes.size)
+
+    if (paramTypes.size != parameterTypes.size) {
+        //println("\tNope. Different number of parameters.")
+        return false
+    }
+
+    return true
+
+    /* FIXME
+    val paramTypeMatch = paramTypes.zip(parameterTypes).all { it.first.isSame(it.second) }
+    if (!paramTypeMatch)
+        println("\tNope. Parameter types do not match.")
+    return paramTypeMatch
+     */
 }
 
 internal val ClassOrInterfaceDeclaration.qualifiedName: String

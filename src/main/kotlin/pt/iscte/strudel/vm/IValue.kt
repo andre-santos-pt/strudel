@@ -1,6 +1,7 @@
 package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.*
+import pt.iscte.strudel.vm.impl.Reference
 
 object NULL : IValue {
     override val value = this
@@ -56,6 +57,8 @@ interface IValue {
     fun toChar() : Char {
         return value as Char
     }
+
+    fun reference(): IReference<IValue> = Reference(this)
 }
 
 interface IMemory : IValue

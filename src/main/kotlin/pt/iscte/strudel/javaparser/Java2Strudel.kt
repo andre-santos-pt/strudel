@@ -322,7 +322,7 @@ class Java2Strudel(
 
                 // Set field initialiser for $outer parameter
                 if (outer != null) {
-                    block.FieldSet(
+                    block.FieldSet( // s.f = e
                         instance.expression(),
                         returnType.asRecordType.getField(OUTER_PARAM)!!,
                         outer.expression()
@@ -387,6 +387,7 @@ class Java2Strudel(
             if (c.extendedTypes.isNotEmpty())
                 unsupported("extends keyword", c.extendedTypes.first())
 
+            /*
             if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 }) {
                 val nodes = c.methods
                     .groupBy { it.nameAsString }
@@ -395,6 +396,7 @@ class Java2Strudel(
                     .toList()
                 unsupported("method name overloading", nodes)
             }
+             */
 
             val type = Record(c.qualifiedName) {
                 bind(c.name, ID_LOC)

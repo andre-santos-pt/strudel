@@ -61,12 +61,20 @@ interface IModule : IModuleView {
 
     fun getProcedure(id: String, namespace: String? = null): IProcedure
             = members.filterIsInstance<IProcedure>().find { it.id == id && (namespace == null || it.namespace == namespace)}!!
+
+    fun getProcedure(id: String, namespace: String? = null, match: (IProcedure) -> Boolean): IProcedure =
+        members.filterIsInstance<IProcedure>().find { it.id == id &&  (namespace == null || it.namespace == namespace) && match(it)}!!
+
+    fun getProcedure(id: String, vararg parameterTypes: IType = arrayOf()): IProcedure =
+        members.filterIsInstance<IProcedure>().find {
+            it.id == id && it.parameters.size == parameterTypes.size && it.parameters.map { it.type }.zip(parameterTypes).all { it.first == it.second || it.first.isSame(it.second) }
+        }!!
+
     fun getProcedure(match: (IProcedure) -> Boolean): IProcedure?
         = members.filterIsInstance<IProcedure>().find { match(it) }
 
     fun findProcedures(match: (IProcedure) -> Boolean): List<IProcedure>
         = members.filterIsInstance<IProcedure>().filter { match(it) }
-
 
     val namespaces: Set<String>
         get() {

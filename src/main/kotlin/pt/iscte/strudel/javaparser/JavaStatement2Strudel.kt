@@ -43,6 +43,12 @@ class JavaStatement2Strudel(
                 procedure.parameters.find { it.id == THIS_PARAM }?.
                 let { p -> ((p.type as IReferenceType).target as IRecordType).getField(id) }
 
+            fun FieldAccessExpr.findBaseScope(): Expression = when(scope) {
+                is NameExpr -> scope
+                is FieldAccessExpr -> (scope as FieldAccessExpr).findBaseScope()
+                else -> unsupported("field access", stmt)
+            }
+
             fun handleAssign(block: IBlock, a: AssignExpr): IStatement {
                 when (a.target) {
                     is NameExpr -> {
@@ -86,7 +92,7 @@ class JavaStatement2Strudel(
                             if ((a.target as FieldAccessExpr).scope.isThisExpr)
                                 procedure.namespace //(a.target as FieldAccessExpr).scope.asThisExpr().typeName.getOrNull?.id
                             else
-                                JPFacade.solve((a.target as FieldAccessExpr).scope).correspondingDeclaration.type.asReferenceType().id
+                                JPFacade.solve((a.target as FieldAccessExpr).findBaseScope()).correspondingDeclaration.type.asReferenceType().id
 
                         return when (a.operator) { // TODO compound assignment operators
                             AssignExpr.Operator.ASSIGN ->

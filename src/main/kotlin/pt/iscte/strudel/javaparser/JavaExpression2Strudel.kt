@@ -160,9 +160,10 @@ class JavaExpression2Strudel(
             is ArrayAccessExpr -> map(exp.name).element(map(exp.index))
 
             is ObjectCreationExpr -> {
+                val paramTypes = exp.arguments.map { it.getResolvedIType(types) }
                 val const: IProcedureDeclaration =
-                    kotlin.runCatching { procedures.findProcedure(exp.type.resolve().describe(), INIT, emptyList()) }.getOrNull()
-                    ?: procedures.findProcedure(exp.type.nameAsString, INIT, emptyList()) // TODO params
+                    kotlin.runCatching { procedures.findProcedure(exp.type.resolve().describe(), INIT, paramTypes) }.getOrNull()
+                    ?: procedures.findProcedure(exp.type.nameAsString, INIT, paramTypes)
                     ?: exp.asForeignProcedure(procedure.module!!, types)
                     ?: unsupported("constructor for type ${exp.type.nameWithScope}", exp)
                 val alloc = types.mapType(exp.type).asRecordType.heapAllocation()

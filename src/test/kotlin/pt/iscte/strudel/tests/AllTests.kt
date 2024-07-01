@@ -120,24 +120,9 @@ import kotlin.reflect.full.hasAnnotation
     TestRecordArray::class,
 
     TestBugNoUseOfReturnValue::class,
-    TestArrayAllocationEvent::class
+    TestArrayAllocationEvent::class,
 
-    /* All of these were missing: check main() function below
-
-    TestJavaParser::class,
-    TestChars::class,
-    TestMatrix3d::class,
-    TestNaturalsTemp::class,
-    TestsPaper::class,
-    TestStackRecord::class,
-    TestUnboundType::class,
-    TestDocumentation::class,
-    TestGCD::class,
-    TestHeavyProcessing::class,
-    TestMatrixIndexOutOfBounds::class,
-    TestUsedMemory::class
-     */
-
+    TestMethodNameOverloading::class
 )
 class AllTests
 
