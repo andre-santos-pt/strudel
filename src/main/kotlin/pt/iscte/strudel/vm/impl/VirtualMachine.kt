@@ -212,8 +212,8 @@ internal class VirtualMachine(
 
         override fun copy(): IRecord {
             val record = Record(type)
-            for (f in type.fields) record.fields[f] =
-                getField(f).copy() as IReference<*>
+            for (f in type.fields)
+                record.fields[f] = fields[f]!!.copy()
             return record
         }
 

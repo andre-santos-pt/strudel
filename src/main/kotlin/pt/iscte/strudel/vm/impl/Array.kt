@@ -19,6 +19,13 @@ internal class Array(private val t: IArrayType, length: Int) : IArray {
 
     override val length: Int  get() = array.size
 
+    override var elements: List<IValue>
+        get() = array.toList()
+        set(value) {
+            require(value.size == length)
+            for (i in value.indices) array[i] = value[i]
+        }
+
     override fun getElement(i: Int): IValue {
         val elem = array[i]
         listeners.forEach {
