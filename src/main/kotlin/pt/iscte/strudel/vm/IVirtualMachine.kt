@@ -115,6 +115,7 @@ interface IVirtualMachine {
     interface IListener {
         fun procedureCall(procedure: IProcedureDeclaration, args: List<IValue>, caller: IProcedure?) {}
         fun procedureEnd(procedure: IProcedureDeclaration, args: List<IValue>, result: IValue?) {}
+        fun statement(s: IStatement) {}
         fun returnCall(s: IReturn, returnValue: IValue?) {}
         fun variableAssignment(a: IVariableAssignment, value: IValue) {}
         fun arrayElementAssignment(a: IArrayElementAssignment, ref: IReference<IArray>, index: Int, value: IValue) {}

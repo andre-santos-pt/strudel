@@ -236,7 +236,10 @@ class ProcedureInterpreter(
             is IVariableAssignment -> eval(s.expression)?.let {
                 vm.listeners.forEach { l -> l.expressionEvaluation(s.expression, s, it, s.expression.materialize()) }
                 vm.callStack.topFrame[s.target] = it
-                vm.listeners.forEach { l -> l.variableAssignment(s, it) }
+                vm.listeners.forEach { l ->
+                    l.statement(s)
+                    l.variableAssignment(s, it)
+                }
                 return true
             }
 
@@ -253,6 +256,7 @@ class ProcedureInterpreter(
 
                 array.target.setElement(i, value)
                 vm.listeners.forEach { l ->
+                    l.statement(s)
                     l.arrayElementAssignment(s, array, i, value)
                 }
                 return true
@@ -263,7 +267,10 @@ class ProcedureInterpreter(
                 vm.listeners.forEach { l -> l.expressionEvaluation(s.expression, s, value, s.expression.materialize()) }
                 val recordRef = target as IReference<IRecord>
                 recordRef.target.setField(s.field, value)
-                vm.listeners.forEach { l -> l.fieldAssignment(s, recordRef, value) }
+                vm.listeners.forEach { l ->
+                    l.statement(s)
+                    l.fieldAssignment(s, recordRef, value)
+                }
                 return true
             }
 
@@ -274,28 +281,34 @@ class ProcedureInterpreter(
                 else if (s.expression != null) {
                     val e = eval(s.expression!!)
                     e?.let {
-                        vm.listeners.forEach { l -> l.expressionEvaluation(s.expression!!, s, it, s.expression!!.materialize()) }
+                        vm.listeners.forEach { l ->
+                            l.expressionEvaluation(s.expression!!, s, it, s.expression!!.materialize())
+                        }
                         returnValue = it
                         vm.callStack.topFrame.returnValue = it
                         blockStack.clear()
                         vm.listeners.forEach { l ->
-                            l.returnCall(
-                                s,
-                                returnValue
-                            )
+                            l.statement(s)
+                            l.returnCall(s, returnValue)
                         }
                     }
                     return e != null
                 } else {
                     vm.callStack.topFrame.returnValue = NULL
                     blockStack.clear()
-                    vm.listeners.forEach { it.returnCall(s, returnValue) }
+                    vm.listeners.forEach { l ->
+                        l.statement(s)
+                        l.returnCall(s, returnValue)
+                    }
                     return true
                 }
 
             is IProcedureCall -> eval(
                 *s.arguments.reversed().toTypedArray()
             )?.reversed()?.let { args ->
+                vm.listeners.forEach { l ->
+                    l.statement(s)
+                }
                 handleProcedureCall(s.procedure, args)
                 // to clear the return value from the stack
                 if(!s.procedure.returnType.isVoid)
@@ -309,11 +322,17 @@ class ProcedureInterpreter(
 
                 blockStack.pop()
                 blockStack.top.index++
+                vm.listeners.forEach { l ->
+                    l.statement(s)
+                }
             }
             is IContinue -> {
                 while (!blockStack.top.isLoop)
                     blockStack.pop()
                 blockStack.pop()
+                vm.listeners.forEach { l ->
+                    l.statement(s)
+                }
             }
             else -> {
                 throw RuntimeError(
