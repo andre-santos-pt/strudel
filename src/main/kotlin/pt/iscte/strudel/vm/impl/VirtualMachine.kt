@@ -40,7 +40,7 @@ internal class VirtualMachine(
     override val usedMemory: Int
         get() = stack.memory + heapMemory.memory
 
-    var call: ProcedureInterpreter? = null
+    var call: ProcedureInterpreterNoExpression? = null
 
     override val instructionPointer: IProgramElement?
         get() = call?.instructionPointer
@@ -81,7 +81,7 @@ internal class VirtualMachine(
             "number of arguments (${arguments.size}) do not match ${procedure.id}(${procedure.parameters.size})"
         }
         return try {
-            call = ProcedureInterpreter(this, procedure, *arguments)
+            call = ProcedureInterpreterNoExpression(this, procedure, *arguments)
             call?.run()
             call?.returnValue
         } catch (e: RuntimeError) {
