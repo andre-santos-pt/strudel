@@ -16,6 +16,6 @@ interface IStackFrame {
 
     fun getValue(varId: String): IValue
 
-    operator fun get(it: IVariableDeclaration<IBlock>): IValue?
+    operator fun get(it: IVariableDeclaration<*>): IValue?
     operator fun set(target: IVariableDeclaration<*>, value: IValue)
 }

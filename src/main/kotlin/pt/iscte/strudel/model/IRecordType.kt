@@ -92,18 +92,10 @@ class HostRecordType(
 ): IRecordType {
     val type = Class.forName(qualifiedName)
 
-    init {
-       // setProperty(ID_PROP, id)
-    }
 
     override val module: IModule? = null
     override val fields: MutableList<IVariableDeclaration<IRecordType>> = mutableListOf()
 
-    init {
-//        type.declaredFields.forEach {
-//            VariableDeclaration<IRecordType>(this, it.type)
-//        }
-    }
     override fun addField(type: IType, configure: (IField) -> Unit): IField {
        throw UnsupportedOperationException()
     }
@@ -115,11 +107,6 @@ class HostRecordType(
     override fun heapAllocation(): IRecordAllocation {
         return RecordAllocation(this)
     }
-
-//    override fun reference(): IReferenceType {
-//        return this.reference()
-//    }
-
 
     override fun cloneProperties(e: IProgramElement) {
         throw UnsupportedOperationException()
@@ -143,6 +130,6 @@ class HostRecordType(
     }
 
     override val bytes: Int
-        get() = TODO("Not yet implemented")
+        get() = RECORD_OVERHEAD // TODO
 
 }

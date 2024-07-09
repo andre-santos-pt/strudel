@@ -80,6 +80,7 @@ internal class VirtualMachine(
         require(arguments.size == procedure.parameters.size) {
             "number of arguments (${arguments.size}) do not match ${procedure.id}(${procedure.parameters.size})"
         }
+        error = null
         return try {
             call = ProcedureInterpreterNoExpression(this, procedure, *arguments)
             call?.run()
@@ -106,6 +107,12 @@ internal class VirtualMachine(
     inner class Memory : IHeapMemory {
         private val objects: MutableList<IValue> = mutableListOf()
 
+        private fun add(v: IValue) {
+            if(memory + v.memory > availableMemory)
+                throw RuntimeError(RuntimeErrorType.OUT_OF_MEMORY, null, "out of memory")
+            objects.add(v)
+        }
+
         override fun allocateArray(
             baseType: IType,
             vararg dimensions: Int
@@ -128,24 +135,18 @@ internal class VirtualMachine(
                             j, allocateArray(baseType, *remainingDims)
                         )
             }
-            objects.add(array)
+            add(array)
             return array
         }
 
         override fun allocateRecord(type: IRecordType): IRecord {
             val rec = Record(type)
-            objects.add(rec)
+            add(rec)
             return rec
         }
 
         override val memory: Int
-            get() {
-                var mem = 0
-                objects.forEach { value ->
-                    mem += value.memory
-                }
-                return mem
-            }
+            get() = objects.sumOf { it.memory }
     }
 
     inner class Record(override val type: IRecordType) : IRecord {

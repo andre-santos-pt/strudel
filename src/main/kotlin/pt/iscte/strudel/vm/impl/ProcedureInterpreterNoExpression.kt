@@ -339,7 +339,7 @@ class ProcedureInterpreterNoExpression(
         return false
     }
 
-    private fun evaluate(exp: IExpression): IValue =
+    fun evaluate(exp: IExpression): IValue =
         when (exp) {
             is ILiteral -> when (exp.type) {
                 INT -> Value(INT, exp.stringValue.toInt())

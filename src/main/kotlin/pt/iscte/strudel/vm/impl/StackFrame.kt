@@ -40,7 +40,7 @@ internal class StackFrame(callStack: ICallStack, procedure: IProcedure, override
         }
     }
 
-    override fun get(v: IVariableDeclaration<IBlock>): IValue? = variableMap[v]
+    override fun get(v: IVariableDeclaration<*>): IValue? = variableMap[v]
 
     override fun set(target: IVariableDeclaration<*>, value: IValue) {
         val old = variables[target]
