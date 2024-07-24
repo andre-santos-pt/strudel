@@ -1,5 +1,6 @@
 package pt.iscte.strudel.javaparser
 
+import com.github.javaparser.ParserConfiguration
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.Modifier
@@ -66,6 +67,7 @@ class Java2Strudel(
     private val fieldInitializers = mutableMapOf<IField, Expression>()
 
     init {
+        StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_20)
         StaticJavaParser.getParserConfiguration().setSymbolResolver(JavaSymbolSolver(typeSolver()))
     }
 
