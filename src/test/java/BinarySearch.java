@@ -1,5 +1,6 @@
 class BinarySearch {
-    static boolean binarySearch(int[] a, int e) {
+
+    public static boolean binarySearch(int[] a, int e) {
         int l = 0;
         int r = a.length - 1;
         while (l <= r) {

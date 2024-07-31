@@ -1,6 +1,6 @@
 package pt.iscte.strudel.vm.impl
 
-import pt.iscte.strudel.javaparser.OUTER_PARAM
+import pt.iscte.strudel.parsing.java.OUTER_PARAM
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.vm.*
 

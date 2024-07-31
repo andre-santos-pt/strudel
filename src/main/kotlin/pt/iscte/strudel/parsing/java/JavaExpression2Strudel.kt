@@ -1,4 +1,4 @@
-package pt.iscte.strudel.javaparser
+package pt.iscte.strudel.parsing.java
 
 import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
@@ -7,10 +7,6 @@ import com.github.javaparser.resolution.types.ResolvedReferenceType
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserParameterDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserVariableDeclaration
-import pt.iscte.strudel.javaparser.extensions.*
-import pt.iscte.strudel.javaparser.extensions.asForeignProcedure
-import pt.iscte.strudel.javaparser.extensions.isJavaClassName
-import pt.iscte.strudel.javaparser.extensions.mapType
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.Conditional
@@ -20,6 +16,7 @@ import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.model.util.UnaryOperator
+import pt.iscte.strudel.parsing.java.extensions.*
 
 class JavaExpression2Strudel(
     val procedure: IProcedure,
@@ -27,26 +24,20 @@ class JavaExpression2Strudel(
     val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>,
     private val types: MutableMap<String, IType>,
     private val translator: Java2Strudel,
-    val decMap: MutableMap<VariableDeclarator, IVariableDeclaration<IBlock>>
-
+    private val variableDeclarationMap: MutableMap<VariableDeclarator, IVariableDeclaration<IBlock>>
 ) {
 
-    private fun IRecordType.findFieldInHierarchy(id: String): IField? {
-        val f = getField(id)
-        if (f == null) {
-            return if (declaringType != null) declaringType!!.findFieldInHierarchy(id) else null
-        } else {
-            return f
-        }
-    }
+    private fun IRecordType.findFieldInHierarchy(id: String): IField? =
+        getField(id) ?: if (declaringType != null) declaringType!!.findFieldInHierarchy(id) else null
 
+    // Finds the variable declaration for a given variable name expression
     private fun findVariableResolve(v: NameExpr): IVariableDeclaration<*>? {
         fun findVariable(id: String): IVariableDeclaration<*>? =
             procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
                 ((p.type as IReferenceType).target as IRecordType).findFieldInHierarchy(id)
             }
         return when (val r = v.resolve()) {
-            is JavaParserVariableDeclaration -> decMap[r.variableDeclarator]
+            is JavaParserVariableDeclaration -> variableDeclarationMap[r.variableDeclarator]
             is JavaParserParameterDeclaration -> findVariable(r.wrappedNode.nameAsString)
             is JavaParserFieldDeclaration -> findVariable(r.name)
             else -> null
@@ -79,19 +70,15 @@ class JavaExpression2Strudel(
                 else target?.expression() ?: error("not found $exp", exp)
             }
 
-            is ThisExpr -> {
-                procedure.thisParameter.expression()
-            }
+            is ThisExpr -> procedure.thisParameter.expression()
 
             is NullLiteralExpr -> NULL_LITERAL
 
-            is StringLiteralExpr -> {
-                translator.foreignProcedures.find { it.id == NEW_STRING }!!.expression(
-                    CHAR.array().heapAllocationWith(exp.value.map {
-                        CHAR.literal(it)
-                    })
-                )
-            }
+            is StringLiteralExpr -> translator.foreignProcedures.find { it.id == NEW_STRING }!!.expression(
+                CHAR.array().heapAllocationWith(exp.value.map {
+                    CHAR.literal(it)
+                })
+            )
 
             is UnaryExpr -> mapUnaryOperator(exp).on(map(exp.expression)).apply {
                 // TODO review
@@ -104,27 +91,21 @@ class JavaExpression2Strudel(
                 )
             }
 
-            is BinaryExpr ->
-                // short circuit &&
-                if (exp.operator == BinaryExpr.Operator.AND)
-                    Conditional(map(exp.left), map(exp.right), False)
-                // short circuit ||
-                else if (exp.operator == BinaryExpr.Operator.OR)
-                    Conditional(map(exp.left), True, map(exp.right))
-                else
-                    mapBinaryOperator(exp).on(
-                        map(exp.left), map(exp.right)
-                    ).apply {
-                        if (exp.left.range.isPresent && exp.right.range.isPresent && exp.left.range.get().begin.line == exp.right.range.get().begin.line) {
-                            val from = exp.left.range.get().end.column + 1
-                            val to = exp.right.range.get().begin.column - 1
-                            setProperty(
-                                OPERATOR_LOC, SourceLocation(
-                                    exp.left.range.get().begin.line, from, to
-                                )
-                            )
+            is BinaryExpr -> when (exp.operator) {
+                BinaryExpr.Operator.AND -> Conditional(map(exp.left), map(exp.right), False) // short-circuit &&
+                BinaryExpr.Operator.OR -> Conditional(map(exp.left), True, map(exp.right)) // short-circuit ||
+                else -> mapBinaryOperator(exp).on(map(exp.left), map(exp.right)).apply {
+                    if (exp.left.range.isPresent && exp.right.range.isPresent) {
+                        val leftRange = exp.left.range.get()
+                        val rightRange = exp.right.range.get()
+                        if (leftRange.begin.line == rightRange.begin.line) {
+                            val from = leftRange.end.column + 1
+                            val to = rightRange.begin.column - 1
+                            setProperty(OPERATOR_LOC, SourceLocation(leftRange.begin.line, from, to))
                         }
                     }
+                }
+            }
 
             is EnclosedExpr -> map(exp.inner)
 
@@ -132,28 +113,23 @@ class JavaExpression2Strudel(
 
             // TODO multi level
             is ArrayCreationExpr -> {
-                if (exp.levels.any { !it.dimension.isPresent }) unsupported(
-                    "multi-dimension array initialization with partial dimensions",
-                    exp
-                )
+                if (exp.levels.any { !it.dimension.isPresent })
+                    unsupported("multi-dimension array initialization with partial dimensions", exp)
 
                 val arrayType = types.mapType(exp.elementType).array()
 
-                if (exp.levels[0].dimension.isPresent) arrayType.heapAllocation(exp.levels.map {
-                    map(
-                        it.dimension.get()
-                    )
-                })
+                if (exp.levels[0].dimension.isPresent)
+                    arrayType.heapAllocation(exp.levels.map { map(it.dimension.get()) })
                 else map(exp.initializer.get())
             }
 
             is ArrayInitializerExpr -> {
                 val values = exp.values.map { map(it) }
-                val baseType =
-                    if (exp.parentNode.getOrNull is ArrayCreationExpr) types.mapType((exp.parentNode.get() as ArrayCreationExpr).elementType)
-                    else if (exp.parentNode.getOrNull is VariableDeclarator) types.mapType((exp.parentNode.get() as VariableDeclarator).type)
-                    else unsupported("array initializer", exp)
-
+                val baseType = when (val parent = exp.parentNode.getOrNull) {
+                    is ArrayCreationExpr -> types.mapType(parent.elementType)
+                    is VariableDeclarator -> types.mapType(parent.type)
+                    else -> unsupported("array initializer", exp)
+                }
                 baseType.asArrayType.heapAllocationWith(values)
             }
 
@@ -165,7 +141,6 @@ class JavaExpression2Strudel(
                     kotlin.runCatching { procedures.findProcedure(exp.type.resolve().describe(), INIT, paramTypes) }.getOrNull()
                     ?: procedures.findProcedure(exp.type.nameAsString, INIT, paramTypes)
                     ?: exp.asForeignProcedure(procedure.module!!, types)
-                    ?: unsupported("constructor for type ${exp.type.nameWithScope}", exp)
                 val alloc = types.mapType(exp.type).asRecordType.heapAllocation()
                 if (const.hasOuterParameter)
                     const.expression(listOf(procedure.thisParameter.exp(), alloc) + exp.arguments.map { map(it) })
@@ -174,9 +149,9 @@ class JavaExpression2Strudel(
             }
 
             is FieldAccessExpr -> {
-                if (exp.scope is ArrayAccessExpr && exp.nameAsString == "length") {
+                if (exp.scope is ArrayAccessExpr && exp.nameAsString == "length")
                     map(exp.scope).length()
-                } else {
+                else {
                     if (exp.scope is ThisExpr) {
                         val thisParam = procedure.parameters.find { it.id == THIS_PARAM }!!
                         val thisType = (thisParam.type as IReferenceType).target as IRecordType
@@ -197,8 +172,7 @@ class JavaExpression2Strudel(
                         else {
                             val f = types[typeId]?.asRecordType?.fields?.find { it.id == exp.nameAsString } ?: error(
                                 "could not find field \"${exp.nameAsString}\" within record type $typeId", exp
-                            ) // UnboundVariableDeclaration(exp.nameAsString, procedure)
-
+                            )
                             map(exp.scope).field(f)
                         }
                     }
@@ -214,18 +188,7 @@ class JavaExpression2Strudel(
             else -> unsupported("expression type ${exp::class.simpleName}", exp)
         }.bind(exp)
     }
-
-    private fun isStringConcat(exp: BinaryExpr): Boolean {
-        if(exp.operator != BinaryExpr.Operator.PLUS)
-            return false
-
-        val leftType = exp.left.calculateResolvedType()
-        val rightType = exp.right.calculateResolvedType()
-
-        return (leftType is ResolvedReferenceType && leftType.qualifiedName == String::class.java.name) //|| rightType.isString
-    }
 }
-
 
 fun AssignExpr.Operator.map(a: AssignExpr): IBinaryOperator =
     when (this) {

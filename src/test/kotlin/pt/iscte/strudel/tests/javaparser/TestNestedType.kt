@@ -2,8 +2,7 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.extensions.getString
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.vm.*
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

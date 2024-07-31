@@ -2,15 +2,10 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.StrudelUnsupportedException
-import pt.iscte.strudel.model.IProcedureCall
-import pt.iscte.strudel.model.IReturn
-import pt.iscte.strudel.model.IVariableAssignment
+import pt.iscte.strudel.parsing.java.Java2Strudel
+import pt.iscte.strudel.parsing.java.StrudelUnsupportedException
 import pt.iscte.strudel.model.impl.ArrayElementAssignment
 import pt.iscte.strudel.model.impl.RecordFieldAssignment
-import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class TestUnaryExpressionReplace {

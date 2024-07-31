@@ -2,10 +2,9 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.vm.IArray
-import pt.iscte.strudel.vm.IRecord
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
 

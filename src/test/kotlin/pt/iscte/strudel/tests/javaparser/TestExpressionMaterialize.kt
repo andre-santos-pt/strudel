@@ -1,7 +1,7 @@
 package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.util.*
 import pt.iscte.strudel.vm.IValue

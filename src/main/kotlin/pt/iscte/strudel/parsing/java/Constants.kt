@@ -1,5 +1,4 @@
-package pt.iscte.strudel.javaparser
-
+package pt.iscte.strudel.parsing.java
 
 const val JP = "JP"
 
@@ -16,7 +15,6 @@ const val KEYWORD_LOC = "KEYWORD_LOC"
 const val OPERATOR_LOC = "OPERATOR_LOC"
 
 const val CONSTRUCTOR_FLAG = "CONSTRUCTOR"
-
 
 internal const val THIS_PARAM = "\$this"
 

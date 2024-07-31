@@ -5,7 +5,6 @@ import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.VirtualMachine
 import pt.iscte.strudel.vm.impl.defaultValue
 
-
 // TODO GC
 interface IVirtualMachine {
     val callStack: ICallStack
@@ -129,8 +128,7 @@ interface IVirtualMachine {
             context: IExpressionHolder,
             value: IValue,
             concreteExpression: IExpression
-        ) {
-        }
+        ) { }
 
         fun executionError(e: RuntimeError) {}
         fun systemOutput(text: String) {}

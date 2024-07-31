@@ -1,4 +1,4 @@
-package pt.iscte.strudel.javaparser.extensions
+package pt.iscte.strudel.parsing.java.extensions
 
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
@@ -7,31 +7,25 @@ import com.github.javaparser.ast.type.Type
 import com.github.javaparser.resolution.TypeSolver
 import com.github.javaparser.resolution.model.typesystem.LazyType
 import com.github.javaparser.resolution.model.typesystem.NullType
-import com.github.javaparser.resolution.types.ResolvedArrayType
-import com.github.javaparser.resolution.types.ResolvedPrimitiveType
-import com.github.javaparser.resolution.types.ResolvedReferenceType
-import com.github.javaparser.resolution.types.ResolvedType
-import com.github.javaparser.resolution.types.ResolvedTypeVariable
+import com.github.javaparser.resolution.types.*
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
-import pt.iscte.strudel.javaparser.OUTER_PARAM
-import pt.iscte.strudel.javaparser.defaultTypes
+import pt.iscte.strudel.parsing.java.OUTER_PARAM
+import pt.iscte.strudel.parsing.java.defaultTypes
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.ArrayType
 import pt.iscte.strudel.vm.NULL
 import java.lang.reflect.Array
 import java.lang.reflect.Method
 import kotlin.jvm.optionals.getOrNull
+import pt.iscte.strudel.parsing.java.error
 
-internal fun typeSolver(): TypeSolver {
-    // combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-core")))
-    // combinedTypeSolver.add(JavaParserTypeSolver(File("src/main/resources/javaparser-generated-sources")))
-    return CombinedTypeSolver().apply { add(ReflectionTypeSolver()) }
-}
+internal fun typeSolver(): TypeSolver = CombinedTypeSolver().apply { add(ReflectionTypeSolver()) }
 
 internal fun MutableMap<String, IType>.mapType(t: String): IType = this[t] ?: getTypeByName(t, this)
 
-internal fun MutableMap<String, IType>.mapType(t: Type) = mapType(kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString()))
+internal fun MutableMap<String, IType>.mapType(t: Type) =
+    mapType(kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString()))
 
 internal fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
     mapType(t.fullyQualifiedName.getOrNull() ?: t.nameAsString)
@@ -39,10 +33,7 @@ internal fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
 internal fun isJavaClassName(qualifiedName: String): Boolean = runCatching { getClassByName(qualifiedName) }.isSuccess
 
 internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = defaultTypes): IType {
-    //println("Getting type with name $qualifiedName from [${types.keys.joinToString()}]")
-
     val arrayTypeDepth = Regex("\\[\\]").findAll(qualifiedName).count()
-
     if (arrayTypeDepth == 0)
         return defaultTypes[qualifiedName] ?: types[qualifiedName] ?: HostRecordType(getClassByName(qualifiedName).canonicalName)
 
@@ -51,46 +42,25 @@ internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = de
         var type = defaultTypes[componentTypeName] ?: types[componentTypeName] ?: HostRecordType(getClassByName(componentTypeName).canonicalName)
         (0 until arrayTypeDepth).forEach { _ -> type = type.array() }
         type
-    }.getOrNull() ?: pt.iscte.strudel.javaparser.error("unsupported type $qualifiedName", qualifiedName)
-
-    //return defaultTypes[qualifiedName] ?: types[qualifiedName] ?: JavaType(getClassByName(qualifiedName))
+    }.getOrElse { error("unsupported type $qualifiedName", qualifiedName) }
 }
-/*
-    try {
-        JavaType(Class.forName(name))
-    } catch (e1: Exception) {
-        try {
-            JavaType(Class.forName("java.lang.$name"))
-        } catch (e2: Exception) {
-            try {
-                JavaType(Class.forName("java.util.$name"))
-            } catch (e3: Exception) {
-                pt.iscte.strudel.javaparser.error("could not find IType with name $name", name)
-            }
-        }
-    }
- */
 
 internal fun getClassByName(qualifiedName: String): Class<*> {
     val arrayTypeDepth = Regex("\\[\\]").findAll(qualifiedName).count()
-
     if (arrayTypeDepth == 0)
-        return runCatching { Class.forName(qualifiedName) }.getOrNull() ?:
-        pt.iscte.strudel.javaparser.error("unsupported class $qualifiedName", qualifiedName)
+        return runCatching { Class.forName(qualifiedName) }.getOrElse { error("unsupported class $qualifiedName", qualifiedName) }
 
-    // TODO could also do array types for IType with .array().reference() instead of .arrayType()
     return runCatching {
         val componentTypeName = qualifiedName.replace("[]", "")
         var cls = Class.forName(componentTypeName)
         (0 until arrayTypeDepth).forEach { _ -> cls = cls.arrayType() }
         cls
-    }.getOrNull() ?: pt.iscte.strudel.javaparser.error("unsupported class $qualifiedName", qualifiedName)
+    }.getOrElse { error("unsupported class $qualifiedName", qualifiedName) }
 }
 
 internal fun getTypeFromJavaParser(node: Node, type: Type, types: Map<String, IType>): IType =
     runCatching { getTypeByName(type.resolve().erasure().describe(), types) }.getOrNull() ?:
-    runCatching { getTypeByName(type.asString(), types) }.getOrNull() ?:
-    pt.iscte.strudel.javaparser.error("could not find IType for type $type", node)
+    runCatching { getTypeByName(type.asString(), types) }.getOrNull() ?: error("could not find IType for type $type", node)
 
 internal fun ResolvedType.toIType(types: Map<String, IType>): IType = when (this) {
     ResolvedPrimitiveType.CHAR -> CHAR
@@ -102,7 +72,7 @@ internal fun ResolvedType.toIType(types: Map<String, IType>): IType = when (this
     is LazyType -> getTypeByName(this.erasure().describe(), types)
     is ResolvedTypeVariable -> types["java.lang.Object"]!!
     is NullType -> NULL.type
-    else -> pt.iscte.strudel.javaparser.error("unsupported expression type ${this::class.qualifiedName}", this)
+    else -> error("unsupported expression type ${this::class.qualifiedName}", this)
 }
 
 internal fun ResolvedType.toJavaType(): Class<*> = when (this) {
@@ -115,14 +85,12 @@ internal fun ResolvedType.toJavaType(): Class<*> = when (this) {
     is LazyType -> getClassByName(this.describe())
     is ResolvedTypeVariable -> Any::class.java // Generics compile to Object
     is NullType -> Nothing::class.java
-    else -> pt.iscte.strudel.javaparser.error("unsupported expression type ${this::class.qualifiedName}", this)
+    else -> error("unsupported expression type ${this::class.qualifiedName}", this)
 }
 
 internal fun Expression.getResolvedJavaType(): Class<*> = kotlin.runCatching {
     calculateResolvedType().toJavaType()
-}.onFailure {
-    println("Failed to resolve Java type of $this: $it")
-}.getOrThrow()
+}.onFailure { println("Failed to resolve Java type of $this: $it") }.getOrThrow()
 
 internal fun Expression.getResolvedIType(types: Map<String, IType>): IType = kotlin.runCatching {
     calculateResolvedType().toIType(types)
@@ -147,7 +115,6 @@ internal fun IType.toJavaType(): Class<*> = when(this) {
     else -> error("IType $this has no matching Java type")
 }
 
-// Trying collapsing into a single "when" branch, but it didn't work the same
 internal val Class<*>.wrapperType: Class<*>
     get() = when (this) {
         Int::class.java -> Int::class.javaObjectType
@@ -171,9 +138,6 @@ internal val Class<*>.primitiveType: Class<*>
         Boolean::class.javaObjectType -> Boolean::class.java
         else -> this
     }
-
-internal val IRecordType.isInnerClass: Boolean
-    get() = fields.any { it.id == OUTER_PARAM }
 
 internal val IRecordType.declaringType: IRecordType?
     get() = getField(OUTER_PARAM)?.type as? IRecordType ?: (getField(OUTER_PARAM)?.type as? IReferenceType)?.target as? IRecordType

@@ -1,4 +1,4 @@
-package pt.iscte.strudel.javaparser
+package pt.iscte.strudel.parsing.java
 
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.vm.IValue
@@ -10,8 +10,6 @@ internal val StringType = HostRecordType(String::class.java.canonicalName)
 
 internal val defaultTypes = mapOf(
     "void" to VOID,
-
-    //"Object" to ANY,
 
     "int" to INT,
     "double" to DOUBLE,
@@ -46,45 +44,22 @@ internal val defaultForeignProcedures = listOf(
         else args[0].toString() + System.lineSeparator()
         m.systemOutput(text)
     },
-    ForeignProcedure(null,null, "print", VOID, ANY) { m, args ->
-        m.systemOutput(args[0].toString())
-    },
+    ForeignProcedure(null,null, "print", VOID, ANY) { m, args -> m.systemOutput(args[0].toString()) },
     ForeignProcedure(null,"System.out", "println", VOID, ANY) { m, args ->
         val text = if(args.isEmpty()) System.lineSeparator()
         else args[0].toString() + System.lineSeparator()
         m.systemOutput(text)
     },
-    ForeignProcedure(null,"System.out", "print", VOID, ANY) { m, args ->
-        m.systemOutput(args[0].toString())
-    },
+    ForeignProcedure(null,"System.out", "print", VOID, ANY) { m, args -> m.systemOutput(args[0].toString()) },
     ForeignProcedure(
         null,
         null,
         NEW_STRING,
         StringType,
         listOf(CHAR.array().reference())
-    ) { m, args ->
+    ) { _, args ->
             val chars = ((args[0].value as pt.iscte.strudel.vm.impl.Array).value as Array<IValue>).map { it.toChar() }.toCharArray()
             Value(StringType, String(chars))
 
     },
-//    ForeignProcedure(
-//        null,
-//        null,
-//        "concat",
-//        stringType,
-//        listOf(ANY, ANY)
-//    ) { m, args ->
-//        Value(stringType, args[0].value.toString() + args[1].value.toString())
-//    },
-//    ,
-//    ForeignProcedure(
-//        null,
-//        null,
-//        "length",
-//        INT,
-//        listOf(stringType)
-//    ) { m, args ->
-//        Value(INT, args[0].value.toString().length)
-//    },
 )

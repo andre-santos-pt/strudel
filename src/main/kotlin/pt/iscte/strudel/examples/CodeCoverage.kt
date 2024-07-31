@@ -1,7 +1,7 @@
 package pt.iscte.strudel.examples
 
 import com.github.javaparser.ast.Node
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.IModule
 import pt.iscte.strudel.model.IStatement
 import pt.iscte.strudel.vm.IVirtualMachine

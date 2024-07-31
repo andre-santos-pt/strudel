@@ -2,9 +2,9 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.StringType
-import pt.iscte.strudel.javaparser.extensions.getString
+import pt.iscte.strudel.parsing.java.Java2Strudel
+import pt.iscte.strudel.parsing.java.StringType
+import pt.iscte.strudel.parsing.java.extensions.getString
 import pt.iscte.strudel.model.HostRecordType
 import pt.iscte.strudel.vm.IRecord
 import pt.iscte.strudel.vm.IReference

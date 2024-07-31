@@ -9,7 +9,6 @@ val IBinaryOperator.isArithmetic
 
 enum class ArithmeticOperator (
     override var id: String?,
-
 ) : IBinaryOperator {
     ADD("+"),
     SUB("-"),

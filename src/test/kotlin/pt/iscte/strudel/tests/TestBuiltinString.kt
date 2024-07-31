@@ -1,15 +1,13 @@
 package pt.iscte.strudel.tests
 
 import org.junit.jupiter.api.Test
-import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.StringType
+import pt.iscte.strudel.parsing.java.Java2Strudel
+import pt.iscte.strudel.parsing.java.StringType
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.impl.IForeignProcedure
 import pt.iscte.strudel.vm.impl.Value
-import pt.iscte.strudel.model.impl.ReferenceType
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 val StringCreate = IForeignProcedure.create("String", "create", StringType, listOf(CHAR)) { m, args ->

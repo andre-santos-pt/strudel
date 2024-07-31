@@ -1,12 +1,9 @@
 package pt.iscte.strudel.examples
 
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.*
-import pt.iscte.strudel.model.util.find
-import pt.iscte.strudel.model.util.findAll
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
-import pt.iscte.strudel.vm.NULL
 
 fun main() {
     val javaCode = """

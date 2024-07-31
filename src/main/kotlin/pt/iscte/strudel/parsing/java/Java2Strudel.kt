@@ -1,4 +1,4 @@
-package pt.iscte.strudel.javaparser
+package pt.iscte.strudel.parsing.java
 
 import com.github.javaparser.ParserConfiguration
 import com.github.javaparser.StaticJavaParser
@@ -15,10 +15,13 @@ import com.github.javaparser.ast.stmt.WhileStmt
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade
-import pt.iscte.strudel.javaparser.extensions.*
+import pt.iscte.strudel.parsing.java.extensions.*
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
+import pt.iscte.strudel.parsing.ITranslator
+import pt.iscte.strudel.parsing.java.extensions.matches
+import pt.iscte.strudel.parsing.java.extensions.qualifiedName
 import java.io.File
 import kotlin.reflect.KClass
 
@@ -49,14 +52,13 @@ inline fun error(msg: String, node: Any): Nothing {
 
 val JPFacade: JavaParserFacade = JavaParserFacade.get(typeSolver())
 
-
 class Java2Strudel(
     val foreignTypes: List<IType> = emptyList(),
     val foreignProcedures: List<IProcedureDeclaration> = defaultForeignProcedures,
     private val bindSource: Boolean = true,
     private val bindJavaParser: Boolean = true,
     private val preprocessing: CompilationUnit.() -> Unit = { } // Pre-process AST before translating
-) {
+): ITranslator {
 
     private val supportedModifiers = listOf(
         Modifier.Keyword.STATIC,
@@ -71,14 +73,14 @@ class Java2Strudel(
         StaticJavaParser.getParserConfiguration().setSymbolResolver(JavaSymbolSolver(typeSolver()))
     }
 
-    fun load(file: File): IModule =
+    override fun load(file: File): IModule =
         translate(StaticJavaParser.parse(file).apply(preprocessing).types.filterIsInstance<ClassOrInterfaceDeclaration>())
 
-    fun load(files: List<File>): IModule = translate(files.map {
+    override fun load(files: List<File>): IModule = translate(files.map {
         StaticJavaParser.parse(it).apply(preprocessing).types.filterIsInstance<ClassOrInterfaceDeclaration>()
     }.flatten())
 
-    fun load(src: String): IModule =
+    override fun load(src: String): IModule =
         translate(StaticJavaParser.parse(src).apply(preprocessing).types.filterIsInstance<ClassOrInterfaceDeclaration>())
 
     internal fun <T : IProgramElement> T.bind(
@@ -180,36 +182,8 @@ class Java2Strudel(
                 while (t.isArrayType)
                     t = t.asArrayType().componentType
                 val typeName = kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString())
-
                 if (typeName !in types)
-                    runCatching { getClassByName(typeName) }.onSuccess {
-                        list.add(HostRecordType(it.canonicalName))
-                    }.onFailure {
-                        // it.printStackTrace()
-                    }
-
-                /*
-                if (typeName !in types) {
-                    try {
-                        Class.forName(typeName)
-                        list.add(HostRecordType(typeName))
-                    } catch (e: Exception) {
-                        val langName = "java.lang.$typeName"
-                        try {
-                            Class.forName(langName)
-                            list.add(HostRecordType(langName))
-                        } catch (e: Exception) {
-                            try {
-                                val typeNameUtil = "java.util.$typeName"
-                                Class.forName(typeNameUtil)
-                                list.add(HostRecordType(typeNameUtil))
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
-                        }
-                    }
-                }
-                 */
+                    runCatching { getClassByName(typeName) }.onSuccess { list.add(HostRecordType(it.canonicalName)) }
             }
         }, null)
         return list
@@ -318,9 +292,7 @@ class Java2Strudel(
                 }
 
                 // Add $this parameter
-                val instance = addParameter(this.returnType).apply {
-                    id = THIS_PARAM
-                }
+                val instance = addParameter(this.returnType).apply { id = THIS_PARAM }
 
                 // Set field initialiser for $outer parameter
                 if (outer != null) {
@@ -389,7 +361,7 @@ class Java2Strudel(
             if (c.extendedTypes.isNotEmpty())
                 unsupported("extends keyword", c.extendedTypes.first())
 
-            /*
+            /* FIXME method overloading should be OK unless signatures actually match
             if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 }) {
                 val nodes = c.methods
                     .groupBy { it.nameAsString }
@@ -415,41 +387,23 @@ class Java2Strudel(
             }
         }
 
-        /*
-        classes.forEach { c ->
-            collectHostTypes(types, c).forEach {
-                types[it.id] = it
-                types[it.id + "[]"] = it
-                types[it.id + "[][]"] = it
-            }
-        }
-         */
-
-
         // Translate field declarations for each class
         allClasses.filter { !it.isInterface }.forEach { c ->
             val recordType = (types[c.qualifiedName] as IReferenceType).target as IRecordType
             c.fields.forEach { field ->
                 field.variables.forEach { variableDeclaration ->
                     val fieldType =
-                        if (variableDeclaration.isGeneric(c)) {
-                            //println("$variableDeclaration has generic type declared in ${variableDeclaration.getGenericDeclarator()?.nameAsString}")
-                            types["java.lang.Object"]
-                        } else types[variableDeclaration.typeAsString]
+                        if (variableDeclaration.isGeneric(c)) types["java.lang.Object"]
+                        else types[variableDeclaration.typeAsString]
                             ?: types[kotlin.runCatching { variableDeclaration.type.resolve().describe() }
                                 .getOrDefault(variableDeclaration.type.asString())]
-                    if (fieldType == null) {
-                        //println("Types:")
-                        //types.forEach { (name, type) -> println("\t $name = $type") }
+                    if (fieldType == null)
                         error(
                             "Could not find type for variable declaration ${variableDeclaration.typeAsString} / ${
-                                variableDeclaration.type.resolve().describe()
-                            }", variableDeclaration
+                                variableDeclaration.type.resolve().describe()}", variableDeclaration
                         )
-                    }
-                    val f = recordType.addField(fieldType) {
-                        id = variableDeclaration.nameAsString
-                    }
+
+                    val f = recordType.addField(fieldType) { id = variableDeclaration.nameAsString }
 
                     // Store field initializer JavaParser expressions
                     // (these are translated and injected into constructor(s) later)
@@ -468,9 +422,7 @@ class Java2Strudel(
             // Default constructors created for classes with no explicit constructor declarations
             val defaultConstructors = filter {
                 !it.isInterface && it.constructors.isEmpty() && it.methods.none { method -> method.nameAsString == INIT }
-            }.map {
-                null to createDefaultConstructor(it)
-            }
+            }.map { null to createDefaultConstructor(it) }
 
             // Each explicit constructor declarations are translated
             val explicitConstructors = flatMap { it.constructors }.map {
@@ -480,7 +432,7 @@ class Java2Strudel(
             // Each of a type's methods is translated
             val methods = flatMap { it.methods }.map {
                 // Replace string concatenation with + with String.concat(String) calls
-                it.replaceStringConcatPlus()
+                it.replaceStringPlusWithConcat()
                 it.substituteControlBlocks()
                 it.replaceIncDecAsExpressions()
                 it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).qualifiedName)
@@ -502,12 +454,7 @@ class Java2Strudel(
             val t = type ?: thisParameter.type.asRecordType
             t.fields.reversed().forEach { field ->
                 fieldInitializers[field]?.let {
-                    block.FieldSet(
-                        thisParameter.expression(),
-                        field,
-                        exp2Strudel.map(it),
-                        0
-                    )
+                    block.FieldSet(thisParameter.expression(), field, exp2Strudel.map(it), 0)
                 }
             }
         }
@@ -515,27 +462,18 @@ class Java2Strudel(
         // Translate bodies of all procedures
         procedures.forEach {
             if (it.first != null && it.second is IProcedure) {
-                val stmtTranslator = JavaStatement2Strudel(
-                    it.second as IProcedure,
-                    procedures,
-                    types,
-                    this@Java2Strudel
-                )
+                val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedures, types, this@Java2Strudel)
 
                 // Translate statements in declaration body
-                it.first!!.body?.let { body ->
-                    stmtTranslator.translate(body, (it.second as IProcedure).block)
-                }
+                it.first!!.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
 
                 // Inject field initializers and return statement in constructors
                 if (it.first is ConstructorDeclaration) {
                     (it.second as IProcedure).injectFieldInitializers()
                     (it.second as IProcedure).block.Return(it.second.thisParameter)
                 }
-            } else if (it.first == null) { // No JavaParser declaration --> default constructor
-                // Inject field initializers into default constructors
-                (it.second as IProcedure).injectFieldInitializers()
-            }
+            } else if (it.first == null) // No JavaParser declaration --> default constructor
+                (it.second as IProcedure).injectFieldInitializers() // Inject field initializers into default constructors
         }
     }
 }

@@ -2,12 +2,11 @@ package pt.iscte.strudel.tests
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.IReturn
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
-import kotlin.test.assertNull
 
 class TestDocumentation {
 

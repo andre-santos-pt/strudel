@@ -1,11 +1,9 @@
-package pt.iscte.strudel.javaparser.extensions
+package pt.iscte.strudel.parsing.java.extensions
 
 import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.ObjectCreationExpr
 import com.github.javaparser.resolution.types.ResolvedType
-import pt.iscte.strudel.javaparser.THIS_PARAM
-import pt.iscte.strudel.javaparser.StringType
-import pt.iscte.strudel.javaparser.defaultTypes
+import pt.iscte.strudel.parsing.java.*
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import pt.iscte.strudel.vm.IValue
@@ -56,21 +54,16 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
     }
 
     if (isAbstractMethodCall) {
-        //println("Handling abstract method call $this for namespace $namespace...")
         if (namespace != null) {
             val clazz: Class<*> = getClassByName(namespace)
             (module.types + defaultTypes.values).forEach {
                 kotlin.runCatching { it.toJavaType() }.onSuccess {
                     val t: Class<*> = (it.rootComponentType() ?: it).wrapperType
-                    //println("\tFound type: ${t.canonicalName}. Is ${clazz.simpleName} assignable from ${t.simpleName}? ${clazz.isAssignableFrom(t)}")
                     if (clazz.isAssignableFrom(t) && !t.isInterface) {
                         val args = arguments.map { arg -> arg.getResolvedJavaType() }
-                        //println("\t\t${clazz.canonicalName} is assignable from ${t.canonicalName}, finding method ${t.canonicalName}.$nameAsString(${args.joinToString { it.canonicalName }})...")
                         val implementation = t.findCompatibleMethod(nameAsString, args)
-                        if (implementation != null) {
-                            //println("\t\t\tAdding method $implementation to module because ${clazz.canonicalName} is assignable from ${t.canonicalName}")
+                        if (implementation != null)
                             module.members.add(foreign(module, implementation, types))
-                        }
                     }
                 }
             }
@@ -94,10 +87,7 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
             val method: Method = clazz.getMethod(nameAsString, *args)
 
             return foreign(module, method, types)
-        }.getOrElse {
-            //println("Failed to find method for method call $this: $it")
-            return null
-        }
+        }.getOrElse { return null }
     }
     return null
 }
@@ -105,20 +95,15 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
 internal fun ObjectCreationExpr.asForeignProcedure(module: IModule, types: Map<String, IType>): ForeignProcedure {
     val parameterTypes = arguments.map { it.getResolvedJavaType() }.toTypedArray()
     val constructor = getResolvedJavaType().getConstructor(*parameterTypes)
-
+    val type = getTypeByName(constructor.declaringClass.canonicalName, types)
     return ForeignProcedure(
         module,
         constructor.declaringClass.canonicalName,
         constructor.name,
-        getTypeByName(constructor.declaringClass.canonicalName, types),
+        type,
         arguments.map { it.getResolvedIType(types) }
     )
-    { vm, args ->
-        Value(
-            HostRecordType(constructor.declaringClass.canonicalName),
-            constructor.newInstance(*args.slice(1 until args.size).map { it.value }.toTypedArray())
-        )
-    }
+    { _, a -> Value(type, constructor.newInstance(*a.slice(1 until a.size).map { it.value }.toTypedArray())) }
 }
 
 internal fun ResolvedType.foreignStaticFieldAccess(module: IModule, types: Map<String, IType>): ForeignProcedure {
@@ -130,8 +115,5 @@ internal fun ResolvedType.foreignStaticFieldAccess(module: IModule, types: Map<S
         getTypeByName(java.canonicalName, types),
         listOf(StringType)
     )
-    { vm, args ->
-        val fieldId = args.first().value as String
-        Value(HostRecordType(java.canonicalName), java.getField(fieldId).get(null))
-    }
+    { _, args -> Value(HostRecordType(java.canonicalName), java.getField(args.first().value as String).get(null)) }
 }

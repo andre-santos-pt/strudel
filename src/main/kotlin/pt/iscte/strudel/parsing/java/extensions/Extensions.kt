@@ -1,28 +1,14 @@
-package pt.iscte.strudel.javaparser.extensions
+package pt.iscte.strudel.parsing.java.extensions
 
-import com.github.javaparser.ast.CompilationUnit
-import com.github.javaparser.ast.Node
-import com.github.javaparser.ast.NodeList
-import com.github.javaparser.ast.body.CallableDeclaration
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
-import com.github.javaparser.ast.body.ConstructorDeclaration
-import com.github.javaparser.ast.body.MethodDeclaration
-import com.github.javaparser.ast.body.VariableDeclarator
-import com.github.javaparser.ast.comments.Comment
-import com.github.javaparser.ast.comments.JavadocComment
+import com.github.javaparser.ast.*
+import com.github.javaparser.ast.body.*
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
-import com.github.javaparser.ast.visitor.ModifierVisitor
-import com.github.javaparser.ast.visitor.Visitable
+import com.github.javaparser.ast.comments.Comment
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
-import pt.iscte.strudel.javaparser.INIT
-import pt.iscte.strudel.javaparser.OUTER_PARAM
-import pt.iscte.strudel.javaparser.StringType
-import pt.iscte.strudel.javaparser.defaultTypes
+import pt.iscte.strudel.parsing.java.*
 import pt.iscte.strudel.model.*
-import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.vm.*
-import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
 import kotlin.jvm.optionals.getOrDefault
@@ -36,14 +22,13 @@ val IProcedureDeclaration.hasOuterParameter: Boolean
 val IProcedureDeclaration.hasThisParameter: Boolean
     get() = kotlin.runCatching { this.thisParameter }.isSuccess
 
+val IModule.proceduresExcludingConstructors: List<IProcedureDeclaration>
+    get() = procedures.filter { !it.hasThisParameter }
+
 fun getString(value: String): IValue = Value(StringType, java.lang.String(value))
 
-val IModule.proceduresExcludingConstructors: List<IProcedureDeclaration>
-    get() = procedures.filter { it.id != INIT }
-
 val <T> Optional<T>.getOrNull: T?
-    get() =
-        if (isPresent) this.get() else null
+    get() = if (isPresent) this.get() else null
 
 fun Optional<Comment>.translateComment(): String? =
     if (isPresent) {
@@ -59,15 +44,10 @@ internal val MethodCallExpr.isAbstractMethodCall: Boolean
     get() = kotlin.runCatching { resolve().isAbstract }.getOrDefault(false)
 
 internal fun IProcedureDeclaration.matches(namespace: String?, id: String, parameterTypes: List<IType>): Boolean {
-    //println("Does ${this.namespace}.${this.id}(${this.parameters.joinToString { it.type.id!! }}) match $namespace.$id(${parameterTypes.joinToString { it.id!! }})?")
-
     val idAndNamespaceMatch =
         if (namespace == null) this.id == id
         else this.namespace == namespace && this.id == id
-    if (!idAndNamespaceMatch) {
-        //println("\tNope: ID and/or namespace do not match.")
-        return false
-    }
+    if (!idAndNamespaceMatch) return false
 
     var paramTypes: List<IType> = this.parameters.map { it.type }
     if (this.hasOuterParameter)
@@ -75,13 +55,9 @@ internal fun IProcedureDeclaration.matches(namespace: String?, id: String, param
     if (this.hasThisParameter)
         paramTypes = paramTypes.subList(1, paramTypes.size)
 
-    if (paramTypes.size != parameterTypes.size) {
-        //println("\tNope. Different number of parameters.")
-        return false
-    }
+    if (paramTypes.size != parameterTypes.size) return false
 
     return true
-
     /* FIXME
     val paramTypeMatch = paramTypes.zip(parameterTypes).all { it.first.isSame(it.second) }
     if (!paramTypeMatch)
@@ -93,21 +69,11 @@ internal fun IProcedureDeclaration.matches(namespace: String?, id: String, param
 internal val ClassOrInterfaceDeclaration.qualifiedName: String
     get() = fullyQualifiedName.getOrDefault(nameAsString)
 
-internal fun VariableDeclarator.isGeneric(type: ClassOrInterfaceDeclaration): Boolean {
-    return typeAsString in type.typeParameters.map { it.nameAsString } || (type.findAncestor(ClassOrInterfaceDeclaration::class.java).getOrNull?.let {
-        isGeneric(
-            it
-        )
-    } ?: false)
-}
+internal fun VariableDeclarator.isGeneric(type: ClassOrInterfaceDeclaration): Boolean =
+    typeAsString in type.typeParameters.map { it.nameAsString } ||
+            (type.findAncestor(ClassOrInterfaceDeclaration::class.java).getOrNull?.let { isGeneric(it) } ?: false)
 
-internal fun VariableDeclarator.getGenericDeclarator(): ClassOrInterfaceDeclaration? =
-    this.findAncestor(
-        { typeAsString in it.typeParameters.map { type -> type.nameAsString } },
-        ClassOrInterfaceDeclaration::class.java
-    ).getOrNull
-
-internal fun MethodDeclaration.replaceStringConcatPlus() {
+internal fun MethodDeclaration.replaceStringPlusWithConcat() {
     fun Expression.isStringType(): Boolean = calculateResolvedType().describe() == "java.lang.String"
 
     fun Expression.toStringExpression(): Expression =
@@ -180,82 +146,9 @@ internal fun Statement.getSingleUnary(): List<UnaryExpr> {
 
     return if (isCandidateForReplace)
         findAll(UnaryExpr::class.java).filter { u ->
-            //val p = u.findAncestor({ it.parentNode.getOrNull !is Expression }, Expression::class.java)
-            u.isIncrementOrDecrement && findAll(NameExpr::class.java).filter { n ->
-                n == u.expression
-            }.size == 1
+            u.isIncrementOrDecrement && findAll(NameExpr::class.java).filter { n -> n == u.expression }.size == 1
         }
     else emptyList()
 }
 
-internal fun Node.substituteControlBlocks() {
-    this.accept(object : VoidVisitorAdapter<Any>() {
-
-        override fun visit(n: IfStmt, arg: Any?) {
-            if (n.thenStmt !is BlockStmt) {
-                // n.setThenStmt(if (n.thenStmt == null) BlockStmt() else BlockStmt(NodeList(n.thenStmt)))
-                val thenStmt = n.thenStmt
-                val block = BlockStmt()
-                n.setThenStmt(block)
-                if (thenStmt != null)
-                    block.addStatement(thenStmt)
-            }
-            if (n.hasElseBranch() && n.elseStmt.get() !is BlockStmt) {
-                // n.setElseStmt(BlockStmt(NodeList(n.elseStmt.get())))
-                val elseStmt = n.elseStmt.get()
-                val block = BlockStmt()
-                n.setElseStmt(block)
-                block.addStatement(elseStmt)
-            }
-            super.visit(n, arg)
-        }
-
-        override fun visit(n: WhileStmt, arg: Any?) {
-            if (n.body !is BlockStmt) {
-                // n.setBody(if (n.body == null) BlockStmt() else BlockStmt(NodeList(n.body)))
-                val body = n.body
-                val block = BlockStmt()
-                n.setBody(block)
-                if (body != null)
-                    block.addStatement(body)
-            }
-            super.visit(n, arg)
-        }
-
-        override fun visit(n: DoStmt, arg: Any?) {
-            if (n.body !is BlockStmt) {
-                // n.setBody(if (n.body == null) BlockStmt() else BlockStmt(NodeList(n.body)))
-                val body = n.body
-                val block = BlockStmt()
-                n.setBody(block)
-                if (body != null)
-                    block.addStatement(body)
-            }
-            super.visit(n, arg)
-        }
-
-        override fun visit(n: ForStmt, arg: Any?) {
-            if (n.body !is BlockStmt) {
-                // n.setBody(if (n.body == null) BlockStmt() else BlockStmt(NodeList(n.body)))
-                val body = n.body
-                val block = BlockStmt()
-                n.setBody(block)
-                if (body != null)
-                    block.addStatement(body)
-            }
-            super.visit(n, arg)
-        }
-
-        override fun visit(n: ForEachStmt, arg: Any?) {
-            if (n.body !is BlockStmt) {
-                // n.setBody(if (n.body == null) BlockStmt() else BlockStmt(NodeList(n.body)))
-                val body = n.body
-                val block = BlockStmt()
-                n.setBody(block)
-                if (body != null)
-                    block.addStatement(body)
-            }
-            super.visit(n, arg)
-        }
-    }, null)
-}
+internal fun Node.substituteControlBlocks() = accept(ControlStructureEncapsulateVisitor, null)

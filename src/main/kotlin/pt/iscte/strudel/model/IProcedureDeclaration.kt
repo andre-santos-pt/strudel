@@ -1,6 +1,6 @@
 package pt.iscte.strudel.model
 
-import pt.iscte.strudel.javaparser.THIS_PARAM
+import pt.iscte.strudel.parsing.java.THIS_PARAM
 
 
 typealias IParameter = IVariableDeclaration<IProcedureDeclaration>
@@ -23,7 +23,7 @@ interface IProcedureDeclaration : IModuleMember {
     fun longSignature(): String {
         var args = ""
         for (p in parameters) {
-            if (!args.isEmpty()) args += ", "
+            if (args.isNotEmpty()) args += ", "
             args += p.type
         }
         return "$returnType $id($args)"

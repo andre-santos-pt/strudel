@@ -2,3 +2,4 @@
 /.gradle/
 /build/
 /build/classes/java/test/
+/src/test/kotlin/pt/iscte/strudel/tests/benchmark/

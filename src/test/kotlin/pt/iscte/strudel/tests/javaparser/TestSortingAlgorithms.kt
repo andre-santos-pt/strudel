@@ -1,12 +1,9 @@
 package pt.iscte.strudel.tests.javaparser
 
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.IProcedure
-import pt.iscte.strudel.vm.IArray
-import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
-import java.io.File
 import kotlin.io.path.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -1,7 +1,7 @@
 package pt.iscte.strudel.tests.temp
 
 import org.junit.jupiter.api.Test
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.cfg.createCFG

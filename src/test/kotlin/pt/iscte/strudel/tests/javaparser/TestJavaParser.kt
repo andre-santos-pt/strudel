@@ -1,8 +1,8 @@
 package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
-import pt.iscte.strudel.javaparser.Java2Strudel
-import pt.iscte.strudel.javaparser.extensions.proceduresExcludingConstructors
+import pt.iscte.strudel.parsing.java.Java2Strudel
+import pt.iscte.strudel.parsing.java.extensions.proceduresExcludingConstructors
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.vm.impl.VirtualMachine

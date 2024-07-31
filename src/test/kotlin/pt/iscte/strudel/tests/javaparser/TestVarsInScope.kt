@@ -1,7 +1,7 @@
 package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.ILoop
 import pt.iscte.strudel.model.util.find
 import kotlin.test.assertEquals

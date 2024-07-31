@@ -1,6 +1,6 @@
 package pt.iscte.strudel
 
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.NULL
 import java.io.File

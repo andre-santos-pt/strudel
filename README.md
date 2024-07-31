@@ -1,110 +1,138 @@
-# Strudel: A Library for Modeling and Simulation of Structured Programming
+<div align="center">
 
-## What is Strudel?
-**Strudel** is a software language in the form of a programming
-library that comprises classes that model structured
-programming, where their instances describe models of programs.
-In addition to performing static analysis, Strudel provides
-a virtual machine capable of interpreting those models,
-through a step-by-step simulation of a call stack-based execution,
-where one may programmatically observe every
-aspect of execution in detail, such as errors, tracking variables,
-loop iterations, call stack, or memory allocation.
+# Strudel
+
+**An Executable Modeling Language for Developing Educational Programming Tools**
+
+[Installation](#installation) •
+[What is Strudel?](#what-is-strudel) •
+[How Does Strudel Work?](#how-does-strudel-work) •
+[Examples](#examples)
+
+</div>
+<br>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="resources/overview-darkmode.png">
+  <source media="(prefers-color-scheme: light)" srcset="resources/overview-lightmode.png">
+  <img alt="A diagram providing an overview of Strudel's functionality." src="resources/overview-darkmode.png">
+</picture>
 
 <br>
 
-## How does it work?
-At the heart of Strudel there is a meta-model addressing concepts
-for describing constructs of structured programming.
-These constructs are in essence those of a While language
-(also often referred to as IMP language), with additional
-elements defining and calling procedures. These models are
-the shared abstraction for defining, analyzing, and executing
-programs.
+## Installation
+**Strudel** is an experimental library, and as such is not yet available in build automation tools (Gradle, etc.)
 
-These abstractions are encoded
-as a programming library (Strudel) implemented in
-Kotlin, suitable to be used with JVM languages. By instantiating
-the classes modeling these abstractions, one defines a
-set of procedures. These can be executed, simulating the computational
-process based on a call stack and heap memory.
-This feature is embodied in the library as a Virtual Machine
-(VM) that can be used programmatically.
+To use Strudel in your project, first build its .jar file using Gradle's build task. The .jar file is generated under
+the project root in `/build/libs`. This file should be copied to your own project's `libs` folder,
+and then added as a dependency in your build automation tool of choice. For example, in Gradle:
+```kotlin
+dependencies {
+    implementation(files("libs/strudel.jar"))
+}
+```
+
+
+
+
+<br>
+
+## What is Strudel?
+**Strudel** is a meta-programming library for modeling structured programming aimed to serve as the core reusable 
+asset of educational programming tools. Strudel provides an embeddable virtual machine that simulates a 
+call stack-based execution, enabling third parties to observe every execution aspect in detail, such as 
+errors, code coverage, tracking variables, loop iterations, call stack, or memory allocation.
+
+
+
+
+
+
+
+
+
+
+<br>
+
+## How Does Strudel Work?
+
+
+By instantiating the classes described in the previous section we define a set of procedures. These can be executed, 
+simulating the computational process based on a call stack and heap memory. This feature is embodied in the library 
+as a VM that can be used programmatically.
+
+A VM instance is represented by an object with which programs may interact to drive the simulation process. The 
+simulation can be parameterized concerning the _maximum call stack size_, the _maximum number of iterations allowed 
+for each loop execution_, and the _available heap memory_. In this way, one may simulate resource-constrained 
+environments, or prepare contexts for programming exercises that ensure bounded resources for algorithm executions. 
+Furthermore, the VM is "sandboxed" resource-wise and allows configurations that prevent expensive computations from 
+executing.
+
+Because one of our main goals is to have a form of seamless observation of program behavior, the VM exposes every 
+aspect of the execution, allowing listeners to be plugged into the virtual machine.
+
+
+
+
+
+
+
+
 
 <br>
 
 ## Examples
-The following are simple examples that showcase Strudel's basic functionalities. For a more complete set of examples,
-check out [the examples folder](src/main/kotlin/pt/iscte/strudel/examples).
+The following are simple examples that showcase Strudel's basic functionalities. For a more complete 
+(but less documented) set of examples, check out [the examples folder](src/main/kotlin/pt/iscte/strudel/examples) 
+and [the tests folder](src/test/kotlin).
 
-### Using Strudel's DSL to instantiate procedure models
-Strudel includes an internal DSL (domain-specific language) which makes
-use of Kotlin extension functions that apply lambdas with
-receivers. This feature enables the representation of the nested
-structures in a way that resembles the usual programming
-language syntax. This feature also makes use of operator overloading
-for arithmetic operations and infix syntax for relational
-and logical operators.
+<details>
+<summary><b>Using Strudel's Internal DSL</b></summary>
 
-The following code utilizes Strudel's DSL to instantiate the model for a function that performs binary search on an array of 
-integers.
+Strudel models may be instantiated "manually" through an internal Domain-Specific Language (DSL).
+The following code exemplifies the internal DSL for instantiating Strudel models illustrated with binary search.
+
 ```kotlin
-// Instantiate a procedure that returns a boolean value
-val binarySearch = Procedure(BOOLEAN) {
-    val a = Param(array(INT)) // Function parameter of type int[]
-    val e = Param(INT) // Function parameter of type int
-    
-    val l = Var(INT, 0) // int l = 0
-    val r = Var(INT, Length(a) - 1) // int r = a.length - 1
-    While(l smallerEq r) {
-        val m = Var(INT, l + (r - l) / 2) // m = l + (r - l) / 2
+val bsearch = Procedure(BOOLEAN, "bsearch") {
+    val a = Param(array(INT), "a")
+    val e = Param(INT, "e")
+    val l = Var(INT, "l", 0)
+    val r = Var(INT, "r", a.length() - 1)
+        While(l smallerEq r) { 
+        val m = Var(INT, "m", l + (r - l) / 2)
         If(a[m] equal e) {
             Return(True)
         }
         If(a[m] smaller e) {
-            Assign(l, m + 1) // l = m + 1
+            Assign(l, m + 1)
         }.Else {
-            Assign(r, m - 1) // r = m - 1
+            Assign(r, m - 1)
         }
     }
     Return(False)
-    
-}
-```
-The following code is a direct translation of the previous model to typical Java syntax.
-```java
-public class Test {
-    public static boolean binarySearch(int[] a, int e) {
-        int l = 0;
-        int r = a.length - 1;
-        while (l <= r) {
-            int m = l + (r - l) / 2;
-            if (a[m] == e) {
-                return true;
-            }
-            if (a[m] < e) {
-                l = m + 1;
-            } else {
-                r = m - 1;
-            }
-        }
-        return false;
-    }
 }
 ```
 
-### Loading and executing Java code through Strudel
-You can start by loading a Java source code file to Strudel to obtain a **module**, from which you can get the 
-**procedure** you want to execute:
+</details>
+
+<br>
+
+<details>
+<summary><b>Loading Java Source Code</b></summary>
+
+To have a practical means to create Strudel models without having to deal with the library classes directly, we 
+developed a translator for a subset of Java’s syntax, supporting primitive types and arrays, simple classes 
+(without inheritance), all loop structures, if-statements, and method calls. Given that our focus is on educational 
+systems, we are not concerned with fully supporting Java.
+
+The following is an example of loading a Java source code file into Strudel and executing one of its 
+procedures.
+
 ```kotlin
 val f = File("BinarySearch.java")
-val module = Java2Strudel().load(f)
+val module = Java2Strudel().load(f) // Loading Java source code
 val search = module.getProcedure("binarySearch")
-```
-You can then create a Strudel virtual machine and use it to run the procedure with the arguments you wish to pass
-to your function:
 
-```kotlin
 val vm: IVirtualMachine = IVirtualMachine.create()
 
 val a: IReference<IArray> = vm.allocateArrayOf(INT, 1, 3, 5, 7, 11, 13, 17, 23, 27)
@@ -112,3 +140,133 @@ val e: IValue = vm.getValue(23)
 
 val result: IValue? = vm.execute(search, a, e) // true
 ```
+
+Strudel's Java loading and translation features were implemented using the [JavaParser](https://javaparser.org/) 
+library.
+
+</details>
+
+<br>
+
+<details>
+<summary><b>Use Case: Code Coverage</b></summary>
+
+In this example, the listener keeps track of how many times each statement was executed. This could be useful to aid 
+learners in realizing which path the execution followed towards the result. The listener captures every statement 
+regardless of which procedure it belongs.
+
+```kotlin
+fun codeCoverage(
+    procedure: IProcedure, 
+    vm: IVirtualMachine, 
+    vararg arguments: IValue
+): Map<IStatement, Int> {
+    class StatementCoverage : IVirtualMachine.IListener {
+        val coverage = mutableMapOf<IStatement, Int>()
+        override fun statement(s: IStatement) {
+            coverage.putIfAbsent(s, 0)
+            coverage[s] = coverage[s]!! + 1
+        }
+    }
+    
+    val listener = StatementCoverage()
+    vm.addListener(listener)
+    vm.execute(procedure, *arguments)
+    vm.removeListener(listener)
+    
+    return listener.coverage
+}
+```
+
+</details>
+
+<br>
+
+<details>
+<summary><b>Use Case: Tracking Variables</b></summary>
+
+Observing the history of variable values can aid in understanding the algorithmic behavior of  code. In Strudel, we 
+can achieve this by capturing variable assignments using a listener that intercepts every assignment to a variable of 
+the given procedure and store the list of values. Notice how easily runtime information can be related to the program model.
+
+```kotlin
+fun variableHistory(
+    vm: IVirtualMachine,
+    procedure: IProcedure,
+    vararg arguments: IValue
+): Map<IVariableDeclaration<*>, List<IValue>> {
+    val history = mutableMapOf<IVariableDeclaration<*>, MutableList<IValue>>()
+
+    val listener = object : IVirtualMachine.IListener {
+        override fun variableAssignment(a: IVariableAssignment, value: IValue) {
+            history.putIfAbsent(a.target, mutableListOf())
+            history[a.target]?.add(value)
+        }
+    }
+
+    vm.addListener(listener)
+    vm.execute(procedure, *arguments)
+    vm.removeListener(listener)
+
+    return history
+}
+```
+
+</details>
+
+<br>
+
+<details>
+<summary><b>Use Case: Measuring Iterations</b></summary>
+
+The number of iterations is a usual metric to evaluate an algorithm’s performance, which is relevant in the study of 
+algorithms. Using Strudel, one may plug a listener for loop iterations, and hence, easily count iterations. Notice 
+that this may aid learners in analyzing the performance of their implementations by identifying the number of executed 
+iterations for different inputs. Further, an automated assessment system may use this facility for checking algorithm 
+correction. This example also relates runtime information and program model, by checking if the iteration occurred 
+within the procedure given as argument.
+
+```kotlin
+fun countIterations(
+    procedure: IProcedure,
+    vm: IVirtualMachine,
+    vararg arguments: IValue
+): Int {
+    class LoopCounter : IVirtualMachine.IListener {
+        var iterations = 0
+        override fun loopIteration(loop: ILoop) {
+            if(vm.topFrame.procedure == procedure)
+                iterations++
+        }
+    }
+    
+    val listener = LoopCounter()
+    vm.addListener(listener)
+    vm.execute(procedure, *arguments)
+    vm.removeListener(listener)
+    
+    return listener.iterations
+}
+```
+
+</details>
+
+
+
+
+<br>
+
+## Projects using Strudel
+
+Check out the following publications and/or projects, which use Strudel as a runtime environment:
+
+- [Jask: Generation of Questions About Learners' Code in Java](https://dl.acm.org/doi/10.1145/3502718.3524761)
+- [Jinter: A Hint Generation System for Java Exercises](https://dl.acm.org/doi/abs/10.1145/3587102.3588820)
+- [Witter: A Library for White-Box Testing of Introductory Programming Algorithms](https://github.com/ambco-iscte/witter)
+
+
+
+
+
+
+<br>

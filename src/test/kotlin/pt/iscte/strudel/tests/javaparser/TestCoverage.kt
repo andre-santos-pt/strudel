@@ -4,7 +4,7 @@ import com.github.javaparser.ast.Node
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.examples.CodeCoverageExample
 import pt.iscte.strudel.examples.codeCoverage
-import pt.iscte.strudel.javaparser.Java2Strudel
+import pt.iscte.strudel.parsing.java.Java2Strudel
 import kotlin.test.assertEquals
 
 class TestCoverage {
