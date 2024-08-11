@@ -136,8 +136,8 @@ interface IVirtualMachine {
 
     companion object {
         fun create(
-            callStackMaximum: Int = 1024,
-            loopIterationMaximum: Int = 1000000,
+            callStackMaximum: Int = 512,
+            loopIterationMaximum: Int = 10000,
             availableMemory: Int = 1024,
             throwExceptions: Boolean = true
         ): IVirtualMachine =
