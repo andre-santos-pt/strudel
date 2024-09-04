@@ -18,7 +18,7 @@
   <img alt="A diagram providing an overview of Strudel's functionality." src="resources/overview-darkmode.png">
 </picture>
 
-<br>
+<br><br>
 
 ## Installation
 **Strudel** is an experimental library, and as such is not yet available in build automation tools (Gradle, etc.)
@@ -57,7 +57,7 @@ errors, code coverage, tracking variables, loop iterations, call stack, or memor
 ## How Does Strudel Work?
 
 
-By instantiating the classes described in the previous section we define a set of procedures. These can be executed, 
+Strudel's internal model of structured programming can be executed, 
 simulating the computational process based on a call stack and heap memory. This feature is embodied in the library 
 as a VM that can be used programmatically.
 
@@ -263,10 +263,3 @@ Check out the following publications and/or projects, which use Strudel as a run
 - [Jask: Generation of Questions About Learners' Code in Java](https://dl.acm.org/doi/10.1145/3502718.3524761)
 - [Jinter: A Hint Generation System for Java Exercises](https://dl.acm.org/doi/abs/10.1145/3587102.3588820)
 - [Witter: A Library for White-Box Testing of Introductory Programming Algorithms](https://github.com/ambco-iscte/witter)
-
-
-
-
-
-
-<br>

@@ -2,6 +2,7 @@ package pt.iscte.strudel.parsing.java.extensions
 
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
+import com.github.javaparser.ast.body.TypeDeclaration
 import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.type.Type
 import com.github.javaparser.resolution.TypeSolver
@@ -27,7 +28,7 @@ internal fun MutableMap<String, IType>.mapType(t: String): IType = this[t] ?: ge
 internal fun MutableMap<String, IType>.mapType(t: Type) =
     mapType(kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString()))
 
-internal fun MutableMap<String, IType>.mapType(t: ClassOrInterfaceDeclaration) =
+internal fun MutableMap<String, IType>.mapType(t: TypeDeclaration<*>) =
     mapType(t.fullyQualifiedName.getOrNull() ?: t.nameAsString)
 
 internal fun isJavaClassName(qualifiedName: String): Boolean = runCatching { getClassByName(qualifiedName) }.isSuccess

@@ -122,7 +122,9 @@ import kotlin.reflect.full.hasAnnotation
     TestBugNoUseOfReturnValue::class,
     TestArrayAllocationEvent::class,
 
-    TestMethodNameOverloading::class
+    TestMethodNameOverloading::class,
+
+    TestJavaRecord::class
 )
 class AllTests
 

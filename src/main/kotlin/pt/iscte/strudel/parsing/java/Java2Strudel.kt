@@ -19,6 +19,9 @@ import pt.iscte.strudel.parsing.java.extensions.*
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
+import pt.iscte.strudel.model.util.ArithmeticOperator
+import pt.iscte.strudel.model.util.LogicalOperator
+import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.parsing.ITranslator
 import pt.iscte.strudel.parsing.java.extensions.matches
 import pt.iscte.strudel.parsing.java.extensions.qualifiedName
@@ -74,14 +77,13 @@ class Java2Strudel(
     }
 
     override fun load(file: File): IModule =
-        translate(StaticJavaParser.parse(file).apply(preprocessing).types.filterIsInstance<ClassOrInterfaceDeclaration>())
+        translate(StaticJavaParser.parse(file).apply(preprocessing).types)
 
-    override fun load(files: List<File>): IModule = translate(files.map {
-        StaticJavaParser.parse(it).apply(preprocessing).types.filterIsInstance<ClassOrInterfaceDeclaration>()
-    }.flatten())
+    override fun load(files: List<File>): IModule =
+        translate(files.map { StaticJavaParser.parse(it).apply(preprocessing).types }.flatten())
 
     override fun load(src: String): IModule =
-        translate(StaticJavaParser.parse(src).apply(preprocessing).types.filterIsInstance<ClassOrInterfaceDeclaration>())
+        translate(StaticJavaParser.parse(src).apply(preprocessing).types)
 
     internal fun <T : IProgramElement> T.bind(
         node: Node,
@@ -189,7 +191,12 @@ class Java2Strudel(
         return list
     }
 
-    private fun translate(classes: List<ClassOrInterfaceDeclaration>) = module {
+    /**
+     * Translates a list of JavaParser type declarations to a Strudel [IModule].
+     * @param typeDeclarations A list of JavaParser type declarations.
+     * @return A Strudel [IModule].
+     */
+    private fun translate(typeDeclarations: List<TypeDeclaration<*>>) = module {
         val types = defaultTypes.toMutableMap()
 
         /**
@@ -198,7 +205,8 @@ class Java2Strudel(
          * @param namespace Method namespace.
          * @return IProcedure with correct modifiers and parameters but empty body.
          */
-        fun MethodDeclaration.translateMethod(namespace: String): IProcedureDeclaration =
+        @Suppress("UNCHECKED_CAST")
+        fun <T : TypeDeclaration<*>> MethodDeclaration.translateMethod(namespace: String): IProcedureDeclaration =
             if (!body.isPresent)
                 PolymophicProcedure(this@module, namespace, nameAsString, types.mapType(type)).apply {
                     comment.translateComment()?.let { this.documentation = it }
@@ -211,7 +219,7 @@ class Java2Strudel(
                     setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
 
                     // Interface methods ""are always instance methods"" (don't quote us on this) -> add $this parameter
-                    addParameter(types.mapType((parentNode.get() as ClassOrInterfaceDeclaration))).apply {
+                    addParameter(types.mapType((parentNode.get() as T))).apply {
                         id = THIS_PARAM
                     }
 
@@ -242,7 +250,7 @@ class Java2Strudel(
 
                     // Is instance method --> Add $this parameter
                     if (!modifiers.contains(Modifier.staticModifier()))
-                        addParameter(types.mapType((parentNode.get() as ClassOrInterfaceDeclaration))).apply {
+                        addParameter(types.mapType((parentNode.get() as T))).apply {
                             id = THIS_PARAM
                         }
 
@@ -355,64 +363,6 @@ class Java2Strudel(
             return if (inner.isEmpty()) listOf() else inner + inner.map { collectInnerClasses(it) }.flatten()
         }
 
-        val allClasses = classes + classes.map { collectInnerClasses(it) }.flatten()
-
-        allClasses.forEach { c ->
-            if (c.extendedTypes.isNotEmpty())
-                unsupported("extends keyword", c.extendedTypes.first())
-
-            /* FIXME method overloading should be OK unless signatures actually match
-            if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 }) {
-                val nodes = c.methods
-                    .groupBy { it.nameAsString }
-                    .filter { it.value.size > 1 }
-                    .values.first()
-                    .toList()
-                unsupported("method name overloading", nodes)
-            }
-             */
-
-            val type = Record(c.qualifiedName) {
-                bind(c.name, ID_LOC)
-                c.comment.translateComment()?.let { documentation = it }
-            }
-
-            types[c.qualifiedName] = type.reference()
-            types[c.qualifiedName + "[]"] = type.array().reference()
-            types[c.qualifiedName + "[][]"] = type.array().array().reference()
-
-            if (c.isInnerClass) {
-                val parent = c.parentNode.get() as ClassOrInterfaceDeclaration
-                type.addField(types.mapType(parent.qualifiedName)) { id = OUTER_PARAM }
-            }
-        }
-
-        // Translate field declarations for each class
-        allClasses.filter { !it.isInterface }.forEach { c ->
-            val recordType = (types[c.qualifiedName] as IReferenceType).target as IRecordType
-            c.fields.forEach { field ->
-                field.variables.forEach { variableDeclaration ->
-                    val fieldType =
-                        if (variableDeclaration.isGeneric(c)) types["java.lang.Object"]
-                        else types[variableDeclaration.typeAsString]
-                            ?: types[kotlin.runCatching { variableDeclaration.type.resolve().describe() }
-                                .getOrDefault(variableDeclaration.type.asString())]
-                    if (fieldType == null)
-                        error(
-                            "Could not find type for variable declaration ${variableDeclaration.typeAsString} / ${
-                                variableDeclaration.type.resolve().describe()}", variableDeclaration
-                        )
-
-                    val f = recordType.addField(fieldType) { id = variableDeclaration.nameAsString }
-
-                    // Store field initializer JavaParser expressions
-                    // (these are translated and injected into constructor(s) later)
-                    if (variableDeclaration.initializer.isPresent)
-                        fieldInitializers[f] = variableDeclaration.initializer.get()
-                }
-            }
-        }
-
         /**
          * Associates every callable declaration in a list of class declarations with a Strudel IProcedureDeclaration.
          * @receiver A list of JavaParser class or interface declarations.
@@ -435,21 +385,18 @@ class Java2Strudel(
                 it.replaceStringPlusWithConcat()
                 it.substituteControlBlocks()
                 it.replaceIncDecAsExpressions()
-                it to it.translateMethod((it.parentNode.get() as ClassOrInterfaceDeclaration).qualifiedName)
+                it to it.translateMethod<ClassOrInterfaceDeclaration>((it.parentNode.get() as ClassOrInterfaceDeclaration).qualifiedName)
             }
 
             return defaultConstructors + explicitConstructors + methods
         }
-
-        // Get all procedures in a list of class declarations
-        val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> = allClasses.getAllProcedures()
 
         /**
          * Injects field assignment statements in a procedure based on a record type's field initializers.
          * @receiver Any IProcedure. The goal is to use this with record type constructors.
          * @param type Record type. If null, defaults to procedure's return type as a record type.
          */
-        fun IProcedure.injectFieldInitializers(type: IRecordType? = null) {
+        fun IProcedure.injectFieldInitializers(procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>, type: IRecordType? = null) {
             val exp2Strudel = JavaExpression2Strudel(this, block, procedures, types, this@Java2Strudel, mutableMapOf())
             val t = type ?: thisParameter.type.asRecordType
             t.fields.reversed().forEach { field ->
@@ -459,21 +406,232 @@ class Java2Strudel(
             }
         }
 
-        // Translate bodies of all procedures
-        procedures.forEach {
-            if (it.first != null && it.second is IProcedure) {
-                val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedures, types, this@Java2Strudel)
-
-                // Translate statements in declaration body
-                it.first!!.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
-
-                // Inject field initializers and return statement in constructors
-                if (it.first is ConstructorDeclaration) {
-                    (it.second as IProcedure).injectFieldInitializers()
-                    (it.second as IProcedure).block.Return(it.second.thisParameter)
-                }
-            } else if (it.first == null) // No JavaParser declaration --> default constructor
-                (it.second as IProcedure).injectFieldInitializers() // Inject field initializers into default constructors
+        /**
+         * Creates a Strudel record type from a JavaParser type declaration, setting the appropriate reference types
+         * in the type array.
+         * @receiver A JavaParser type declaration.
+         * @return A Strudel Record type corresponding to the type declaration.
+         */
+        fun TypeDeclaration<*>.asRecordType(): IRecordType {
+            val type = Record(qualifiedName) {
+                bind(name, ID_LOC)
+                comment.translateComment()?.let { documentation = it }
+            }
+            types[qualifiedName] = type.reference()
+            types["$qualifiedName[]"] = type.array().reference()
+            types["$qualifiedName[][]"] = type.array().array().reference()
+            return type
         }
+
+        /**
+         * Translates a list of JavaParser class or interface declarations to the current Strudel module.
+         * @param classes The list of class or interface declarations to translate.
+         */
+        fun translateClassAndInterfaceDeclarations(classes: List<ClassOrInterfaceDeclaration>) {
+            val allClasses = classes + classes.map { collectInnerClasses(it) }.flatten()
+
+            allClasses.forEach { c ->
+                if (c.extendedTypes.isNotEmpty())
+                    unsupported("extends keyword", c.extendedTypes.first())
+
+                /* FIXME method overloading should be OK unless signatures actually match
+                if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 }) {
+                    val nodes = c.methods
+                        .groupBy { it.nameAsString }
+                        .filter { it.value.size > 1 }
+                        .values.first()
+                        .toList()
+                    unsupported("method name overloading", nodes)
+                }
+                 */
+
+                val type = c.asRecordType()
+                if (c.isInnerClass) {
+                    val parent = c.parentNode.get() as ClassOrInterfaceDeclaration
+                    type.addField(types.mapType(parent.qualifiedName)) { id = OUTER_PARAM }
+                }
+            }
+
+            // Translate field declarations for each class
+            allClasses.filter { !it.isInterface }.forEach { c ->
+                val recordType = (types[c.qualifiedName] as IReferenceType).target as IRecordType
+                c.fields.forEach { field ->
+                    field.variables.forEach { variableDeclaration ->
+                        val fieldType =
+                            if (variableDeclaration.isGeneric(c)) types["java.lang.Object"]
+                            else types[variableDeclaration.typeAsString]
+                                ?: types[kotlin.runCatching { variableDeclaration.type.resolve().describe() }
+                                    .getOrDefault(variableDeclaration.type.asString())]
+                        if (fieldType == null)
+                            error(
+                                "Could not find type for variable declaration ${variableDeclaration.typeAsString} / ${
+                                    variableDeclaration.type.resolve().describe()}", variableDeclaration
+                            )
+
+                        val f = recordType.addField(fieldType) { id = variableDeclaration.nameAsString }
+
+                        // Store field initializer JavaParser expressions
+                        // (these are translated and injected into constructor(s) later)
+                        if (variableDeclaration.initializer.isPresent)
+                            fieldInitializers[f] = variableDeclaration.initializer.get()
+                    }
+                }
+            }
+
+            // Get all procedures in a list of class declarations
+            val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> = allClasses.getAllProcedures()
+
+            // Translate bodies of all procedures
+            procedures.forEach {
+                if (it.first != null && it.second is IProcedure) {
+                    val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedures, types, this@Java2Strudel)
+
+                    // Translate statements in declaration body
+                    it.first!!.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
+
+                    // Inject field initializers and return statement in constructors
+                    if (it.first is ConstructorDeclaration) {
+                        (it.second as IProcedure).injectFieldInitializers(procedures)
+                        (it.second as IProcedure).block.Return(it.second.thisParameter)
+                    }
+                } else if (it.first == null) // No JavaParser declaration --> default constructor
+                    (it.second as IProcedure).injectFieldInitializers(procedures) // Inject field initializers into default constructors
+            }
+        }
+
+        /**
+         * Translates a list of JavaParser record declarations to the current Strudel module.
+         * @param records The list of records declarations to translate.
+         */
+        fun translateRecordDeclarations(records: List<RecordDeclaration>) {
+            records.forEach { r ->
+                val type = r.asRecordType()
+
+                if (r.constructors.isNotEmpty())
+                    unsupported("record with explicit constructors", r)
+
+                val compact: CompactConstructorDeclaration? =
+                    if (r.compactConstructors.isEmpty()) null
+                    else if (r.compactConstructors.size == 1) r.compactConstructors.first()
+                    else unsupported("record with multiple compact constructors", r)
+
+                val constructor = Procedure(types.mapType(r.qualifiedName), INIT).apply {
+                    setFlag("public")
+                    setFlag(CONSTRUCTOR_FLAG)
+                    setProperty(NAMESPACE_PROP, r.qualifiedName)
+                }
+
+                val instance = constructor.addParameter(constructor.returnType).apply { id = THIS_PARAM }
+
+                val fieldSetters = mutableMapOf<IField, ITargetExpression>()
+                r.parameters.forEach { param ->
+                    val paramType =
+                        if (param.isGeneric(r)) types["java.lang.Object"]
+                        else types[param.typeAsString]
+                            ?: types[kotlin.runCatching { param.type.resolve().describe() }
+                                .getOrDefault(param.type.asString())]
+                    if (paramType == null)
+                        error(
+                            "Could not find type for record parameter declaration ${param.typeAsString} / ${
+                                param.type.resolve().describe()}", param
+                        )
+
+                    val field = type.addField(paramType) { id = param.nameAsString }
+                    val constructorParam = constructor.addParameter(field.type).apply { id = field.id }
+                    fieldSetters[field] = constructorParam.expression()
+
+                    val getter = Procedure(types.mapType(param.type), param.nameAsString).apply {
+                        setFlag("public")
+                        setProperty(NAMESPACE_PROP, r.qualifiedName)
+                        val t = addParameter(constructor.returnType).apply { id = THIS_PARAM }
+                        block.Return(t.field(field))
+                    }
+                }
+
+                val procedures = r.methods.filter { !it.isConstructorDeclaration }.map {
+                    it.replaceStringPlusWithConcat()
+                    it.substituteControlBlocks()
+                    it.replaceIncDecAsExpressions()
+                    it to it.translateMethod<RecordDeclaration>((it.parentNode.get() as RecordDeclaration).qualifiedName)
+                }
+
+                procedures.forEach {
+                    if (it.first != null && it.second is IProcedure) {
+                        val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedures, types, this@Java2Strudel)
+                        it.first!!.body?.let { body -> body.ifPresent { b -> stmtTranslator.translate(b, (it.second as IProcedure).block) } }
+                    }
+                }
+
+                if (compact != null) {
+                    compact.replaceStringPlusWithConcat()
+                    compact.substituteControlBlocks()
+                    compact.replaceIncDecAsExpressions()
+                    val stmtTranslator = JavaStatement2Strudel(constructor, procedures, types, this@Java2Strudel)
+                    stmtTranslator.translate(compact.body, constructor.block)
+                }
+
+                fieldSetters.forEach { (field, expression) ->
+                    constructor.block.FieldSet(constructor.thisParameter, field, expression)
+                }
+
+                // equals
+                Procedure(BOOLEAN, "equals").apply {
+                    setFlag("public")
+                    setFlag(EQUALS_FLAG)
+                    setProperty(NAMESPACE_PROP, r.qualifiedName)
+                    val self = addParameter(constructor.returnType).apply { id = THIS_PARAM }
+                    val other = addParameter(constructor.returnType).apply { id = "other" }
+                    var exp: ICompositeExpression? = null
+                    type.fields.forEach {
+                        val field = self.field(it)
+                        val otherField = other.field(field.field)
+                        val comparison =
+                            if (field.type.isRecordReference && (field.type as IReferenceType).target.asRecordType.hasEquals)
+                                field.type.asRecordType.equals.expression(field, otherField)
+                            else if (otherField.type.isRecordReference && (other.type as IReferenceType).target.asRecordType.hasEquals)
+                                (other.type as IReferenceType).target.asRecordType.equals.expression(field, otherField)
+                            else
+                                RelationalOperator.EQUAL.on(field, otherField)
+                        exp = if (exp == null) comparison else LogicalOperator.AND.on(exp!!, comparison)
+                    }
+                    if (exp == null)
+                        block.Return(False)
+                    else
+                        block.Return(exp!!)
+                }
+
+                constructor.block.Return(instance)
+            }
+        }
+
+        /**
+         * Translates a list of JavaParser enum declarations to the current Strudel module.
+         * @param enums The list of enum declarations to translate.
+         */
+        fun translateEnumDeclarations(enums: List<EnumDeclaration>) {
+            if (enums.isNotEmpty())
+                unsupported("enum keyword", enums.first())
+        }
+
+        /**
+         * Translates a list of JavaParser annotations declarations to the current Strudel module.
+         * @param annotations The list of annotation declarations to translate.
+         */
+        fun translateAnnotationDeclarations(annotations: List<AnnotationDeclaration>) {
+            if (annotations.isNotEmpty())
+                unsupported("annotations", annotations.first())
+        }
+
+        // Translate classes and interfaces
+        translateClassAndInterfaceDeclarations(typeDeclarations.filterIsInstance<ClassOrInterfaceDeclaration>())
+
+        // Translate records
+        translateRecordDeclarations(typeDeclarations.filterIsInstance<RecordDeclaration>())
+
+        // Translate enums
+        translateEnumDeclarations(typeDeclarations.filterIsInstance<EnumDeclaration>())
+
+        // Translate annotations
+        translateAnnotationDeclarations(typeDeclarations.filterIsInstance<AnnotationDeclaration>())
     }
 }

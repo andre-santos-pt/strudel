@@ -16,6 +16,8 @@ const val OPERATOR_LOC = "OPERATOR_LOC"
 
 const val CONSTRUCTOR_FLAG = "CONSTRUCTOR"
 
+const val EQUALS_FLAG = "EQUALS"
+
 internal const val THIS_PARAM = "\$this"
 
 internal const val OUTER_PARAM = "\$outer"

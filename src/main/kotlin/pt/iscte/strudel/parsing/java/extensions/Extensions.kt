@@ -23,7 +23,13 @@ val IProcedureDeclaration.hasThisParameter: Boolean
     get() = kotlin.runCatching { this.thisParameter }.isSuccess
 
 val IModule.proceduresExcludingConstructors: List<IProcedureDeclaration>
-    get() = procedures.filter { !it.hasThisParameter }
+    get() = procedures.filter { !it.hasFlag(CONSTRUCTOR_FLAG) }
+
+val IRecordType.hasEquals: Boolean
+    get() = module?.let { m -> m.procedures.any { it.hasFlag(EQUALS_FLAG) } } ?: false
+
+val IRecordType.equals: IProcedureDeclaration
+    get() = module!!.procedures.first { it.hasFlag(EQUALS_FLAG) }
 
 fun getString(value: String): IValue = Value(StringType, java.lang.String(value))
 
@@ -66,14 +72,18 @@ internal fun IProcedureDeclaration.matches(namespace: String?, id: String, param
      */
 }
 
-internal val ClassOrInterfaceDeclaration.qualifiedName: String
+internal val TypeDeclaration<*>.qualifiedName: String
     get() = fullyQualifiedName.getOrDefault(nameAsString)
 
 internal fun VariableDeclarator.isGeneric(type: ClassOrInterfaceDeclaration): Boolean =
     typeAsString in type.typeParameters.map { it.nameAsString } ||
             (type.findAncestor(ClassOrInterfaceDeclaration::class.java).getOrNull?.let { isGeneric(it) } ?: false)
 
-internal fun MethodDeclaration.replaceStringPlusWithConcat() {
+internal fun Parameter.isGeneric(type: RecordDeclaration): Boolean =
+    typeAsString in type.typeParameters.map { it.nameAsString } ||
+            (type.findAncestor(RecordDeclaration::class.java).getOrNull?.let { isGeneric(it) } ?: false)
+
+internal fun BodyDeclaration<*>.replaceStringPlusWithConcat() {
     fun Expression.isStringType(): Boolean = calculateResolvedType().describe() == "java.lang.String"
 
     fun Expression.toStringExpression(): Expression =
@@ -108,25 +118,23 @@ internal fun MethodDeclaration.replaceStringPlusWithConcat() {
 }
 
 
-internal fun MethodDeclaration.replaceIncDecAsExpressions() {
-    body.ifPresent { body ->
-        body.findAll(UnaryExpr::class.java).filter { it.isIncrementOrDecrement }.forEach { u ->
-            u.findAncestor(BlockStmt::class.java).ifPresent { block ->
-                val injects = mutableListOf<Pair<Int, ExpressionStmt>>()
+internal fun BodyDeclaration<*>.replaceIncDecAsExpressions() {
+    findAll(UnaryExpr::class.java).filter { it.isIncrementOrDecrement }.forEach { u ->
+        u.findAncestor(BlockStmt::class.java).ifPresent { block ->
+            val injects = mutableListOf<Pair<Int, ExpressionStmt>>()
 
-                block.statements.forEachIndexed { index, statement ->
-                    statement.getSingleUnary().forEach { e ->
-                        if (e.operator.isPrefix)
-                            injects.add(Pair(index, ExpressionStmt(e.clone())))
-                        else if (e.operator.isPostfix)
-                            injects.add(Pair(index + 1, ExpressionStmt(e.clone())))
-                        e.replace(e.expression)
-                    }
+            block.statements.forEachIndexed { index, statement ->
+                statement.getSingleUnary().forEach { e ->
+                    if (e.operator.isPrefix)
+                        injects.add(Pair(index, ExpressionStmt(e.clone())))
+                    else if (e.operator.isPostfix)
+                        injects.add(Pair(index + 1, ExpressionStmt(e.clone())))
+                    e.replace(e.expression)
                 }
+            }
 
-                injects.forEach {
-                    block.statements.add(it.first, it.second)
-                }
+            injects.forEach {
+                block.statements.add(it.first, it.second)
             }
         }
     }

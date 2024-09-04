@@ -30,19 +30,20 @@ class JavaExpression2Strudel(
     private fun IRecordType.findFieldInHierarchy(id: String): IField? =
         getField(id) ?: if (declaringType != null) declaringType!!.findFieldInHierarchy(id) else null
 
+    // Finds the variable for a given ID
+    fun findVariable(id: String): IVariableDeclaration<*>? =
+        procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
+            ((p.type as IReferenceType).target as IRecordType).findFieldInHierarchy(id)
+        }
+
     // Finds the variable declaration for a given variable name expression
-    private fun findVariableResolve(v: NameExpr): IVariableDeclaration<*>? {
-        fun findVariable(id: String): IVariableDeclaration<*>? =
-            procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
-                ((p.type as IReferenceType).target as IRecordType).findFieldInHierarchy(id)
-            }
-        return when (val r = v.resolve()) {
+    private fun findVariableResolve(v: NameExpr): IVariableDeclaration<*>? =
+        kotlin.runCatching { when (val r = v.resolve()) {
             is JavaParserVariableDeclaration -> variableDeclarationMap[r.variableDeclarator]
             is JavaParserParameterDeclaration -> findVariable(r.wrappedNode.nameAsString)
             is JavaParserFieldDeclaration -> findVariable(r.name)
             else -> null
-        }
-    }
+        } }.getOrNull()
 
     fun map(exp: Expression): IExpression = with(translator) {
         when (exp) {
@@ -52,7 +53,7 @@ class JavaExpression2Strudel(
             is BooleanLiteralExpr -> if (exp.value) True else False
 
             is NameExpr -> {
-                val target = findVariableResolve(exp) // findVariable(exp.nameAsString)
+                val target = findVariableResolve(exp) ?: findVariable(exp.nameAsString)
                 if (target == null)
                     System.err.println("Could not find variable for expression ${exp.parentNode.getOrNull ?: exp}")
                 if (target?.isField == true) {
