@@ -29,9 +29,9 @@ interface IVirtualMachine {
         else
             when (any) {
                 is Int -> getValue(any)
-                is Long -> getValue(any.toInt()) // TODO: not cool
+                is Long -> getValue(any.toInt())
                 is Double -> getValue(any)
-                is Float -> getValue(any.toDouble()) // also not that cool
+                is Float -> getValue(any.toDouble())
                 is Boolean -> getValue(any)
                 is Char -> getValue(any)
                 else -> throw UnsupportedOperationException("Unsupported Strudel value type ${any::class.simpleName} in: $any")

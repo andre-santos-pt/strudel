@@ -124,7 +124,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestMethodNameOverloading::class,
 
-    TestJavaRecord::class
+    TestJavaRecord::class,
+
+    TestCharArithmetic::class
 )
 class AllTests
 

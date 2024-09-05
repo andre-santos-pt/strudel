@@ -12,7 +12,7 @@ import kotlin.test.assertEquals
 class TestRound : pt.iscte.strudel.tests.BaseTest({
     Procedure(INT, "round") {
         val value = Param(DOUBLE, "value")
-        Return(UnaryOperator.TRUNCATE.on(value.expression() + 0.5))
+        Return(UnaryOperator.CAST_TO_INT.on(value.expression() + 0.5))
     }
 }){
 

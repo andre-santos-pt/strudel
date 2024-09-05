@@ -8,6 +8,7 @@ import pt.iscte.strudel.model.util.*
 import pt.iscte.strudel.vm.*
 import java.lang.RuntimeException
 
+private const val DIVIDE_BY_ZERO_MSG = "Cannot divide by zero"
 
 class ProcedureInterpreterNoExpression(
     val vm: IVirtualMachine,
@@ -525,90 +526,126 @@ class ProcedureInterpreterNoExpression(
                 if (type == INT) Value(INT, -value.toInt())
                 else Value(DOUBLE, -value.toDouble())
 
-            UnaryOperator.TRUNCATE -> Value(INT, value.toDouble().toInt())
+            UnaryOperator.CAST_TO_INT ->
+                if (type.isNumber) Value(INT, value.toDouble().toInt())
+                else Value(INT, value.toChar().code)
+
+            UnaryOperator.CAST_TO_DOUBLE ->
+                if (type.isNumber) Value(DOUBLE, value.toDouble())
+                else Value(INT, value.toChar().code.toDouble())
+
+            UnaryOperator.CAST_TO_CHAR ->
+                if (type.isNumber) Value(CHAR, value.toDouble().toInt().toChar())
+                else Value(CHAR, value.toChar())
+
             else -> throw UnsupportedOperationException(operator.toString())
         }
 
-    val div0message = "Cannot divide by zero"
+
+
     private fun binoperation(
         exp: IBinaryExpression,
         left: IValue,
         right: IValue
     ): IValue {
+        fun unsupported(): Nothing =
+            throw RuntimeError(RuntimeErrorType.UNSUPPORTED, exp, "operator ${exp.operator} between ${left.type.id} and ${right.type.id}")
+
         val operator = exp.operator
         val type = exp.type
-        if (operator is ArithmeticOperator) {
-            if (operator == ArithmeticOperator.IDIV)
-                return if (right.toInt() == 0)
-                    throw RuntimeError(
-                        RuntimeErrorType.DIVBYZERO,
-                        exp.rightOperand,
-                        div0message
-                    )
-                else Value(INT, left.toInt() / right.toInt())
-            if (operator == ArithmeticOperator.MOD)
-                return if (right.toInt() == 0)
-                    throw RuntimeError(
-                        RuntimeErrorType.DIVBYZERO,
-                        exp.rightOperand,
-                        div0message
-                    )
-                else Value(INT, left.toInt() % right.toInt())
+        when (operator) {
+            is ArithmeticOperator -> {
+                if (left.type.isNumber) {
+                    if (!right.type.isNumber)
+                        unsupported()
 
+                    if (operator == ArithmeticOperator.IDIV)
+                        if (right.toInt() == 0)
+                            throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
+                        else
+                            return Value(INT, left.toInt() / right.toInt())
+                    if (operator == ArithmeticOperator.MOD)
+                        if (right.toInt() == 0)
+                            throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
+                        else
+                            return Value(INT, left.toInt() % right.toInt())
 
-            val l: Double = left.toDouble()
-            val r: Double = right.toDouble()
-            var res = when (operator) {
-                ArithmeticOperator.ADD -> l + r
-                ArithmeticOperator.SUB -> l - r
-                ArithmeticOperator.MUL -> l * r
-                ArithmeticOperator.DIV -> if (r == 0.0)
-                    throw RuntimeError(
-                        RuntimeErrorType.DIVBYZERO,
-                        exp.rightOperand,
-                        div0message
-                    )
-                else
-                    l / r
+                    val l: Double = left.toDouble()
+                    val r: Double = right.toDouble()
+                    val res = when (operator) {
+                        ArithmeticOperator.ADD -> l + r
+                        ArithmeticOperator.SUB -> l - r
+                        ArithmeticOperator.MUL -> l * r
+                        ArithmeticOperator.DIV ->
+                            if (r == 0.0) throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
+                            else l / r
+                        else -> unsupported()
+                    }
 
-                else -> throw UnsupportedOperationException(operator.toString())
+                    return if (type == INT) Value(type, res.toInt()) else Value(type, res)
+                } else if (left.type.isCharacter) {
+                    if (right.type != INT)
+                        unsupported()
+
+                    val l: Char = left.toChar()
+                    val r: Int = right.toInt()
+                    val res: Char = when (operator) {
+                        ArithmeticOperator.ADD -> l + r
+                        ArithmeticOperator.SUB -> l - r
+                        else -> unsupported()
+                    }
+                    return if (type == INT) Value(type, res.code) else Value(type, res)
+                }
             }
 
-            return if (type == INT) Value(type, res.toInt()) else Value(
-                type,
-                res
-            )
-        } else if (operator is RelationalOperator) {
-            if (operator == RelationalOperator.EQUAL) return Value(
-                BOOLEAN,
-                left.value == right.value
-            )
-            if (operator == RelationalOperator.DIFFERENT) return Value(
-                BOOLEAN,
-                left.value != right.value
-            )
+            is RelationalOperator -> {
+                if (operator == RelationalOperator.EQUAL)
+                    return Value(BOOLEAN, left.value == right.value)
+                if (operator == RelationalOperator.DIFFERENT)
+                    return Value(BOOLEAN, left.value != right.value)
 
-            val l: Double = left.toDouble()
-            val r: Double = right.toDouble()
-            var res = when (operator) {
-                RelationalOperator.SMALLER -> l < r
-                RelationalOperator.SMALLER_EQUAL -> l <= r
-                RelationalOperator.GREATER -> l > r
-                RelationalOperator.GREATER_EQUAL -> l >= r
+                if (left.type.isNumber) {
+                    if (!right.type.isNumber)
+                        unsupported()
 
-                else -> throw UnsupportedOperationException(operator.toString())
+                    val l: Double = left.toDouble()
+                    val r: Double = right.toDouble()
+                    val res = when (operator) {
+                        RelationalOperator.SMALLER -> l < r
+                        RelationalOperator.SMALLER_EQUAL -> l <= r
+                        RelationalOperator.GREATER -> l > r
+                        RelationalOperator.GREATER_EQUAL -> l >= r
+                        else -> unsupported()
+                    }
+                    return Value(type, res)
+                } else if (left.type.isCharacter) {
+                    if (!right.type.isCharacter)
+                        unsupported()
+
+                    val l: Char = left.toChar()
+                    val r: Char = right.toChar()
+                    val res = when (operator) {
+                        RelationalOperator.SMALLER -> l < r
+                        RelationalOperator.SMALLER_EQUAL -> l <= r
+                        RelationalOperator.GREATER -> l > r
+                        RelationalOperator.GREATER_EQUAL -> l >= r
+                        else -> unsupported()
+                    }
+                    return Value(type, res)
+                }
             }
-            return Value(type, res)
-        } else if (operator is LogicalOperator) {
-            var res = when (operator) {
-                LogicalOperator.AND -> left.toBoolean() && right.toBoolean()
-                LogicalOperator.OR -> left.toBoolean() || right.toBoolean()
-                LogicalOperator.XOR -> left.toBoolean() xor right.toBoolean()
-                else -> throw UnsupportedOperationException(operator.toString())
+
+            is LogicalOperator -> {
+                val res = when (operator) {
+                    LogicalOperator.AND -> left.toBoolean() && right.toBoolean()
+                    LogicalOperator.OR -> left.toBoolean() || right.toBoolean()
+                    LogicalOperator.XOR -> left.toBoolean() xor right.toBoolean()
+                    else -> unsupported()
+                }
+                return Value(type, res)
             }
-            return Value(type, res)
         }
-        throw UnsupportedOperationException(operator.toString())
+        unsupported()
     }
 }
 

@@ -3,7 +3,7 @@ package pt.iscte.strudel.parsing.java
 import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
-import com.github.javaparser.resolution.types.ResolvedReferenceType
+import com.github.javaparser.ast.type.PrimitiveType
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserParameterDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserVariableDeclaration
@@ -110,7 +110,15 @@ class JavaExpression2Strudel(
 
             is EnclosedExpr -> map(exp.inner)
 
-            is CastExpr -> UnaryOperator.TRUNCATE.on(map(exp.expression)) //TODO other casts
+            is CastExpr -> when (val t = exp.type) {
+                is PrimitiveType -> when (val p = exp.type.asPrimitiveType().type) {
+                    PrimitiveType.Primitive.INT -> UnaryOperator.CAST_TO_INT.on(map(exp.expression))
+                    PrimitiveType.Primitive.DOUBLE -> UnaryOperator.CAST_TO_DOUBLE.on(map(exp.expression))
+                    PrimitiveType.Primitive.CHAR -> UnaryOperator.CAST_TO_CHAR.on(map(exp.expression))
+                    else -> unsupported("cast to primitive type ${p.name}", exp)
+                }
+                else -> unsupported("cast to non-primitive type $t", exp)
+            }
 
             // TODO multi level
             is ArrayCreationExpr -> {

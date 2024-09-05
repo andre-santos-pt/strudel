@@ -17,6 +17,8 @@ interface IType : IProgramElement {
         get() = this === INT || this === DOUBLE
     val isBoolean: Boolean
         get() = this === BOOLEAN
+    val isCharacter: Boolean
+        get() = this === CHAR
 
     val isReference: Boolean
         get() = this is IReferenceType
