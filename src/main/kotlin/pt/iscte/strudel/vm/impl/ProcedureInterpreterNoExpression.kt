@@ -231,6 +231,14 @@ class ProcedureInterpreterNoExpression(
                         s.expression.materialize()
                     )
                 }
+
+                if(array.isNull)
+                    throw RuntimeError(
+                        RuntimeErrorType.NULL_POINTER,
+                        s.arrayAccess.target,
+                        "reference is null"
+                    )
+
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
                     throw ArrayIndexError(
@@ -259,6 +267,14 @@ class ProcedureInterpreterNoExpression(
                         s.expression.materialize()
                     )
                 }
+
+                if(target.isNull)
+                    throw RuntimeError(
+                        RuntimeErrorType.NULL_POINTER,
+                        s.target,
+                        "reference is null"
+                    )
+
                 val recordRef = target as IReference<IRecord>
                 recordRef.target.setField(s.field, value)
                 vm.listeners.forEach { l ->
@@ -407,7 +423,7 @@ class ProcedureInterpreterNoExpression(
                     throw RuntimeError(
                         RuntimeErrorType.NULL_POINTER,
                         exp.target,
-                        "reference to array is null"
+                        "reference is null"
                     )
 
                 val i = index.toInt()
@@ -428,7 +444,7 @@ class ProcedureInterpreterNoExpression(
                     throw RuntimeError(
                         RuntimeErrorType.NULL_POINTER,
                         exp.target,
-                        "reference to array is null"
+                        "reference is null"
                     )
 
                 vm.getValue(((it as IReference<IArray>).target).length)
@@ -440,7 +456,7 @@ class ProcedureInterpreterNoExpression(
                     throw RuntimeError(
                         RuntimeErrorType.NULL_POINTER,
                         exp.target,
-                        "reference to object is null"
+                        "reference is null"
                     )
                 (it as IReference<IRecord>).target.getField(exp.field)
             }

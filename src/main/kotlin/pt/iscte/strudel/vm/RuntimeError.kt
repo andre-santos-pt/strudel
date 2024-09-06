@@ -28,7 +28,7 @@ class ArrayIndexError(
     val indexExpression: IExpression,
     val array: IArray
 ) : RuntimeError(
-    RuntimeErrorType.ARRAY_INDEX_BOUNDS, element, "invalid array index access"
+    RuntimeErrorType.ARRAY_INDEX_BOUNDS, element.index, "invalid array index access"
 ) {
     var target: IExpression
 
