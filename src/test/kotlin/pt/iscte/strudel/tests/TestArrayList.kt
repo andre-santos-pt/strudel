@@ -43,6 +43,7 @@ class TestArrayList : BaseTest({
             module.procedures[0] as IProcedure,
             vm.allocateRecord(module.recordTypes[0])
         )!!
+        println(module.procedures)
         vm.execute(module.procedures[2] as IProcedure, list, vm.getValue(2))
         vm.execute(module.procedures[2] as IProcedure, list, vm.getValue(3))
         val r = vm.execute(module.procedures[1] as IProcedure, list)

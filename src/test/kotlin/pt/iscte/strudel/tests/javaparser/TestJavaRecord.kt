@@ -6,8 +6,11 @@ import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.extensions.hasThisParameter
 import pt.iscte.strudel.vm.ExceptionError
+import pt.iscte.strudel.vm.IRecord
+import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
@@ -161,5 +164,34 @@ class TestJavaRecord {
 
         val length = module.getProcedure("length")
         assertEquals(10.0, vm.execute(length, interval)?.value)
+    }
+
+    @Test
+    fun testMultipleTypes() {
+        val src = """
+            record QQ(int x, int y) {}
+
+            class Test {
+                static QQ test() {
+                    QQ p = new QQ(3,2);
+                    return p;
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+        val qqType = module.getRecordType("QQ")
+
+        println(module)
+
+        val vm = IVirtualMachine.create()
+
+        val test = module.getProcedure("test", "Test")
+        val qq = vm.execute(test)
+
+        assertIs<IReference<IRecord>>(qq)
+        assertEquals(3, qq.target.getField(qqType["x"]).value)
+        assertEquals(2, qq.target.getField(qqType["y"]).value)
+
+        println(module)
     }
 }

@@ -75,6 +75,12 @@ internal fun IProcedureDeclaration.matches(namespace: String?, id: String, param
 internal val TypeDeclaration<*>.qualifiedName: String
     get() = fullyQualifiedName.getOrDefault(nameAsString)
 
+val TypeDeclaration<*>.nestedTypes: List<TypeDeclaration<*>>
+    get() {
+        val inner = members.filterIsInstance<TypeDeclaration<*>>()
+        return if (inner.isEmpty()) listOf() else inner + inner.flatMap { it.nestedTypes }
+    }
+
 internal fun VariableDeclarator.isGeneric(type: ClassOrInterfaceDeclaration): Boolean =
     typeAsString in type.typeParameters.map { it.nameAsString } ||
             (type.findAncestor(ClassOrInterfaceDeclaration::class.java).getOrNull?.let { isGeneric(it) } ?: false)

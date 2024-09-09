@@ -19,7 +19,6 @@ import pt.iscte.strudel.parsing.java.extensions.*
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
-import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.parsing.ITranslator
@@ -199,6 +198,38 @@ class Java2Strudel(
     private fun translate(typeDeclarations: List<TypeDeclaration<*>>) = module {
         val types = defaultTypes.toMutableMap()
 
+        // Collect all types beforehand (to have something to bind to later, if needed)
+        (typeDeclarations + typeDeclarations.flatMap { it.nestedTypes }).forEach {
+            val type = Record(it.qualifiedName) {
+                bind(it.name, ID_LOC)
+                it.comment.translateComment()?.let { c -> documentation = c }
+            }
+            types[it.qualifiedName] = type.reference()
+            types["${it.qualifiedName}[]"] = type.array().reference()
+            types["${it.qualifiedName}[][]"] = type.array().array().reference()
+        }
+
+        fun IProcedureDeclaration.setPropertiesAndBind(callable: CallableDeclaration<*>, namespace: String) {
+            // Check for unsupported modifiers
+            if (callable.modifiers.any { !supportedModifiers.contains(it.keyword) })
+                unsupported("modifiers", callable.modifiers.filter { !supportedModifiers.contains(it.keyword) })
+
+            // Set modifiers
+            setFlag(*callable.modifiers.map { it.keyword.asString() }.toTypedArray())
+
+            // Set namespace
+            setProperty(NAMESPACE_PROP, namespace)
+
+            // Translate comment
+            callable.comment.translateComment()?.let { this.documentation = it }
+
+            // Bind
+            bind(callable.name, ID_LOC)
+            bind(callable)
+            if (callable is MethodDeclaration) bind(callable.type, TYPE_LOC)
+            else bind(callable.name, TYPE_LOC)
+        }
+
         /**
          * Translates a JavaParser method declaration into a Strudel procedure declaration.
          * @receiver Any JavaParser method declaration.
@@ -206,67 +237,37 @@ class Java2Strudel(
          * @return IProcedure with correct modifiers and parameters but empty body.
          */
         @Suppress("UNCHECKED_CAST")
-        fun <T : TypeDeclaration<*>> MethodDeclaration.translateMethod(namespace: String): IProcedureDeclaration =
+        fun <T : TypeDeclaration<*>> MethodDeclaration.translateMethodDeclaration(namespace: String): IProcedureDeclaration =
             if (!body.isPresent)
                 PolymophicProcedure(this@module, namespace, nameAsString, types.mapType(type)).apply {
-                    comment.translateComment()?.let { this.documentation = it }
-
-                    // Check for unsupported modifiers
-                    if (modifiers.any { !supportedModifiers.contains(it.keyword) })
-                        unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
-
-                    // Add modifiers
-                    setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
+                    setPropertiesAndBind(this@translateMethodDeclaration, namespace)
 
                     // Interface methods ""are always instance methods"" (don't quote us on this) -> add $this parameter
-                    addParameter(types.mapType((parentNode.get() as T))).apply {
-                        id = THIS_PARAM
-                    }
+                    addParameter(types.mapType((parentNode.get() as T))).apply { id = THIS_PARAM }
 
                     // Add regular method parameters
-                    this@translateMethod.parameters.forEach { p ->
-                        addParameter(types.mapType(p.type)).apply {
-                            id = p.nameAsString
-                        }.bind(p)
+                    this@translateMethodDeclaration.parameters.forEach { p ->
+                        addParameter(types.mapType(p.type)).apply { id = p.nameAsString }
+                            .bind(p)
                             .bind(p.type, TYPE_LOC)
                             .bind(p.name, ID_LOC)
                     }
-
-                    bind(this@translateMethod)
-                    setProperty(NAMESPACE_PROP, namespace)
-                    bind(name, ID_LOC)
-                    bind(this@translateMethod.type, TYPE_LOC)
                 }
             else
                 Procedure(types.mapType(type), nameAsString).apply {
-                    comment.translateComment()?.let { this.documentation = it }
-
-                    // Check for unsupported modifiers
-                    if (modifiers.any { !supportedModifiers.contains(it.keyword) })
-                        unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
-
-                    // Add modifiers
-                    setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
+                    setPropertiesAndBind(this@translateMethodDeclaration, namespace)
 
                     // Is instance method --> Add $this parameter
                     if (!modifiers.contains(Modifier.staticModifier()))
-                        addParameter(types.mapType((parentNode.get() as T))).apply {
-                            id = THIS_PARAM
-                        }
+                        addParameter(types.mapType((parentNode.get() as T))).apply { id = THIS_PARAM }
 
                     // Add regular method parameters
-                    this@translateMethod.parameters.forEach { p ->
-                        addParameter(types.mapType(p.type)).apply {
-                            id = p.nameAsString
-                        }.bind(p)
+                    this@translateMethodDeclaration.parameters.forEach { p ->
+                        addParameter(types.mapType(p.type)).apply { id = p.nameAsString }
+                            .bind(p)
                             .bind(p.type, TYPE_LOC)
                             .bind(p.name, ID_LOC)
                     }
-
-                    bind(this@translateMethod)
-                    setProperty(NAMESPACE_PROP, namespace)
-                    bind(name, ID_LOC)
-                    bind(this@translateMethod.type, TYPE_LOC)
                 }
 
         /**
@@ -275,21 +276,12 @@ class Java2Strudel(
          * @param declaringClass Declaration of declaring class.
          * @return IProcedure with correct modifiers and parameters but empty body.
          */
-        fun ConstructorDeclaration.translateConstructor(declaringClass: ClassOrInterfaceDeclaration) =
+        fun ConstructorDeclaration.translateConstructorDeclaration(declaringClass: ClassOrInterfaceDeclaration): IProcedureDeclaration =
             Procedure(
-                types.mapType(runCatching {
-                    this.resolve().declaringType().qualifiedName
-                }.getOrDefault(this.nameAsString)),
+                types.mapType(runCatching { resolve().declaringType().qualifiedName }.getOrDefault(nameAsString)),
                 INIT
             ).apply {
-                comment.translateComment()?.let { this.documentation = it }
-
-                // Check for unsupported modifiers
-                if (modifiers.any { !supportedModifiers.contains(it.keyword) })
-                    unsupported("modifiers", modifiers.filter { !supportedModifiers.contains(it.keyword) })
-
-                // Set modifiers and constructor flag
-                setFlag(*modifiers.map { it.keyword.asString() }.toTypedArray())
+                setPropertiesAndBind(this@translateConstructorDeclaration, declaringClass.qualifiedName)
                 setFlag(CONSTRUCTOR_FLAG)
 
                 // Add $outer parameter if inner class
@@ -312,92 +304,82 @@ class Java2Strudel(
                 }
 
                 // Add regular constructor parameters
-                this@translateConstructor.parameters.forEach { p ->
-                    addParameter(types.mapType(p.type)).apply {
-                        id = p.nameAsString
-                    }.bind(p)
+                this@translateConstructorDeclaration.parameters.forEach { p ->
+                    addParameter(types.mapType(p.type)).apply { id = p.nameAsString }
+                        .bind(p)
                         .bind(p.type, TYPE_LOC)
                         .bind(p.name, ID_LOC)
                 }
-
-                bind(this@translateConstructor)
-                setProperty(NAMESPACE_PROP, declaringClass.qualifiedName)
-                bind(name, ID_LOC)
-                bind(this@translateConstructor.name, TYPE_LOC)
             }
 
         /**
-         * Creates a default constructor for a JavaParser class or interface declaration.
-         * @param type JavaParser class declaration.
-         * @return IProcedure with `return $this` statement and otherwise empty body.
+         * Creates a default constructor for a JavaParser type declaration.
+         * @param type JavaParser type declaration.
+         * @return IProcedure with `return $this` statement (if class declaration) and otherwise empty body.
          */
-        fun createDefaultConstructor(type: ClassOrInterfaceDeclaration) =
+        fun createDefaultConstructor(type: TypeDeclaration<*>): IProcedureDeclaration =
             Procedure(
                 types.mapType(type.qualifiedName),
                 INIT
             ).apply {
                 setFlag("public")
                 setFlag(CONSTRUCTOR_FLAG)
-
-                var outer: IParameter? = null
-                if (type.isInnerClass) {
-                    val parent = type.parentNode.get() as ClassOrInterfaceDeclaration
-                    outer = addParameter(types.mapType(parent.qualifiedName)).apply { id = OUTER_PARAM }
-                }
-
-                val instance = addParameter(returnType).apply { id = THIS_PARAM }
-
-                if (outer != null)
-                    block.FieldSet(
-                        instance.expression(),
-                        returnType.asRecordType.getField(OUTER_PARAM)!!,
-                        outer!!.expression()
-                    )
-
-                block.Return(instance)
                 setProperty(NAMESPACE_PROP, type.qualifiedName)
-            }
 
-        fun collectInnerClasses(parent: ClassOrInterfaceDeclaration): List<ClassOrInterfaceDeclaration> {
-            val inner = parent.members.filterIsInstance<ClassOrInterfaceDeclaration>()
-            return if (inner.isEmpty()) listOf() else inner + inner.map { collectInnerClasses(it) }.flatten()
-        }
+                // Default record constructor needs to include parameters.
+                // Default class constructor is totally empty, e.g. public ClassName() { }.
+                if (type is RecordDeclaration) {
+                    addParameter(returnType).apply { id = THIS_PARAM }
+                    type.parameters.forEach {p ->
+                        addParameter(types.mapType(p.type)).apply { id = p.nameAsString }
+                            .bind(p)
+                            .bind(p.type, TYPE_LOC)
+                            .bind(p.name, ID_LOC)
+                    }
+                }
+            }
 
         /**
-         * Associates every callable declaration in a list of class declarations with a Strudel IProcedureDeclaration.
-         * @receiver A list of JavaParser class or interface declarations.
+         * Collects the declarations (i.e. empty body) of all the declared procedures within a JavaParser type
+         * declaration.
+         * @receiver A JavaParser type declaration (e.g. class or record declaration).
          * @return A list of (JavaParser Declaration, IProcedure) pairs. Declaration is null for default constructors.
          */
-        fun List<ClassOrInterfaceDeclaration>.getAllProcedures(): List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> {
-            // Default constructors created for classes with no explicit constructor declarations
-            val defaultConstructors = filter {
-                !it.isInterface && it.constructors.isEmpty() && it.methods.none { method -> method.nameAsString == INIT }
-            }.map { null to createDefaultConstructor(it) }
+        @Suppress("UNCHECKED_CAST")
+        fun <T : TypeDeclaration<*>> TypeDeclaration<T>.getProcedureDeclarations(): List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> {
+            val defaultConstructors =
+                if (this is RecordDeclaration || (this is ClassOrInterfaceDeclaration && !isInterface && constructors.isEmpty() && methods.none { it.nameAsString == INIT }))
+                    listOf(null to createDefaultConstructor(this))
+                else listOf()
 
-            // Each explicit constructor declarations are translated
-            val explicitConstructors = flatMap { it.constructors }.map {
-                it to it.translateConstructor(it.parentNode.get() as ClassOrInterfaceDeclaration)
-            }
+            val explicitConstructors =
+                if (this is ClassOrInterfaceDeclaration && constructors.isNotEmpty())
+                    constructors.map { it to it.translateConstructorDeclaration(it.parentNode.get() as ClassOrInterfaceDeclaration) }
+                else listOf()
 
-            // Each of a type's methods is translated
-            val methods = flatMap { it.methods }.map {
-                // Replace string concatenation with + with String.concat(String) calls
+            val methods = methods.map {
                 it.replaceStringPlusWithConcat()
                 it.substituteControlBlocks()
                 it.replaceIncDecAsExpressions()
-                it to it.translateMethod<ClassOrInterfaceDeclaration>((it.parentNode.get() as ClassOrInterfaceDeclaration).qualifiedName)
+                it to it.translateMethodDeclaration<T>((it.parentNode.get() as T).qualifiedName)
             }
 
             return defaultConstructors + explicitConstructors + methods
         }
+
+        // Collect all procedures beforehand (to have something to bind procedure calls to, if needed)
+        // Bodies are translated later as needed
+        val proceduresPerType: Map<TypeDeclaration<*>, List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>> =
+            (typeDeclarations + typeDeclarations.flatMap { it.nestedTypes }).associateWith { it.getProcedureDeclarations() }
+        val procedureDeclarations = proceduresPerType.values.flatten()
 
         /**
          * Injects field assignment statements in a procedure based on a record type's field initializers.
          * @receiver Any IProcedure. The goal is to use this with record type constructors.
          * @param type Record type. If null, defaults to procedure's return type as a record type.
          */
-        fun IProcedure.injectFieldInitializers(procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>, type: IRecordType? = null) {
-            val exp2Strudel = JavaExpression2Strudel(this, block, procedures, types, this@Java2Strudel, mutableMapOf())
+        fun IProcedure.injectFieldInitializers(type: IRecordType? = null) {
+            val exp2Strudel = JavaExpression2Strudel(this, block, procedureDeclarations, types, this@Java2Strudel, mutableMapOf())
             val t = type ?: thisParameter.type.asRecordType
             t.fields.reversed().forEach { field ->
                 fieldInitializers[field]?.let {
@@ -407,28 +389,11 @@ class Java2Strudel(
         }
 
         /**
-         * Creates a Strudel record type from a JavaParser type declaration, setting the appropriate reference types
-         * in the type array.
-         * @receiver A JavaParser type declaration.
-         * @return A Strudel Record type corresponding to the type declaration.
-         */
-        fun TypeDeclaration<*>.asRecordType(): IRecordType {
-            val type = Record(qualifiedName) {
-                bind(name, ID_LOC)
-                comment.translateComment()?.let { documentation = it }
-            }
-            types[qualifiedName] = type.reference()
-            types["$qualifiedName[]"] = type.array().reference()
-            types["$qualifiedName[][]"] = type.array().array().reference()
-            return type
-        }
-
-        /**
          * Translates a list of JavaParser class or interface declarations to the current Strudel module.
          * @param classes The list of class or interface declarations to translate.
          */
         fun translateClassAndInterfaceDeclarations(classes: List<ClassOrInterfaceDeclaration>) {
-            val allClasses = classes + classes.map { collectInnerClasses(it) }.flatten()
+            val allClasses = classes + classes.flatMap { it.nestedTypes }.filterIsInstance<ClassOrInterfaceDeclaration>()
 
             allClasses.forEach { c ->
                 if (c.extendedTypes.isNotEmpty())
@@ -445,7 +410,7 @@ class Java2Strudel(
                 }
                  */
 
-                val type = c.asRecordType()
+                val type = (types.mapType(c.qualifiedName) as IReferenceType).target as IRecordType
                 if (c.isInnerClass) {
                     val parent = c.parentNode.get() as ClassOrInterfaceDeclaration
                     type.addField(types.mapType(parent.qualifiedName)) { id = OUTER_PARAM }
@@ -455,6 +420,27 @@ class Java2Strudel(
             // Translate field declarations for each class
             allClasses.filter { !it.isInterface }.forEach { c ->
                 val recordType = (types[c.qualifiedName] as IReferenceType).target as IRecordType
+
+                val defaultConstructor: IProcedure? = proceduresPerType[c]!!.firstOrNull {
+                    it.first == null && it.second.namespace == c.qualifiedName && it.second.hasFlag(CONSTRUCTOR_FLAG)
+                }?.second as? IProcedure
+
+                if (defaultConstructor != null) {
+                    var outer: IParameter? = null
+                    if (c.isInnerClass) {
+                        val parent = c.parentNode.get() as ClassOrInterfaceDeclaration
+                        outer = defaultConstructor.addParameter(types.mapType(parent.qualifiedName)).apply { id = OUTER_PARAM }
+                    }
+                    val instance = defaultConstructor.addParameter(defaultConstructor.returnType).apply { id = THIS_PARAM }
+                    if (outer != null)
+                        defaultConstructor.block.FieldSet(
+                            instance.expression(),
+                            defaultConstructor.returnType.asRecordType.getField(OUTER_PARAM)!!,
+                            outer!!.expression()
+                        )
+                    defaultConstructor.block.Return(instance)
+                }
+
                 c.fields.forEach { field ->
                     field.variables.forEach { variableDeclaration ->
                         val fieldType =
@@ -479,23 +465,24 @@ class Java2Strudel(
             }
 
             // Get all procedures in a list of class declarations
-            val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> = allClasses.getAllProcedures()
+            val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> =
+                allClasses.flatMap { proceduresPerType[it] ?: listOf() }
 
             // Translate bodies of all procedures
             procedures.forEach {
                 if (it.first != null && it.second is IProcedure) {
-                    val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedures, types, this@Java2Strudel)
+                    val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedureDeclarations, types, this@Java2Strudel)
 
                     // Translate statements in declaration body
                     it.first!!.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
 
                     // Inject field initializers and return statement in constructors
                     if (it.first is ConstructorDeclaration) {
-                        (it.second as IProcedure).injectFieldInitializers(procedures)
+                        (it.second as IProcedure).injectFieldInitializers()
                         (it.second as IProcedure).block.Return(it.second.thisParameter)
                     }
                 } else if (it.first == null) // No JavaParser declaration --> default constructor
-                    (it.second as IProcedure).injectFieldInitializers(procedures) // Inject field initializers into default constructors
+                    (it.second as IProcedure).injectFieldInitializers() // Inject field initializers into default constructors
             }
         }
 
@@ -505,25 +492,23 @@ class Java2Strudel(
          */
         fun translateRecordDeclarations(records: List<RecordDeclaration>) {
             records.forEach { r ->
-                val type = r.asRecordType()
+                val type = (types.mapType(r.qualifiedName) as IReferenceType).target as IRecordType
 
                 if (r.constructors.isNotEmpty())
                     unsupported("record with explicit constructors", r)
 
+                // Check if record has 1 compact constructor
                 val compact: CompactConstructorDeclaration? =
                     if (r.compactConstructors.isEmpty()) null
                     else if (r.compactConstructors.size == 1) r.compactConstructors.first()
                     else unsupported("record with multiple compact constructors", r)
 
-                val constructor = Procedure(types.mapType(r.qualifiedName), INIT).apply {
-                    setFlag("public")
-                    setFlag(CONSTRUCTOR_FLAG)
-                    setProperty(NAMESPACE_PROP, r.qualifiedName)
-                }
+                // Get default constructor
+                val constructor = proceduresPerType[r]!!.first {
+                    it.second.namespace == r.qualifiedName && it.second.hasFlag(CONSTRUCTOR_FLAG)
+                }.second as IProcedure
 
-                val instance = constructor.addParameter(constructor.returnType).apply { id = THIS_PARAM }
-
-                val fieldSetters = mutableMapOf<IField, ITargetExpression>()
+                val fieldSetters = mutableListOf<Pair<IField, ITargetExpression>>()
                 r.parameters.forEach { param ->
                     val paramType =
                         if (param.isGeneric(r)) types["java.lang.Object"]
@@ -536,11 +521,13 @@ class Java2Strudel(
                                 param.type.resolve().describe()}", param
                         )
 
+                    // Add type field
                     val field = type.addField(paramType) { id = param.nameAsString }
-                    val constructorParam = constructor.addParameter(field.type).apply { id = field.id }
-                    fieldSetters[field] = constructorParam.expression()
+                    val constructorParam = constructor.parameters.first { it.type == field.type && it.id == field.id }
+                    fieldSetters.add(Pair(field, constructorParam.expression()))
 
-                    val getter = Procedure(types.mapType(param.type), param.nameAsString).apply {
+                    // Generate get() method for field
+                    Procedure(types.mapType(param.type), param.nameAsString).apply {
                         setFlag("public")
                         setProperty(NAMESPACE_PROP, r.qualifiedName)
                         val t = addParameter(constructor.returnType).apply { id = THIS_PARAM }
@@ -548,33 +535,33 @@ class Java2Strudel(
                     }
                 }
 
-                val procedures = r.methods.filter { !it.isConstructorDeclaration }.map {
-                    it.replaceStringPlusWithConcat()
-                    it.substituteControlBlocks()
-                    it.replaceIncDecAsExpressions()
-                    it to it.translateMethod<RecordDeclaration>((it.parentNode.get() as RecordDeclaration).qualifiedName)
-                }
+                val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> =
+                    proceduresPerType[r]!!.filter { !it.second.hasFlag(CONSTRUCTOR_FLAG) }
 
+                // Translate internal procedures
                 procedures.forEach {
                     if (it.first != null && it.second is IProcedure) {
-                        val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedures, types, this@Java2Strudel)
-                        it.first!!.body?.let { body -> body.ifPresent { b -> stmtTranslator.translate(b, (it.second as IProcedure).block) } }
+                        val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedureDeclarations, types, this@Java2Strudel)
+                        it.first!!.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
                     }
                 }
 
+                // If type has a compact constructor, inject statements into default constructor
                 if (compact != null) {
                     compact.replaceStringPlusWithConcat()
                     compact.substituteControlBlocks()
                     compact.replaceIncDecAsExpressions()
-                    val stmtTranslator = JavaStatement2Strudel(constructor, procedures, types, this@Java2Strudel)
+                    val stmtTranslator = JavaStatement2Strudel(constructor, procedureDeclarations, types, this@Java2Strudel)
                     stmtTranslator.translate(compact.body, constructor.block)
                 }
 
+                // Set fields in default constructor and return instance
                 fieldSetters.forEach { (field, expression) ->
                     constructor.block.FieldSet(constructor.thisParameter, field, expression)
                 }
+                constructor.block.Return(constructor.thisParameter)
 
-                // equals
+                // Generate equals() for record type
                 Procedure(BOOLEAN, "equals").apply {
                     setFlag("public")
                     setFlag(EQUALS_FLAG)
@@ -594,13 +581,8 @@ class Java2Strudel(
                                 RelationalOperator.EQUAL.on(field, otherField)
                         exp = if (exp == null) comparison else LogicalOperator.AND.on(exp!!, comparison)
                     }
-                    if (exp == null)
-                        block.Return(False)
-                    else
-                        block.Return(exp!!)
+                    block.Return(exp ?: False)
                 }
-
-                constructor.block.Return(instance)
             }
         }
 
@@ -622,16 +604,12 @@ class Java2Strudel(
                 unsupported("annotations", annotations.first())
         }
 
-        // Translate classes and interfaces
         translateClassAndInterfaceDeclarations(typeDeclarations.filterIsInstance<ClassOrInterfaceDeclaration>())
 
-        // Translate records
         translateRecordDeclarations(typeDeclarations.filterIsInstance<RecordDeclaration>())
 
-        // Translate enums
         translateEnumDeclarations(typeDeclarations.filterIsInstance<EnumDeclaration>())
 
-        // Translate annotations
         translateAnnotationDeclarations(typeDeclarations.filterIsInstance<AnnotationDeclaration>())
     }
 }
