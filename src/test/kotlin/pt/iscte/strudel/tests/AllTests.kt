@@ -126,7 +126,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestJavaRecord::class,
 
-    TestCharArithmetic::class
+    TestCharArithmetic::class,
+
+    TestImplicitCasts::class
 )
 class AllTests
 

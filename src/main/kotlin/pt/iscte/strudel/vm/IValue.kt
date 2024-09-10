@@ -41,7 +41,11 @@ interface IValue {
 
     fun toInt(): Int {
         //check(type === INT)
-        return if(value is Int) value as Int else (value as Double).toInt()
+        return when (value) {
+            is Int -> value as Int
+            is Char -> (value as Char).code
+            else -> (value as Double).toInt()
+        }
     }
 
     fun toDouble(): Double {
