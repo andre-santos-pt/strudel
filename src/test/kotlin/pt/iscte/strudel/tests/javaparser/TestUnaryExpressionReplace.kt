@@ -64,6 +64,8 @@ class TestUnaryExpressionReplace {
                 int test(int n) {
                     if (true)
                         return inc(--n);
+                    else
+                        return inc(--n);
                 }
             }
         """.trimIndent()

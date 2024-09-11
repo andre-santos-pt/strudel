@@ -30,7 +30,7 @@ class TestLogicalOperatorsJava {
             }
             
              // short-circuit
-            static boolean testCAnd() {
+            static boolean[] testCAnd() {
                 boolean andFF = f() && f();
                 boolean andTF = t() && f();
                 boolean andFT = f() && t();
@@ -39,7 +39,7 @@ class TestLogicalOperatorsJava {
                 return ret;
             }
             
-            static void testOr() {
+            static boolean[] testOr() {
                 boolean orFF = f() | f();
                 boolean orTF = t() | f();
                 boolean orFT = f() | t();
@@ -49,7 +49,7 @@ class TestLogicalOperatorsJava {
             }
             
             // short-circuit
-            static boolean testCOr() {
+            static boolean[] testCOr() {
                 boolean orFF = f() || f();
                 boolean orTF = t() || f();
                 boolean orFT = f() || t();
@@ -58,7 +58,7 @@ class TestLogicalOperatorsJava {
                 return ret;
             }
             
-            static void testXor() {
+            static boolean[] testXor() {
                 boolean xorFF = f() ^ f();
                 boolean xorTF = t() ^ f();
                 boolean xorFT = f() ^ t();

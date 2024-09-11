@@ -13,7 +13,7 @@ class TestAutomaticForeignProcedure {
         val src = """
             public class Rounder {
                 public static int round(double x) {
-                    return Math.round(x);
+                    return (int) Math.round(x);
                 }
             }
         """.trimIndent()
@@ -31,7 +31,7 @@ class TestAutomaticForeignProcedure {
         val src = """
             public class Rounder {
                 public static int round(double x) {
-                    return Math.round(x);
+                    return (int) Math.round(x);
                 }
                 
                 public static int integerValueOf(String x) {
@@ -64,7 +64,7 @@ class TestAutomaticForeignProcedure {
                     return x.substring(1);
                 }
                 
-                public static String length(String s) {
+                public static int length(String s) {
                     return s.length();
                 }
             }

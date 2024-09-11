@@ -46,6 +46,7 @@ class TestMultipleVariableDeclarations {
         assertEquals(30, vm.execute(get)?.value)
     }
 
+    /*
     @Test
     fun testTwoVariablesOnlyOneInitializer() {
         val src = """
@@ -65,4 +66,5 @@ class TestMultipleVariableDeclarations {
         // NPE for uninitialized variable usage
         assertThrows<Exception> { vm.execute(get) }
     }
+     */
 }

@@ -14,8 +14,6 @@ import kotlin.test.assertEquals
 
 class TestComparablePolymorphicParameter {
     val code = """    
-        import java.util.Comparable;
-  
         class Test {
             static void bubbleSort(Comparable[] arr) {
                 int n = arr.length;
@@ -40,8 +38,6 @@ class TestComparablePolymorphicParameter {
     """.trimIndent()
 
     val insertion = """
-        import java.util.Comparable;
-        
         class InsertionUpdated {
             public static void sort(Comparable[] arr) {
                 for (int i = 0; i < arr.length; i++) {

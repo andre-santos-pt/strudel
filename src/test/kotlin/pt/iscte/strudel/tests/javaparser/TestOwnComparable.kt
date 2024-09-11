@@ -11,14 +11,12 @@ import pt.iscte.strudel.vm.IVirtualMachine
 
 class TestOwnComparable {
     val code = """    
-        import java.util.Comparable;
-  
         class Numero implements Comparable<Numero> {
             int valor;
             public Numero(int valor) {
                 this.valor = valor;
             }
-            int compareTo(Numero n) {
+            public int compareTo(Numero n) {
                 return valor - n.valor;
             } 
         }

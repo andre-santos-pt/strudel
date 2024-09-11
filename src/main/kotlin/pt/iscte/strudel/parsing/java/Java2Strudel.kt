@@ -25,6 +25,7 @@ import pt.iscte.strudel.parsing.ITranslator
 import pt.iscte.strudel.parsing.java.extensions.matches
 import pt.iscte.strudel.parsing.java.extensions.qualifiedName
 import java.io.File
+import java.util.Locale
 import kotlin.reflect.KClass
 
 class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
@@ -75,14 +76,43 @@ class Java2Strudel(
         StaticJavaParser.getParserConfiguration().setSymbolResolver(JavaSymbolSolver(typeSolver()))
     }
 
-    override fun load(file: File): IModule =
-        translate(StaticJavaParser.parse(file).apply(preprocessing).types)
+    override fun load(file: File): IModule {
+        val types = StaticJavaParser.parse(file).apply(preprocessing).types
+
+        if (foreignProcedures.isNotEmpty()) // Java wouldn't compile anyway if foreign procedures were being used
+            return translate(types)
+
+        val compilation = ClassLoader.compile(file)
+        if (compilation.isEmpty())
+            return translate(types)
+        else
+            throw StrudelCompilationException("File $file contains invalid Java code:\n" + compilation.pretty())
+    }
 
     override fun load(files: List<File>): IModule =
-        translate(files.map { StaticJavaParser.parse(it).apply(preprocessing).types }.flatten())
+        translate(files.flatMap {
+            val types = StaticJavaParser.parse(it).apply(preprocessing).types
+            if (foreignProcedures.isNotEmpty()) types
+            else {
+                val compilation = ClassLoader.compile(it)
+                if (compilation.isEmpty()) types
+                else throw StrudelCompilationException("File $it contains invalid Java code:\n" + compilation.pretty())
+            }
+        })
 
-    override fun load(src: String): IModule =
-        translate(StaticJavaParser.parse(src).apply(preprocessing).types)
+    override fun load(src: String): IModule {
+        val module = StaticJavaParser.parse(src)
+        val types = module.apply(preprocessing).types
+
+        if (foreignProcedures.isNotEmpty())
+            return translate(types)
+
+        val compilation = ClassLoader.compile(module.types.first { !it.isPrivate }.nameAsString, src)
+        if (compilation.isEmpty() || foreignProcedures.isNotEmpty())
+            return translate(types)
+        else
+            throw StrudelCompilationException("Invalid Java code:\n\n$src\n" + compilation.pretty())
+    }
 
     internal fun <T : IProgramElement> T.bind(
         node: Node,
@@ -101,7 +131,7 @@ class Java2Strudel(
             else
                 setProperty(prop, sourceLocation)
 
-            if(this is ILoop) {
+            if (this is ILoop) {
                 val len = when(node) {
                     is WhileStmt -> 4
                     is ForStmt, is ForEachStmt -> 2
@@ -295,7 +325,7 @@ class Java2Strudel(
                 val instance = addParameter(this.returnType).apply { id = THIS_PARAM }
 
                 // Set field initialiser for $outer parameter
-                if (outer != null) {
+                if (outer != null && returnType.asRecordType.getField(OUTER_PARAM) != null) {
                     block.FieldSet( // s.f = e
                         instance.expression(),
                         returnType.asRecordType.getField(OUTER_PARAM)!!,

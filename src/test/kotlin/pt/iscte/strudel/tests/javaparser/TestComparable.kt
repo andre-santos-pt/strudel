@@ -10,12 +10,10 @@ import pt.iscte.strudel.vm.IVirtualMachine
 
 class TestComparable {
     val code = """    
-        import java.util.Comparable;
-  
         class Test {
             static void bubbleSort(String[] arr) {
                 int n = arr.length;
-                String temp = 0;
+                String temp = null;
                 for(int i=0; i < n; i++){
                     for(int j=1; j < (n-i); j++){
                         if(arr[j-1].compareTo(arr[j]) > 0){  

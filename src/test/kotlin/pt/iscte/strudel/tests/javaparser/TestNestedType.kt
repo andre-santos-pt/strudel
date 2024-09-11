@@ -46,7 +46,7 @@ class TestNestedType {
             import java.util.Iterator;
                 
             public class LinkedList<T> implements Iterable<T> {
-                private static class Node {
+                private class Node {
                     public T item;
                     public Node next;
                     
@@ -81,7 +81,7 @@ class TestNestedType {
                     }
                     
                     public T next() {
-                        T item = current;
+                        T item = current.item;
                         current = current.next;
                         return item;
                     }
@@ -130,7 +130,7 @@ class TestNestedType {
     fun `Declared and used`() {
         val src = """
             public class LinkedList<T> {
-                private static class Node {
+                private class Node {
                     public T item;
                     public Node next;
                     

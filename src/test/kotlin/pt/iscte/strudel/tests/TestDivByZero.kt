@@ -64,7 +64,7 @@ class TestDivByZeroIntMod : BaseTest({
 }
 
 class TestDivByZeroDouble : BaseTest({
-    Procedure(INT, "test") {
+    Procedure(DOUBLE, "test") {
         val a = Param(DOUBLE, "a")
         val b = Param(DOUBLE, "b")
         Return(ArithmeticOperator.DIV.on(a.expression(), b.expression()))
