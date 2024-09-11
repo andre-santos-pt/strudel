@@ -20,6 +20,10 @@ class TestImplicitCasts {
             static int c() {
                 return 'a';
             }
+            
+            static double f() {
+                return 'a';
+            }
          }
     """.trimIndent()
 
@@ -43,5 +47,16 @@ class TestImplicitCasts {
         val r = vm.execute(module["c"])
         assertEquals(97, r?.toInt())
         assertEquals(INT, r?.type)
+    }
+
+    @Test
+    fun testCharToDouble() {
+        val vm = IVirtualMachine.create()
+        val module = Java2Strudel().load(code)
+        println(module)
+
+        val r = vm.execute(module["f"])
+        assertEquals(97.0, r?.toDouble())
+        assertEquals(DOUBLE, r?.type)
     }
 }

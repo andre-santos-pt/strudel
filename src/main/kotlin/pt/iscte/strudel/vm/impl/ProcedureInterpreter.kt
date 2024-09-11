@@ -233,8 +233,29 @@ class ProcedureInterpreter(
     }
 
     private fun execute(s: IStatement): Boolean {
+        fun unsupported(msg: String): Nothing = throw RuntimeError(RuntimeErrorType.UNSUPPORTED, s, msg)
+
+        // Implicit upcasting
+        fun IType.upcast(value: IValue?): IValue? = if (value == null) null else when (this) {
+            CHAR ->
+                if (value.type == CHAR) value
+                else unsupported("implicit cast of ${value.type.id} to $id")
+            INT -> when (value.type) {
+                CHAR -> vm.getValue(value.toChar().code)
+                INT -> value
+                else -> unsupported("implicit cast of ${value.type.id} to $id")
+            }
+            DOUBLE -> when (value.type) {
+                CHAR -> vm.getValue(value.toChar().code.toDouble())
+                INT -> vm.getValue(value.toDouble())
+                DOUBLE -> value
+                else -> unsupported("implicit cast of ${value.type.id} to $id")
+            }
+            else -> value
+        }
+
         when (s) {
-            is IVariableAssignment -> eval(s.expression)?.let {
+            is IVariableAssignment -> s.target.type.upcast(eval(s.expression))?.let {
                 vm.listeners.forEach { l -> l.expressionEvaluation(s.expression, s, it, s.expression.materialize()) }
                 vm.callStack.topFrame[s.target] = it
                 vm.listeners.forEach { l ->
@@ -249,7 +270,9 @@ class ProcedureInterpreter(
                 s.arrayAccess.index,
                 s.expression
             )?.let {
-                val (array, index, value) = it
+                val array = it[0]
+                val index = it[1]
+                val value = s.arrayAccess.target.type.upcast(it[2])!!
                 vm.listeners.forEach { l -> l.expressionEvaluation(s.expression, s, value, s.expression.materialize()) }
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
@@ -264,7 +287,8 @@ class ProcedureInterpreter(
             }
 
             is IRecordFieldAssignment -> eval(s.target, s.expression)?.let {
-                val (target, value) = it
+                val target = it[0]
+                val value = s.target.type.upcast(it[1])!!
                 vm.listeners.forEach { l -> l.expressionEvaluation(s.expression, s, value, s.expression.materialize()) }
                 val recordRef = target as IReference<IRecord>
                 recordRef.target.setField(s.field, value)
@@ -280,7 +304,9 @@ class ProcedureInterpreter(
                     throw ExceptionError(s, s.errorMessage.toString())
                 }
                 else if (s.expression != null) {
-                    val e = eval(s.expression!!)
+                    val e =
+                        if (s.isVoid) eval(s.expression!!)
+                        else s.ownerProcedure.returnType.upcast(eval(s.expression!!))
                     e?.let {
                         vm.listeners.forEach { l ->
                             l.expressionEvaluation(s.expression!!, s, it, s.expression!!.materialize())

@@ -25,7 +25,7 @@ class TestComparator {
         class Test {
             static void bubbleSort(String[] arr, Comparator<String> c) {
                 int n = arr.length;
-                int temp = 0;
+                String temp = 0;
                 for(int i=0; i < n; i++){
                     for(int j=1; j < (n-i); j++){
                         if(c.compare(arr[j-1], arr[j]) > 0){  

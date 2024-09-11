@@ -197,11 +197,31 @@ class ProcedureInterpreterNoExpression(
             throw RuntimeException("Invalid expression for current context: $e")
         }
 
-
     private fun execute(s: IStatement): Boolean {
+        fun unsupported(msg: String): Nothing = throw RuntimeError(RuntimeErrorType.UNSUPPORTED, s, msg)
+
+        // Implicit upcasting
+        fun IType.upcast(value: IValue): IValue = when (this) {
+            CHAR ->
+                if (value.type == CHAR) value
+                else unsupported("implicit cast of ${value.type.id} to $id")
+            INT -> when (value.type) {
+                CHAR -> vm.getValue(value.toChar().code)
+                INT -> value
+                else -> unsupported("implicit cast of ${value.type.id} to $id")
+            }
+            DOUBLE -> when (value.type) {
+                CHAR -> vm.getValue(value.toChar().code.toDouble())
+                INT -> vm.getValue(value.toDouble())
+                DOUBLE -> value
+                else -> unsupported("implicit cast of ${value.type.id} to $id")
+            }
+            else -> value
+        }
+
         when (s) {
             is IVariableAssignment -> {
-                val value = evaluate(s.expression)
+                val value = s.target.type.upcast(evaluate(s.expression))
                 vm.listeners.forEach { l ->
                     l.expressionEvaluation(
                         s.expression,
@@ -221,7 +241,7 @@ class ProcedureInterpreterNoExpression(
             is IArrayElementAssignment -> {
                 val array = evaluate(s.arrayAccess.target)
                 val index = evaluate(s.arrayAccess.index)
-                val value = evaluate(s.expression)
+                val value = s.arrayAccess.target.type.upcast(evaluate(s.expression))
 
                 vm.listeners.forEach { l ->
                     l.expressionEvaluation(
@@ -258,7 +278,7 @@ class ProcedureInterpreterNoExpression(
 
             is IRecordFieldAssignment -> {
                 val target = evaluate(s.target)
-                val value = evaluate(s.expression)
+                val value = s.target.type.upcast(evaluate(s.expression))
                 vm.listeners.forEach { l ->
                     l.expressionEvaluation(
                         s.expression,
@@ -288,7 +308,9 @@ class ProcedureInterpreterNoExpression(
                 if (s.isError) {
                     throw ExceptionError(s, s.errorMessage.toString())
                 } else if (s.expression != null) {
-                    val value = evaluate(s.expression!!)
+                    val value =
+                        if (s.isVoid) evaluate(s.expression!!)
+                        else s.ownerProcedure.returnType.upcast(evaluate(s.expression!!))
                     vm.listeners.forEach { l ->
                         l.expressionEvaluation(
                             s.expression!!,

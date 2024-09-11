@@ -56,15 +56,15 @@ class TestAutomaticForeignProcedure {
     fun testMultipleInstanceForeignProcedures() {
         val src = """
             public class ExtremelyUsefulStringMethods {
-                public static int substr(String x) {
+                public static String substr(String x) {
                     return x.substring(1, 8);
                 }
                 
-                public static int substrToEnd(String x) {
+                public static String substrToEnd(String x) {
                     return x.substring(1);
                 }
                 
-                public static int length(String s) {
+                public static String length(String s) {
                     return s.length();
                 }
             }
