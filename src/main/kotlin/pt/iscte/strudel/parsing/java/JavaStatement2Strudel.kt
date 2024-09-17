@@ -9,6 +9,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.ProcedureCall
 import pt.iscte.strudel.model.impl.RecordFieldExpression
 import pt.iscte.strudel.model.impl.VariableExpression
+import pt.iscte.strudel.model.util.UnaryOperator
 import pt.iscte.strudel.parsing.java.extensions.getTypeFromJavaParser
 import pt.iscte.strudel.parsing.java.extensions.mapType
 import pt.iscte.strudel.parsing.java.extensions.translateComment
@@ -285,6 +286,18 @@ class JavaStatement2Strudel(
                 statement.bind(stmt)
             }
 
+            // AssertStmt
+            fun handleAssertStmt(stmt: AssertStmt) {
+                val check = stmt.check
+                val guard = UnaryOperator.NOT.on(exp2Strudel.map(check))
+                val statement = block.If(guard).block.ReturnError(
+                    if (stmt.message.isPresent) exp2Strudel.map(stmt.message.get()).toString()
+                    else "Assertion failed: $check"
+                )
+                stmt.comment.translateComment()?.let { statement.documentation = it }
+                statement.bind(stmt)
+            }
+
             when (stmt) {
                 is ReturnStmt -> handleReturnStmt(stmt)
                 is IfStmt -> handleIfStmt(stmt)
@@ -295,6 +308,7 @@ class JavaStatement2Strudel(
                 is ContinueStmt -> block.Continue()
                 is ExpressionStmt -> handleExpressionStmt(stmt)
                 is ThrowStmt -> handleThrowStmt(stmt)
+                is AssertStmt -> handleAssertStmt(stmt)
                 else -> unsupported("statement $this (${this::class.qualifiedName})", stmt)
             }
         }

@@ -100,7 +100,10 @@ internal class Return(
         addToParent(index)
     }
 
-    override fun toString() = tabs(parent) + "return ${expression?: ""};"
+    override fun toString() =
+        tabs(parent) +
+                if (isError) "throw Exception(${if (errorMessage != null) "\"$errorMessage\"" else ""})"
+                else "return ${expression?: ""};"
 
     override fun copyTo(newParent: IBlockHolder, index: Int): IReturn {
         val copy = Return(newParent.block, expression, index, isError)
