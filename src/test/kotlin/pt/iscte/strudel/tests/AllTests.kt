@@ -130,7 +130,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestImplicitCasts::class,
 
-    TestJavaAssert::class
+    TestJavaAssert::class,
+
+    TestWeirdStudentBugs::class
 )
 class AllTests
 

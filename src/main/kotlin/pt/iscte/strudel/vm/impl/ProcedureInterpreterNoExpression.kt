@@ -489,11 +489,10 @@ class ProcedureInterpreterNoExpression(
                 evaluate(exp.rightOperand)
             )
 
-            is IUnaryExpression -> unopearation(
-                exp.operator,
-                exp.type,
-                evaluate(exp.operand)
-            )
+            is IUnaryExpression -> {
+                val operand = evaluate(exp.operand)
+                unopearation(exp.operator, operand.type, operand)
+            }
 
             is IProcedureCallExpression -> handleProcedureCall(
                 exp.procedure,
@@ -570,7 +569,7 @@ class ProcedureInterpreterNoExpression(
 
             UnaryOperator.CAST_TO_DOUBLE ->
                 if (type.isNumber) Value(DOUBLE, value.toDouble())
-                else Value(INT, value.toChar().code.toDouble())
+                else Value(DOUBLE, value.toChar().code.toDouble())
 
             UnaryOperator.CAST_TO_CHAR ->
                 if (type.isNumber) Value(CHAR, value.toDouble().toInt().toChar())
