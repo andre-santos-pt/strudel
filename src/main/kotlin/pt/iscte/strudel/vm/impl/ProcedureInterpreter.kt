@@ -586,11 +586,17 @@ class ProcedureInterpreter(
                             throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
                         else
                             return Value(INT, left.toInt() / right.toInt())
+
                     if (operator == ArithmeticOperator.MOD)
                         if (right.toInt() == 0)
                             throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
                         else
                             return Value(INT, left.toInt() % right.toInt())
+
+                    if (operator == ArithmeticOperator.XOR) {
+                        if (left.type != INT || right.type != INT) unsupported()
+                        return Value(type, left.toInt() xor right.toInt())
+                    }
 
                     val l: Double = left.toDouble()
                     val r: Double = right.toDouble()
@@ -641,19 +647,29 @@ class ProcedureInterpreter(
                     }
                     return Value(type, res)
                 } else if (left.type.isCharacter) {
-                    if (!right.type.isCharacter)
-                        unsupported()
-
                     val l: Char = left.toChar()
-                    val r: Char = right.toChar()
-                    val res = when (operator) {
-                        RelationalOperator.SMALLER -> l < r
-                        RelationalOperator.SMALLER_EQUAL -> l <= r
-                        RelationalOperator.GREATER -> l > r
-                        RelationalOperator.GREATER_EQUAL -> l >= r
-                        else -> unsupported()
-                    }
-                    return Value(type, res)
+
+                    if (right.type.isCharacter) {
+                        val r: Char = right.toChar()
+                        val res = when (operator) {
+                            RelationalOperator.SMALLER -> l < r
+                            RelationalOperator.SMALLER_EQUAL -> l <= r
+                            RelationalOperator.GREATER -> l > r
+                            RelationalOperator.GREATER_EQUAL -> l >= r
+                            else -> unsupported()
+                        }
+                        return Value(type, res)
+                    } else if (right.type.isNumber) {
+                        val r: Double = right.toDouble()
+                        val res = when (operator) {
+                            RelationalOperator.SMALLER -> l.code < r
+                            RelationalOperator.SMALLER_EQUAL -> l.code <= r
+                            RelationalOperator.GREATER -> l.code > r
+                            RelationalOperator.GREATER_EQUAL -> l.code >= r
+                            else -> unsupported()
+                        }
+                        return Value(type, res)
+                    } else unsupported()
                 }
             }
 
