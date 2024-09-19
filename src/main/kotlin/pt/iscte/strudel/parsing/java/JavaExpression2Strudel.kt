@@ -4,6 +4,8 @@ import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.type.PrimitiveType
+import com.github.javaparser.resolution.types.ResolvedPrimitiveType
+import com.github.javaparser.resolution.types.ResolvedType
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserParameterDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserVariableDeclaration
@@ -236,7 +238,11 @@ fun mapBinaryOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
     BinaryExpr.Operator.BINARY_AND -> LogicalOperator.AND
     BinaryExpr.Operator.BINARY_OR -> LogicalOperator.OR
 
-    BinaryExpr.Operator.XOR -> LogicalOperator.XOR
+    BinaryExpr.Operator.XOR ->
+        if (exp.left.calculateResolvedType() == ResolvedPrimitiveType.INT && exp.right.calculateResolvedType() == ResolvedPrimitiveType.INT)
+            ArithmeticOperator.XOR
+        else
+            LogicalOperator.XOR
 
     else -> unsupported("binary operator", exp)
 }

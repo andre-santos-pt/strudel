@@ -1,6 +1,7 @@
 package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
@@ -65,5 +66,58 @@ class TestWeirdStudentBugs {
         assertEquals(4, vm.execute(round, vm.getValue(4.2))?.value)
         assertEquals(5, vm.execute(round, vm.getValue(5.4))?.value)
         assertEquals(6, vm.execute(round, vm.getValue(6.3))?.value)
+    }
+
+    @Test
+    fun testIntBitwiseXor() {
+        val src = """
+            class Test {
+                static int square(int n) {
+                    return n^2;
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+
+        println(module)
+
+        val square = module.getProcedure("square")
+
+        val vm = IVirtualMachine.create()
+
+        assertDoesNotThrow {
+            vm.execute(square, vm.getValue(0))
+            vm.execute(square, vm.getValue(1))
+            vm.execute(square, vm.getValue(2))
+            vm.execute(square, vm.getValue(3))
+            vm.execute(square, vm.getValue(4))
+            vm.execute(square, vm.getValue(5))
+        }
+    }
+
+    @Test
+    fun testCompareCharWithInt() {
+        val src = """
+            class Test {
+                static boolean isVowel(char c) {
+                    return 'c' >= 97 && 'c' <= 122;
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+
+        println(module)
+
+        val isVowel = module.getProcedure("isVowel")
+
+        val vm = IVirtualMachine.create()
+
+        assertDoesNotThrow {
+            vm.execute(isVowel, vm.getValue('a'))
+            vm.execute(isVowel, vm.getValue('e'))
+            vm.execute(isVowel, vm.getValue('i'))
+            vm.execute(isVowel, vm.getValue('o'))
+            vm.execute(isVowel, vm.getValue('u'))
+        }
     }
 }

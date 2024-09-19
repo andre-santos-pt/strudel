@@ -93,7 +93,6 @@ import kotlin.reflect.full.hasAnnotation
     TestConditionalJava::class,
     TestLogicalOperatorsJava::class,
 
-
     TestMultipleFieldDeclarations::class,
 
     TestMultipleVariableDeclarations::class,
@@ -132,7 +131,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestJavaAssert::class,
 
-    TestWeirdStudentBugs::class
+    TestWeirdStudentBugs::class,
+
+    TestBitwiseXOR::class
 )
 class AllTests
 

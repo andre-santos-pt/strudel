@@ -15,10 +15,12 @@ enum class ArithmeticOperator (
     MUL("*"),
     DIV("/"),
     IDIV("/"),
-    MOD("%");
+    MOD("%"),
+    XOR("^");
 
     override fun isValidFor(left: IExpression, right: IExpression) =
-        left.type.isNumber && right.type.isNumber
+        if (this == XOR) left.type == INT && right.type == INT
+        else left.type.isNumber && right.type.isNumber
                 // || (left.type == INT || left.type == CHAR &&
 
     override fun getResultType(left: IExpression, right: IExpression): IType {
