@@ -276,11 +276,9 @@ class JavaStatement2Strudel(
                 val exc = stmt.expression as? ObjectCreationExpr
                 val args = exc?.arguments
                 val statement =
-                    if (exc == null || args?.size !in 0..1 || args?.size == 1 && exc.arguments[0] !is StringLiteralExpr)
-                        unsupported("$this (${this::class})", stmt)
-                    else block.ReturnError(
+                    block.ReturnError(
                         if (args?.isEmpty() == true) exc.typeAsString
-                        else (args?.get(0) as StringLiteralExpr).value
+                        else args?.joinToString { if (it is StringLiteralExpr) it.value else it.toString() } ?: ""
                     )
                 stmt.comment.translateComment()?.let { statement.documentation = it }
                 statement.bind(stmt)

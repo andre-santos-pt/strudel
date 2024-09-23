@@ -152,7 +152,7 @@ class JavaExpression2Strudel(
                 val paramTypes = exp.arguments.map { it.getResolvedIType(types) }
                 val const: IProcedureDeclaration =
                     procedures.findProcedure(exp.type.nameAsString, INIT, paramTypes)
-                    ?: kotlin.runCatching { procedures.findProcedure(exp.type.resolve().describe(), INIT, paramTypes) }.getOrNull()
+                    ?: kotlin.runCatching { procedures.findProcedure(exp.type.resolve().simpleNameAsString, INIT, paramTypes) }.getOrNull()
                     ?: exp.asForeignProcedure(procedure.module!!, types)
                 val alloc = types.mapType(exp.type, exp).asRecordType.heapAllocation()
                 if (const.hasOuterParameter)
@@ -171,7 +171,7 @@ class JavaExpression2Strudel(
                         thisParam.field(thisType.getField(exp.nameAsString)!!)
                     } else {
                         val type = kotlin.runCatching { JPFacade.solve(exp.scope).correspondingDeclaration.type }.getOrDefault(exp.scope.calculateResolvedType())
-                        val typeId = type.describe()
+                        val typeId = type.simpleNameAsString
                         val isJavaStatic = "$typeId.${exp.nameAsString}".endsWith(exp.toString())
 
                         if (type.isArray && exp.nameAsString == "length") map(exp.scope).length()

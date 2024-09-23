@@ -27,7 +27,7 @@ internal fun typeSolver(): TypeSolver = CombinedTypeSolver().apply { add(Reflect
 internal fun MutableMap<String, IType>.mapType(t: String, location: Node): IType = this[t] ?: getTypeByName(t, location)
 
 internal fun MutableMap<String, IType>.mapType(t: Type, location: Node) =
-    mapType(kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString()), location)
+    mapType(kotlin.runCatching { t.resolve().erasure().simpleNameAsString }.getOrDefault(t.asString()), location)
 
 internal fun MutableMap<String, IType>.mapType(t: TypeDeclaration<*>, location: Node) =
     mapType(t.fullyQualifiedName.getOrNull() ?: t.nameAsString, location)
@@ -89,6 +89,14 @@ internal fun ResolvedType.toJavaType(location: Node): Class<*> = when (this) {
     is NullType -> Nothing::class.java
     else -> error("unsupported expression type ${this::class.qualifiedName}", location)
 }
+
+internal val ResolvedType.simpleNameAsString: String
+    get() = when (this) {
+        is ResolvedReferenceType -> this.qualifiedName
+        is ResolvedArrayType -> this.componentType.simpleNameAsString + "[]"
+        is ResolvedTypeVariable -> this.qualifiedName()
+        else -> describe()
+    }
 
 internal fun Expression.getResolvedJavaType(): Class<*> = kotlin.runCatching {
     calculateResolvedType().toJavaType(this)

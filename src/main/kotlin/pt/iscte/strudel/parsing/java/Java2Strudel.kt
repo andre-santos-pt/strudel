@@ -230,7 +230,7 @@ class Java2Strudel(
                 var t = n.type
                 while (t.isArrayType)
                     t = t.asArrayType().componentType
-                val typeName = kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString())
+                val typeName = kotlin.runCatching { t.resolve().erasure().simpleNameAsString }.getOrDefault(t.asString())
                 if (typeName !in types)
                     runCatching { getClassByName(typeName, n) }.onSuccess { list.add(HostRecordType(it.canonicalName)) }
             }
@@ -472,7 +472,7 @@ class Java2Strudel(
             allClasses.filter { !it.isInterface }.forEach { c ->
                 val recordType = (types[c.qualifiedName] as IReferenceType).target as IRecordType
 
-                val defaultConstructor: IProcedure? = proceduresPerType[c]!!.firstOrNull {
+                val defaultConstructor: IProcedure? = proceduresPerType[c]?.firstOrNull {
                     it.first == null && it.second.namespace == c.qualifiedName && it.second.hasFlag(CONSTRUCTOR_FLAG)
                 }?.second as? IProcedure
 
@@ -483,7 +483,7 @@ class Java2Strudel(
                         outer = defaultConstructor.addParameter(types.mapType(parent.qualifiedName, c)).apply { id = OUTER_PARAM }
                     }
                     val instance = defaultConstructor.addParameter(defaultConstructor.returnType).apply { id = THIS_PARAM }
-                    if (outer != null)
+                    if (outer != null && defaultConstructor.returnType.asRecordType.getField(OUTER_PARAM) != null)
                         defaultConstructor.block.FieldSet(
                             instance.expression(),
                             defaultConstructor.returnType.asRecordType.getField(OUTER_PARAM)!!,
@@ -497,12 +497,11 @@ class Java2Strudel(
                         val fieldType =
                             if (variableDeclaration.isGeneric(c)) types["java.lang.Object"]
                             else types[variableDeclaration.typeAsString]
-                                ?: types[kotlin.runCatching { variableDeclaration.type.resolve().describe() }
-                                    .getOrDefault(variableDeclaration.type.asString())]
+                                ?: types[kotlin.runCatching { variableDeclaration.type.resolve().simpleNameAsString }.getOrDefault(variableDeclaration.type.asString())]
                         if (fieldType == null)
                             error(
                                 "Could not find type for variable declaration ${variableDeclaration.typeAsString} / ${
-                                    variableDeclaration.type.resolve().describe()}", variableDeclaration
+                                    variableDeclaration.type.resolve().simpleNameAsString}", variableDeclaration
                             )
 
                         val f = recordType.addField(fieldType) { id = variableDeclaration.nameAsString }
@@ -525,7 +524,7 @@ class Java2Strudel(
                     val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedureDeclarations, types, this@Java2Strudel)
 
                     // Translate statements in declaration body
-                    it.first!!.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
+                    it.first?.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
 
                     // Inject field initializers and return statement in constructors
                     if (it.first is ConstructorDeclaration) {
@@ -555,84 +554,86 @@ class Java2Strudel(
                     else unsupported("record with multiple compact constructors", r)
 
                 // Get default constructor
-                val constructor = proceduresPerType[r]!!.first {
+                val constructor = proceduresPerType[r]?.first {
                     it.second.namespace == r.qualifiedName && it.second.hasFlag(CONSTRUCTOR_FLAG)
-                }.second as IProcedure
+                }?.second as? IProcedure
 
-                val fieldSetters = mutableListOf<Pair<IField, ITargetExpression>>()
-                r.parameters.forEach { param ->
-                    val paramType =
-                        if (param.isGeneric(r)) types["java.lang.Object"]
-                        else types[param.typeAsString]
-                            ?: types[kotlin.runCatching { param.type.resolve().describe() }
-                                .getOrDefault(param.type.asString())]
-                    if (paramType == null)
-                        error(
-                            "Could not find type for record parameter declaration ${param.typeAsString} / ${
-                                param.type.resolve().describe()}", param
-                        )
+                if (constructor != null) {
+                    val fieldSetters = mutableListOf<Pair<IField, ITargetExpression>>()
+                    r.parameters.forEach { param ->
+                        val paramType =
+                            if (param.isGeneric(r)) types["java.lang.Object"]
+                            else types[param.typeAsString]
+                                ?: types[kotlin.runCatching { param.type.resolve().simpleNameAsString }
+                                    .getOrDefault(param.type.asString())]
+                        if (paramType == null)
+                            error(
+                                "Could not find type for record parameter declaration ${param.typeAsString} / ${
+                                    param.type.resolve().simpleNameAsString}", param
+                            )
 
-                    // Add type field
-                    val field = type.addField(paramType) { id = param.nameAsString }
-                    val constructorParam = constructor.parameters.first { it.type == field.type && it.id == field.id }
-                    fieldSetters.add(Pair(field, constructorParam.expression()))
+                        // Add type field
+                        val field = type.addField(paramType) { id = param.nameAsString }
+                        val constructorParam = constructor.parameters.first { it.type == field.type && it.id == field.id }
+                        fieldSetters.add(Pair(field, constructorParam.expression()))
 
-                    // Generate get() method for field
-                    Procedure(types.mapType(param.type, param), param.nameAsString).apply {
+                        // Generate get() method for field
+                        Procedure(types.mapType(param.type, param), param.nameAsString).apply {
+                            setFlag("public")
+                            setProperty(NAMESPACE_PROP, r.qualifiedName)
+                            val t = addParameter(constructor.returnType).apply { id = THIS_PARAM }
+                            block.Return(t.field(field))
+                        }
+                    }
+
+                    val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>? =
+                        proceduresPerType[r]?.filter { !it.second.hasFlag(CONSTRUCTOR_FLAG) }
+
+                    // Translate internal procedures
+                    procedures?.forEach {
+                        if (it.first != null && it.second is IProcedure) {
+                            val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedureDeclarations, types, this@Java2Strudel)
+                            it.first?.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
+                        }
+                    }
+
+                    // If type has a compact constructor, inject statements into default constructor
+                    if (compact != null) {
+                        compact.replaceStringPlusWithConcat()
+                        compact.substituteControlBlocks()
+                        compact.replaceIncDecAsExpressions()
+                        val stmtTranslator = JavaStatement2Strudel(constructor, procedureDeclarations, types, this@Java2Strudel)
+                        stmtTranslator.translate(compact.body, constructor.block)
+                    }
+
+                    // Set fields in default constructor and return instance
+                    fieldSetters.forEach { (field, expression) ->
+                        constructor.block.FieldSet(constructor.thisParameter, field, expression)
+                    }
+                    constructor.block.Return(constructor.thisParameter)
+
+                    // Generate equals() for record type
+                    Procedure(BOOLEAN, "equals").apply {
                         setFlag("public")
+                        setFlag(EQUALS_FLAG)
                         setProperty(NAMESPACE_PROP, r.qualifiedName)
-                        val t = addParameter(constructor.returnType).apply { id = THIS_PARAM }
-                        block.Return(t.field(field))
+                        val self = addParameter(constructor.returnType).apply { id = THIS_PARAM }
+                        val other = addParameter(constructor.returnType).apply { id = "other" }
+                        var exp: ICompositeExpression? = null
+                        type.fields.forEach {
+                            val field = self.field(it)
+                            val otherField = other.field(field.field)
+                            val comparison =
+                                if (field.type.isRecordReference && (field.type as IReferenceType).target.asRecordType.hasEquals)
+                                    field.type.asRecordType.equals.expression(field, otherField)
+                                else if (otherField.type.isRecordReference && (other.type as IReferenceType).target.asRecordType.hasEquals)
+                                    (other.type as IReferenceType).target.asRecordType.equals.expression(field, otherField)
+                                else
+                                    RelationalOperator.EQUAL.on(field, otherField)
+                            exp = if (exp == null) comparison else LogicalOperator.AND.on(exp!!, comparison)
+                        }
+                        block.Return(exp ?: False)
                     }
-                }
-
-                val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>> =
-                    proceduresPerType[r]!!.filter { !it.second.hasFlag(CONSTRUCTOR_FLAG) }
-
-                // Translate internal procedures
-                procedures.forEach {
-                    if (it.first != null && it.second is IProcedure) {
-                        val stmtTranslator = JavaStatement2Strudel(it.second as IProcedure, procedureDeclarations, types, this@Java2Strudel)
-                        it.first!!.body?.let { body -> stmtTranslator.translate(body, (it.second as IProcedure).block) }
-                    }
-                }
-
-                // If type has a compact constructor, inject statements into default constructor
-                if (compact != null) {
-                    compact.replaceStringPlusWithConcat()
-                    compact.substituteControlBlocks()
-                    compact.replaceIncDecAsExpressions()
-                    val stmtTranslator = JavaStatement2Strudel(constructor, procedureDeclarations, types, this@Java2Strudel)
-                    stmtTranslator.translate(compact.body, constructor.block)
-                }
-
-                // Set fields in default constructor and return instance
-                fieldSetters.forEach { (field, expression) ->
-                    constructor.block.FieldSet(constructor.thisParameter, field, expression)
-                }
-                constructor.block.Return(constructor.thisParameter)
-
-                // Generate equals() for record type
-                Procedure(BOOLEAN, "equals").apply {
-                    setFlag("public")
-                    setFlag(EQUALS_FLAG)
-                    setProperty(NAMESPACE_PROP, r.qualifiedName)
-                    val self = addParameter(constructor.returnType).apply { id = THIS_PARAM }
-                    val other = addParameter(constructor.returnType).apply { id = "other" }
-                    var exp: ICompositeExpression? = null
-                    type.fields.forEach {
-                        val field = self.field(it)
-                        val otherField = other.field(field.field)
-                        val comparison =
-                            if (field.type.isRecordReference && (field.type as IReferenceType).target.asRecordType.hasEquals)
-                                field.type.asRecordType.equals.expression(field, otherField)
-                            else if (otherField.type.isRecordReference && (other.type as IReferenceType).target.asRecordType.hasEquals)
-                                (other.type as IReferenceType).target.asRecordType.equals.expression(field, otherField)
-                            else
-                                RelationalOperator.EQUAL.on(field, otherField)
-                        exp = if (exp == null) comparison else LogicalOperator.AND.on(exp!!, comparison)
-                    }
-                    block.Return(exp ?: False)
                 }
             }
         }
