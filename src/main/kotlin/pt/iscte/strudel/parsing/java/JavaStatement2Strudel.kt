@@ -170,7 +170,7 @@ class JavaStatement2Strudel(
                     stmt.initialization.forEach { i ->
                         if (i.isVariableDeclarationExpr) {
                             i.asVariableDeclarationExpr().variables.forEach { v ->
-                                val varDec = addVariable(types.mapType(v.type)).apply {
+                                val varDec = addVariable(types.mapType(v.type, v)).apply {
                                     id = v.nameAsString
                                     setFlag(FOR)
                                     bind(i)
@@ -211,7 +211,7 @@ class JavaStatement2Strudel(
                 val statement = block.Block(EFOR) {
                     stmt.variable.variables.forEach { dec ->
                         val itVar =
-                            addVariable(types.mapType(stmt.variable.elementType)).apply {
+                            addVariable(types.mapType(stmt.variable.elementType, stmt.variable)).apply {
                                 id = dec.nameAsString
                                 setFlag(EFOR)
                                 bind(stmt.variable)
@@ -251,7 +251,7 @@ class JavaStatement2Strudel(
             fun handleExpressionStmt(stmt: ExpressionStmt) {
                 if (stmt.expression is VariableDeclarationExpr) {
                     (stmt.expression as VariableDeclarationExpr).variables.forEach { dec ->
-                        val type = getTypeFromJavaParser(stmt, dec.type, types)
+                        val type = getTypeFromJavaParser(stmt, dec.type, types, stmt.expression)
                         val s: IVariableDeclaration<IBlock> = run {
                             val varDec = block.Var(type, dec.nameAsString)
                             decMap[dec] = varDec

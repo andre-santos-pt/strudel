@@ -5,6 +5,7 @@ import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.extensions.getString
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class TestAutomaticForeignProcedure {
 
@@ -85,5 +86,28 @@ class TestAutomaticForeignProcedure {
         assertEquals(0, vm.execute(length, getString(""))?.value)
         assertEquals(1, vm.execute(length, getString("a"))?.value)
         assertEquals(3, vm.execute(length, getString("abc"))?.value)
+    }
+
+    @Test
+    fun testStringIndexOf() {
+        val src = """
+            class Test {
+                static boolean isVowel(char c) {
+                    return "aeiou".indexOf(c) != -1;
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+        println(module)
+
+        val vm = IVirtualMachine.create()
+
+        val isVowel = module.getProcedure("isVowel")
+
+        assertTrue(vm.execute(isVowel, vm.getValue('a'))?.value as Boolean)
+        assertTrue(vm.execute(isVowel, vm.getValue('e'))?.value as Boolean)
+        assertTrue(vm.execute(isVowel, vm.getValue('i'))?.value as Boolean)
+        assertTrue(vm.execute(isVowel, vm.getValue('o'))?.value as Boolean)
+        assertTrue(vm.execute(isVowel, vm.getValue('u'))?.value as Boolean)
     }
 }

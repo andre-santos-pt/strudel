@@ -25,6 +25,10 @@ class TestCharArithmetic {
                     else
                         return (char) (c - 1);
                 }
+                
+                public static int differenceOf(char a, char b) {
+                    return a - b;
+                }
             }
         """.trimIndent()
         val module = Java2Strudel().load(src)
@@ -32,6 +36,7 @@ class TestCharArithmetic {
 
         val next = module.getProcedure("next")
         val previous = module.getProcedure("previous")
+        val differenceOf = module.getProcedure("differenceOf")
 
         val vm = IVirtualMachine.create()
 
@@ -48,6 +53,11 @@ class TestCharArithmetic {
         assertEquals('c', vm.execute(previous, vm.getValue('d'))?.value)
         assertEquals('d', vm.execute(previous, vm.getValue('e'))?.value)
         assertEquals('e', vm.execute(previous, vm.getValue('f'))?.value)
+
+        assertEquals('a' - 'b', vm.execute(differenceOf, vm.getValue('a'), vm.getValue('b'))?.value)
+        assertEquals('b' - 'c', vm.execute(differenceOf, vm.getValue('b'), vm.getValue('c'))?.value)
+        assertEquals('c' - 'd', vm.execute(differenceOf, vm.getValue('c'), vm.getValue('d'))?.value)
+        assertEquals('d' - 'e', vm.execute(differenceOf, vm.getValue('d'), vm.getValue('e'))?.value)
     }
 
     @Test

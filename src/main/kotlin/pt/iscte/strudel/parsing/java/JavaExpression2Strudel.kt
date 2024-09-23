@@ -5,7 +5,6 @@ import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.type.PrimitiveType
 import com.github.javaparser.resolution.types.ResolvedPrimitiveType
-import com.github.javaparser.resolution.types.ResolvedType
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserParameterDeclaration
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserVariableDeclaration
@@ -47,6 +46,14 @@ class JavaExpression2Strudel(
             else -> null
         } }.getOrNull()
 
+    // Translates an expression, but automatically casts character expressions to integers.
+    // Used in binary expression which use characters.
+    private fun Expression.toCharCodeOrDefault(): IExpression = kotlin.runCatching {
+        val type = this.calculateResolvedType()
+        if (type == ResolvedPrimitiveType.CHAR) UnaryOperator.CAST_TO_INT.on(map(this))
+        else map(this)
+    }.getOrDefault(map(this))
+
     fun map(exp: Expression): IExpression = with(translator) {
         when (exp) {
             is IntegerLiteralExpr -> lit(exp.value.toInt())
@@ -78,42 +85,37 @@ class JavaExpression2Strudel(
             is NullLiteralExpr -> NULL_LITERAL
 
             is StringLiteralExpr -> translator.foreignProcedures.find { it.id == NEW_STRING }!!.expression(
-                CHAR.array().heapAllocationWith(exp.value.map {
-                    CHAR.literal(it)
-                })
+                CHAR.array().heapAllocationWith(exp.value.map { CHAR.literal(it) })
             )
 
             is UnaryExpr -> mapUnaryOperator(exp).on(map(exp.expression)).apply {
                 // TODO review
                 val from = exp.range.get().begin.column
                 val to = exp.expression.range.get().begin.column - 1
-                setProperty(
-                    OPERATOR_LOC, SourceLocation(
-                        exp.expression.range.get().begin.line, from, to
-                    )
-                )
+                setProperty(OPERATOR_LOC, SourceLocation(exp.expression.range.get().begin.line, from, to))
             }
 
             is BinaryExpr -> when (exp.operator) {
                 BinaryExpr.Operator.AND -> Conditional(map(exp.left), map(exp.right), False) // short-circuit &&
                 BinaryExpr.Operator.OR -> Conditional(map(exp.left), True, map(exp.right)) // short-circuit ||
-                else -> mapBinaryOperator(exp).on(map(exp.left), map(exp.right)).apply {
-                    if (exp.left.range.isPresent && exp.right.range.isPresent) {
-                        val leftRange = exp.left.range.get()
-                        val rightRange = exp.right.range.get()
-                        if (leftRange.begin.line == rightRange.begin.line) {
-                            val from = leftRange.end.column + 1
-                            val to = rightRange.begin.column - 1
-                            setProperty(OPERATOR_LOC, SourceLocation(leftRange.begin.line, from, to))
+                else ->
+                    mapBinaryOperator(exp).on(exp.left.toCharCodeOrDefault(), exp.right.toCharCodeOrDefault()).apply {
+                        if (exp.left.range.isPresent && exp.right.range.isPresent) {
+                            val leftRange = exp.left.range.get()
+                            val rightRange = exp.right.range.get()
+                            if (leftRange.begin.line == rightRange.begin.line) {
+                                val from = leftRange.end.column + 1
+                                val to = rightRange.begin.column - 1
+                                setProperty(OPERATOR_LOC, SourceLocation(leftRange.begin.line, from, to))
+                            }
                         }
                     }
-                }
             }
 
             is EnclosedExpr -> map(exp.inner)
 
             is CastExpr -> when (val t = exp.type) {
-                is PrimitiveType -> when (val p = exp.type.asPrimitiveType().type) {
+                is PrimitiveType -> when (val p = t.asPrimitiveType().type) {
                     PrimitiveType.Primitive.INT -> UnaryOperator.CAST_TO_INT.on(map(exp.expression))
                     PrimitiveType.Primitive.DOUBLE -> UnaryOperator.CAST_TO_DOUBLE.on(map(exp.expression))
                     PrimitiveType.Primitive.CHAR -> UnaryOperator.CAST_TO_CHAR.on(map(exp.expression))
@@ -127,7 +129,7 @@ class JavaExpression2Strudel(
                 if (exp.levels.any { !it.dimension.isPresent })
                     unsupported("multi-dimension array initialization with partial dimensions", exp)
 
-                val arrayType = types.mapType(exp.elementType).array()
+                val arrayType = types.mapType(exp.elementType, exp).array()
 
                 if (exp.levels[0].dimension.isPresent)
                     arrayType.heapAllocation(exp.levels.map { map(it.dimension.get()) })
@@ -137,8 +139,8 @@ class JavaExpression2Strudel(
             is ArrayInitializerExpr -> {
                 val values = exp.values.map { map(it) }
                 val baseType = when (val parent = exp.parentNode.getOrNull) {
-                    is ArrayCreationExpr -> types.mapType(parent.elementType)
-                    is VariableDeclarator -> types.mapType(parent.type)
+                    is ArrayCreationExpr -> types.mapType(parent.elementType, exp)
+                    is VariableDeclarator -> types.mapType(parent.type, exp)
                     else -> unsupported("array initializer", exp)
                 }
                 baseType.asArrayType.heapAllocationWith(values)
@@ -152,7 +154,7 @@ class JavaExpression2Strudel(
                     procedures.findProcedure(exp.type.nameAsString, INIT, paramTypes)
                     ?: kotlin.runCatching { procedures.findProcedure(exp.type.resolve().describe(), INIT, paramTypes) }.getOrNull()
                     ?: exp.asForeignProcedure(procedure.module!!, types)
-                val alloc = types.mapType(exp.type).asRecordType.heapAllocation()
+                val alloc = types.mapType(exp.type, exp).asRecordType.heapAllocation()
                 if (const.hasOuterParameter)
                     const.expression(listOf(procedure.thisParameter.exp(), alloc) + exp.arguments.map { map(it) })
                 else
@@ -173,10 +175,10 @@ class JavaExpression2Strudel(
                         val isJavaStatic = "$typeId.${exp.nameAsString}".endsWith(exp.toString())
 
                         if (type.isArray && exp.nameAsString == "length") map(exp.scope).length()
-                        else if (isJavaClassName(typeId) && isJavaStatic) { // Foreign field is translated to foreign getter procedure :)
+                        else if (isJavaClassName(typeId, exp.scope) && isJavaStatic) { // Foreign field is translated to foreign getter procedure :)
                             ProcedureCall(
                                 NullBlock,
-                                type.foreignStaticFieldAccess(procedure.module!!, types),
+                                type.foreignStaticFieldAccess(procedure.module!!, types, exp.scope),
                                 arguments = listOf(Literal(StringType, exp.nameAsString))
                             )
                         }

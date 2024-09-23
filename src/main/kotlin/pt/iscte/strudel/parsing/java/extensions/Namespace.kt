@@ -14,7 +14,7 @@ internal fun MethodCallExpr.getNamespace(types: Map<String, IType>, foreignProce
 
         val scopeIsCurrentlyLoadedType: Boolean = scope is NameExpr && types.containsKey(scope.toString())
         val scopeIsCurrentlyLoadedForeignType: Boolean = foreignProcedures.any { it.namespace == scope.toString() }
-        val scopeIsValidJavaClass: Boolean = isJavaClassName(scope.toString())
+        val scopeIsValidJavaClass: Boolean = isJavaClassName(scope.toString(), this)
 
         if (scopeIsCurrentlyLoadedType || scopeIsCurrentlyLoadedForeignType || scopeIsValidJavaClass)
             Namespace(scope.toString(), isAbstract = false, isStatic = true)

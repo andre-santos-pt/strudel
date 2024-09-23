@@ -25,7 +25,8 @@ import pt.iscte.strudel.parsing.ITranslator
 import pt.iscte.strudel.parsing.java.extensions.matches
 import pt.iscte.strudel.parsing.java.extensions.qualifiedName
 import java.io.File
-import java.util.Locale
+import javax.tools.Diagnostic
+import javax.tools.JavaFileObject
 import kotlin.reflect.KClass
 
 class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
@@ -36,7 +37,9 @@ class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeE
     constructor(msg: String, node: Node) : this(msg, listOf(node))
 }
 
-class StrudelCompilationException(message: String) : RuntimeException(message)
+class StrudelCompilationException(message: String, val nodes: List<Node>) : RuntimeException(message) {
+    constructor(message: String, node: Node): this(message, listOf(node))
+}
 
 @Suppress("NOTHING_TO_INLINE") // inline because otherwise test fails (KotlinNothingValueException)
 inline fun unsupported(msg: String, node: Node): Nothing {
@@ -45,12 +48,24 @@ inline fun unsupported(msg: String, node: Node): Nothing {
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun unsupported(msg: String, nodes: List<Node>): Nothing {
-    throw StrudelUnsupportedException("Unsupported $msg in:\n\t${nodes.joinToString("\n\t")}", nodes)
+    throw StrudelUnsupportedException("Unsupported $msg in:\n\t${nodes.joinToString()}", nodes)
 }
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun error(msg: String, node: Any): Nothing {
-    throw StrudelCompilationException("Compilation error at $node (${node::class.java}): $msg")
+inline fun error(msg: String, node: Node): Nothing {
+    throw StrudelCompilationException("Compilation error at $node: $msg", node)
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun error(msg: String, nodes: List<Node>): Nothing {
+    throw StrudelCompilationException("Compilation error: $msg at:\n\t${nodes.joinToString()}", nodes)
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun error(unit: CompilationUnit, diagnostics: List<Diagnostic<out JavaFileObject>>): Nothing {
+    val message = diagnostics.joinToString(System.lineSeparator()) { "Error at line ${it.lineNumber}: ${it.getMessage(null)}" }
+    val nodes = diagnostics.map { unit.nodeAtLine(it.lineNumber.toInt())!! }
+    throw StrudelCompilationException(message, nodes)
 }
 
 val JPFacade: JavaParserFacade = JavaParserFacade.get(typeSolver())
@@ -77,41 +92,44 @@ class Java2Strudel(
     }
 
     override fun load(file: File): IModule {
-        val types = StaticJavaParser.parse(file).apply(preprocessing).types
+        val compilationUnit = StaticJavaParser.parse(file)
+        val types = compilationUnit.apply(preprocessing).types
 
         if (foreignProcedures.isNotEmpty()) // Java wouldn't compile anyway if foreign procedures were being used
             return translate(types)
 
-        val compilation = ClassLoader.compile(file)
-        if (compilation.isEmpty())
-            return translate(types)
-        else
-            throw StrudelCompilationException("File $file contains invalid Java code:\n" + compilation.pretty())
+        val diagnostics = ClassLoader.compile(file)
+
+        if (diagnostics.isEmpty()) return translate(types)
+        else error(compilationUnit, diagnostics)
     }
 
     override fun load(files: List<File>): IModule =
         translate(files.flatMap {
-            val types = StaticJavaParser.parse(it).apply(preprocessing).types
+            val compilationUnit = StaticJavaParser.parse(it)
+            val types = compilationUnit.apply(preprocessing).types
             if (foreignProcedures.isNotEmpty()) types
             else {
-                val compilation = ClassLoader.compile(it)
-                if (compilation.isEmpty()) types
-                else throw StrudelCompilationException("File $it contains invalid Java code:\n" + compilation.pretty())
+                val diagnostics = ClassLoader.compile(it)
+                if (diagnostics.isEmpty())
+                    types
+                else
+                    error(compilationUnit, diagnostics)
             }
         })
 
     override fun load(src: String): IModule {
-        val module = StaticJavaParser.parse(src)
-        val types = module.apply(preprocessing).types
+        val compilationUnit = StaticJavaParser.parse(src)
+        val types = compilationUnit.apply(preprocessing).types
 
         if (foreignProcedures.isNotEmpty())
             return translate(types)
 
-        val compilation = ClassLoader.compile(module.types.first { !it.isPrivate }.nameAsString, src)
-        if (compilation.isEmpty() || foreignProcedures.isNotEmpty())
+        val diagnostics = ClassLoader.compile(compilationUnit.types.first { !it.isPrivate }.nameAsString, src)
+        if (diagnostics.isEmpty())
             return translate(types)
         else
-            throw StrudelCompilationException("Invalid Java code:\n\n$src\n" + compilation.pretty())
+            error(compilationUnit, diagnostics)
     }
 
     internal fun <T : IProgramElement> T.bind(
@@ -214,7 +232,7 @@ class Java2Strudel(
                     t = t.asArrayType().componentType
                 val typeName = kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString())
                 if (typeName !in types)
-                    runCatching { getClassByName(typeName) }.onSuccess { list.add(HostRecordType(it.canonicalName)) }
+                    runCatching { getClassByName(typeName, n) }.onSuccess { list.add(HostRecordType(it.canonicalName)) }
             }
         }, null)
         return list
@@ -269,31 +287,31 @@ class Java2Strudel(
         @Suppress("UNCHECKED_CAST")
         fun <T : TypeDeclaration<*>> MethodDeclaration.translateMethodDeclaration(namespace: String): IProcedureDeclaration =
             if (!body.isPresent)
-                PolymophicProcedure(this@module, namespace, nameAsString, types.mapType(type)).apply {
+                PolymophicProcedure(this@module, namespace, nameAsString, types.mapType(type, this@translateMethodDeclaration)).apply {
                     setPropertiesAndBind(this@translateMethodDeclaration, namespace)
 
                     // Interface methods ""are always instance methods"" (don't quote us on this) -> add $this parameter
-                    addParameter(types.mapType((parentNode.get() as T))).apply { id = THIS_PARAM }
+                    addParameter(types.mapType(parentNode.get() as T, this@translateMethodDeclaration)).apply { id = THIS_PARAM }
 
                     // Add regular method parameters
                     this@translateMethodDeclaration.parameters.forEach { p ->
-                        addParameter(types.mapType(p.type)).apply { id = p.nameAsString }
+                        addParameter(types.mapType(p.type, p)).apply { id = p.nameAsString }
                             .bind(p)
                             .bind(p.type, TYPE_LOC)
                             .bind(p.name, ID_LOC)
                     }
                 }
             else
-                Procedure(types.mapType(type), nameAsString).apply {
+                Procedure(types.mapType(type, this@translateMethodDeclaration), nameAsString).apply {
                     setPropertiesAndBind(this@translateMethodDeclaration, namespace)
 
                     // Is instance method --> Add $this parameter
                     if (!modifiers.contains(Modifier.staticModifier()))
-                        addParameter(types.mapType((parentNode.get() as T))).apply { id = THIS_PARAM }
+                        addParameter(types.mapType(parentNode.get() as T, this@translateMethodDeclaration)).apply { id = THIS_PARAM }
 
                     // Add regular method parameters
                     this@translateMethodDeclaration.parameters.forEach { p ->
-                        addParameter(types.mapType(p.type)).apply { id = p.nameAsString }
+                        addParameter(types.mapType(p.type, p)).apply { id = p.nameAsString }
                             .bind(p)
                             .bind(p.type, TYPE_LOC)
                             .bind(p.name, ID_LOC)
@@ -308,7 +326,10 @@ class Java2Strudel(
          */
         fun ConstructorDeclaration.translateConstructorDeclaration(declaringClass: ClassOrInterfaceDeclaration): IProcedureDeclaration =
             Procedure(
-                types.mapType(runCatching { resolve().declaringType().qualifiedName }.getOrDefault(nameAsString)),
+                types.mapType(
+                    runCatching { resolve().declaringType().qualifiedName }.getOrDefault(nameAsString),
+                    this@translateConstructorDeclaration
+                ),
                 INIT
             ).apply {
                 setPropertiesAndBind(this@translateConstructorDeclaration, declaringClass.qualifiedName)
@@ -318,7 +339,7 @@ class Java2Strudel(
                 var outer: IParameter? = null
                 if (declaringClass.isInnerClass) {
                     val parent = declaringClass.parentNode.get() as ClassOrInterfaceDeclaration
-                    outer = addParameter(types.mapType(parent.qualifiedName)).apply { id = OUTER_PARAM }
+                    outer = addParameter(types.mapType(parent.qualifiedName, this@translateConstructorDeclaration)).apply { id = OUTER_PARAM }
                 }
 
                 // Add $this parameter
@@ -335,7 +356,7 @@ class Java2Strudel(
 
                 // Add regular constructor parameters
                 this@translateConstructorDeclaration.parameters.forEach { p ->
-                    addParameter(types.mapType(p.type)).apply { id = p.nameAsString }
+                    addParameter(types.mapType(p.type, p)).apply { id = p.nameAsString }
                         .bind(p)
                         .bind(p.type, TYPE_LOC)
                         .bind(p.name, ID_LOC)
@@ -349,7 +370,7 @@ class Java2Strudel(
          */
         fun createDefaultConstructor(type: TypeDeclaration<*>): IProcedureDeclaration =
             Procedure(
-                types.mapType(type.qualifiedName),
+                types.mapType(type.qualifiedName, type),
                 INIT
             ).apply {
                 setFlag("public")
@@ -361,7 +382,7 @@ class Java2Strudel(
                 if (type is RecordDeclaration) {
                     addParameter(returnType).apply { id = THIS_PARAM }
                     type.parameters.forEach {p ->
-                        addParameter(types.mapType(p.type)).apply { id = p.nameAsString }
+                        addParameter(types.mapType(p.type, p)).apply { id = p.nameAsString }
                             .bind(p)
                             .bind(p.type, TYPE_LOC)
                             .bind(p.name, ID_LOC)
@@ -440,10 +461,10 @@ class Java2Strudel(
                 }
                  */
 
-                val type = (types.mapType(c.qualifiedName) as IReferenceType).target as IRecordType
+                val type = (types.mapType(c.qualifiedName, c) as IReferenceType).target as IRecordType
                 if (c.isInnerClass) {
                     val parent = c.parentNode.get() as ClassOrInterfaceDeclaration
-                    type.addField(types.mapType(parent.qualifiedName)) { id = OUTER_PARAM }
+                    type.addField(types.mapType(parent.qualifiedName, c)) { id = OUTER_PARAM }
                 }
             }
 
@@ -459,7 +480,7 @@ class Java2Strudel(
                     var outer: IParameter? = null
                     if (c.isInnerClass) {
                         val parent = c.parentNode.get() as ClassOrInterfaceDeclaration
-                        outer = defaultConstructor.addParameter(types.mapType(parent.qualifiedName)).apply { id = OUTER_PARAM }
+                        outer = defaultConstructor.addParameter(types.mapType(parent.qualifiedName, c)).apply { id = OUTER_PARAM }
                     }
                     val instance = defaultConstructor.addParameter(defaultConstructor.returnType).apply { id = THIS_PARAM }
                     if (outer != null)
@@ -522,7 +543,7 @@ class Java2Strudel(
          */
         fun translateRecordDeclarations(records: List<RecordDeclaration>) {
             records.forEach { r ->
-                val type = (types.mapType(r.qualifiedName) as IReferenceType).target as IRecordType
+                val type = (types.mapType(r.qualifiedName, r) as IReferenceType).target as IRecordType
 
                 if (r.constructors.isNotEmpty())
                     unsupported("record with explicit constructors", r)
@@ -557,7 +578,7 @@ class Java2Strudel(
                     fieldSetters.add(Pair(field, constructorParam.expression()))
 
                     // Generate get() method for field
-                    Procedure(types.mapType(param.type), param.nameAsString).apply {
+                    Procedure(types.mapType(param.type, param), param.nameAsString).apply {
                         setFlag("public")
                         setProperty(NAMESPACE_PROP, r.qualifiedName)
                         val t = addParameter(constructor.returnType).apply { id = THIS_PARAM }

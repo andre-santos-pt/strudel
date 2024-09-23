@@ -6,12 +6,12 @@ import pt.iscte.strudel.vm.NULL
 
 internal class Value (override val type: IType, override val value: Any?) : IValue {
 
-    init {
+    init { // For peace of mind
         when (type) {
-            INT -> assert(value is Int || value is Long)
-            DOUBLE -> assert(value is Double || value is Float)
-            CHAR -> assert(value is Char)
-            BOOLEAN -> assert(value is Boolean)
+            INT -> assert(value is Int || value is Long) { "Cannot assign ${value!!::class.simpleName} value to $type" }
+            DOUBLE -> assert(value is Double || value is Float) { "Cannot assign ${value!!::class.simpleName} value to $type" }
+            CHAR -> assert(value is Char) { "Cannot assign ${value!!::class.simpleName} value to $type" }
+            BOOLEAN -> assert(value is Boolean) { "Cannot assign ${value!!::class.simpleName} value to $type" }
         }
     }
 

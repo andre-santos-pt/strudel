@@ -166,3 +166,6 @@ internal fun Statement.getSingleUnary(): List<UnaryExpr> {
 }
 
 internal fun Node.substituteControlBlocks() = accept(ControlStructureEncapsulateVisitor, null)
+
+fun CompilationUnit.nodeAtLine(line: Int): Node? =
+    findFirst(Node::class.java) { it.begin.isPresent && it.begin.get().line == line }.getOrNull

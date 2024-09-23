@@ -2,6 +2,8 @@ package pt.iscte.strudel.model.util
 
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.BinaryExpression
+import pt.iscte.strudel.vm.RuntimeError
+import pt.iscte.strudel.vm.RuntimeErrorType
 
 
 val IBinaryOperator.isArithmetic
@@ -60,6 +62,8 @@ enum class ArithmeticOperator (
         else if (left == DOUBLE && right == INT) DOUBLE
         else if (left == INT && right == DOUBLE) DOUBLE
         else if (left == DOUBLE && right == DOUBLE) DOUBLE
-        else UnboundType()
+        else if (left == CHAR && right == CHAR) CHAR
+        else if (left == CHAR && right == INT) CHAR
+        else throw RuntimeError(RuntimeErrorType.UNSUPPORTED, this, "operator $id between $left and $right")
     }
 }

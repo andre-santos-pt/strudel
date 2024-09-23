@@ -1,5 +1,6 @@
 package pt.iscte.strudel.parsing.java.extensions
 
+import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.ObjectCreationExpr
 import com.github.javaparser.resolution.types.ResolvedType
@@ -12,14 +13,14 @@ import pt.iscte.strudel.vm.impl.Value
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
-internal fun foreign(module: IModule, method: Method, types: Map<String, IType>): ForeignProcedure {
-    val thisParamType = if (Modifier.isStatic(method.modifiers)) listOf() else listOf(getTypeByName(method.declaringClass.canonicalName, types))
-    val parameterTypes = thisParamType + method.parameters.map { getTypeByName(it.type.canonicalName, types) }
+internal fun foreign(module: IModule, method: Method, types: Map<String, IType>, location: Node): ForeignProcedure {
+    val thisParamType = if (Modifier.isStatic(method.modifiers)) listOf() else listOf(getTypeByName(method.declaringClass.canonicalName, location, types))
+    val parameterTypes = thisParamType + method.parameters.map { getTypeByName(it.type.canonicalName, location, types) }
     return ForeignProcedure(
         module,
         method.declaringClass.primitiveType.canonicalName,
         method.name,
-        getTypeByName(method.returnType.canonicalName, types),
+        getTypeByName(method.returnType.canonicalName, location, types),
         parameterTypes
     )
     { vm, args ->
@@ -55,20 +56,20 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
 
     if (isAbstractMethodCall) {
         if (namespace != null) {
-            val clazz: Class<*> = getClassByName(namespace)
+            val clazz: Class<*> = getClassByName(namespace, this)
             (module.types + defaultTypes.values).forEach {
-                kotlin.runCatching { it.toJavaType() }.onSuccess {
+                kotlin.runCatching { it.toJavaType(this) }.onSuccess {
                     val t: Class<*> = (it.rootComponentType() ?: it).wrapperType
                     if (clazz.isAssignableFrom(t) && !t.isInterface) {
                         val args = arguments.map { arg -> arg.getResolvedJavaType() }
                         val implementation = t.findCompatibleMethod(nameAsString, args)
                         if (implementation != null)
-                            module.members.add(foreign(module, implementation, types))
+                            module.members.add(foreign(module, implementation, types, this))
                     }
                 }
             }
         }
-        return PolymophicProcedure(module, namespace, nameAsString, this.resolve().returnType.toIType(types))
+        return PolymophicProcedure(module, namespace, nameAsString, this.resolve().returnType.toIType(types, this))
     }
     else if (scope.isPresent) {
         kotlin.runCatching {
@@ -83,10 +84,10 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
 
             val clazz: Class<*> = scope.get().getResolvedJavaType()
 
-            val args = arguments.map { it.getResolvedJavaType() }.toTypedArray()
-            val method: Method = clazz.getMethod(nameAsString, *args)
+            val args = arguments.map { it.getResolvedJavaType() }
+            val method: Method = clazz.findCompatibleMethod(nameAsString, args) ?: return null
 
-            return foreign(module, method, types)
+            return foreign(module, method, types, this)
         }.getOrElse { return null }
     }
     return null
@@ -95,7 +96,7 @@ internal fun MethodCallExpr.asForeignProcedure(module: IModule, namespace: Strin
 internal fun ObjectCreationExpr.asForeignProcedure(module: IModule, types: Map<String, IType>): ForeignProcedure {
     val parameterTypes = arguments.map { it.getResolvedJavaType() }.toTypedArray()
     val constructor = getResolvedJavaType().getConstructor(*parameterTypes)
-    val type = getTypeByName(constructor.declaringClass.canonicalName, types)
+    val type = getTypeByName(constructor.declaringClass.canonicalName, this, types)
     return ForeignProcedure(
         module,
         constructor.declaringClass.canonicalName,
@@ -106,13 +107,13 @@ internal fun ObjectCreationExpr.asForeignProcedure(module: IModule, types: Map<S
     { _, a -> Value(type, constructor.newInstance(*a.slice(1 until a.size).map { it.value }.toTypedArray())) }
 }
 
-internal fun ResolvedType.foreignStaticFieldAccess(module: IModule, types: Map<String, IType>): ForeignProcedure {
-    val java = toJavaType()
+internal fun ResolvedType.foreignStaticFieldAccess(module: IModule, types: Map<String, IType>, location: Node): ForeignProcedure {
+    val java = toJavaType(location)
     return ForeignProcedure(
         module,
         java.canonicalName,
         "getField",
-        getTypeByName(java.canonicalName, types),
+        getTypeByName(java.canonicalName, location, types),
         listOf(StringType)
     )
     { _, args -> Value(HostRecordType(java.canonicalName), java.getField(args.first().value as String).get(null)) }

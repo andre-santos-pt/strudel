@@ -1,7 +1,6 @@
 package pt.iscte.strudel.parsing.java.extensions
 
 import com.github.javaparser.ast.Node
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
 import com.github.javaparser.ast.body.TypeDeclaration
 import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.type.Type
@@ -20,100 +19,116 @@ import java.lang.reflect.Array
 import java.lang.reflect.Method
 import kotlin.jvm.optionals.getOrNull
 import pt.iscte.strudel.parsing.java.error
+import kotlin.reflect.full.cast
+import kotlin.reflect.full.createType
 
 internal fun typeSolver(): TypeSolver = CombinedTypeSolver().apply { add(ReflectionTypeSolver()) }
 
-internal fun MutableMap<String, IType>.mapType(t: String): IType = this[t] ?: getTypeByName(t, this)
+internal fun MutableMap<String, IType>.mapType(t: String, location: Node): IType = this[t] ?: getTypeByName(t, location)
 
-internal fun MutableMap<String, IType>.mapType(t: Type) =
-    mapType(kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString()))
+internal fun MutableMap<String, IType>.mapType(t: Type, location: Node) =
+    mapType(kotlin.runCatching { t.resolve().erasure().describe() }.getOrDefault(t.asString()), location)
 
-internal fun MutableMap<String, IType>.mapType(t: TypeDeclaration<*>) =
-    mapType(t.fullyQualifiedName.getOrNull() ?: t.nameAsString)
+internal fun MutableMap<String, IType>.mapType(t: TypeDeclaration<*>, location: Node) =
+    mapType(t.fullyQualifiedName.getOrNull() ?: t.nameAsString, location)
 
-internal fun isJavaClassName(qualifiedName: String): Boolean = runCatching { getClassByName(qualifiedName) }.isSuccess
+internal fun isJavaClassName(qualifiedName: String, location: Node): Boolean = runCatching { getClassByName(qualifiedName, location) }.isSuccess
 
-internal fun getTypeByName(qualifiedName: String, types: Map<String, IType> = defaultTypes): IType {
+internal fun getTypeByName(qualifiedName: String, location: Node, types: Map<String, IType> = defaultTypes): IType {
     val arrayTypeDepth = Regex("\\[\\]").findAll(qualifiedName).count()
     if (arrayTypeDepth == 0)
-        return defaultTypes[qualifiedName] ?: types[qualifiedName] ?: HostRecordType(getClassByName(qualifiedName).canonicalName)
+        return defaultTypes[qualifiedName] ?: types[qualifiedName] ?: HostRecordType(getClassByName(qualifiedName, location).canonicalName)
 
     return runCatching {
         val componentTypeName = qualifiedName.replace("[]", "")
-        var type = defaultTypes[componentTypeName] ?: types[componentTypeName] ?: HostRecordType(getClassByName(componentTypeName).canonicalName)
+        var type = defaultTypes[componentTypeName] ?: types[componentTypeName] ?: HostRecordType(getClassByName(componentTypeName, location).canonicalName)
         (0 until arrayTypeDepth).forEach { _ -> type = type.array() }
         type
-    }.getOrElse { error("unsupported type $qualifiedName", qualifiedName) }
+    }.getOrElse { error("unsupported type $qualifiedName", location) }
 }
 
-internal fun getClassByName(qualifiedName: String): Class<*> {
+internal fun getClassByName(qualifiedName: String, location: Node): Class<*> {
     val arrayTypeDepth = Regex("\\[\\]").findAll(qualifiedName).count()
     if (arrayTypeDepth == 0)
-        return runCatching { Class.forName(qualifiedName) }.getOrElse { error("unsupported class $qualifiedName", qualifiedName) }
+        return runCatching { Class.forName(qualifiedName) }.getOrElse { error("unsupported class $qualifiedName", location) }
 
     return runCatching {
         val componentTypeName = qualifiedName.replace("[]", "")
         var cls = Class.forName(componentTypeName)
         (0 until arrayTypeDepth).forEach { _ -> cls = cls.arrayType() }
         cls
-    }.getOrElse { error("unsupported class $qualifiedName", qualifiedName) }
+    }.getOrElse { error("unsupported class $qualifiedName", location) }
 }
 
-internal fun getTypeFromJavaParser(node: Node, type: Type, types: Map<String, IType>): IType =
-    runCatching { getTypeByName(type.resolve().erasure().describe(), types) }.getOrNull() ?:
-    runCatching { getTypeByName(type.asString(), types) }.getOrNull() ?: error("could not find IType for type $type", node)
+internal fun getTypeFromJavaParser(node: Node, type: Type, types: Map<String, IType>, location: Node): IType =
+    runCatching { getTypeByName(type.resolve().erasure().describe(), location, types) }.getOrNull() ?:
+    runCatching { getTypeByName(type.asString(), location, types) }.getOrNull() ?: error("could not find type: $type", node)
 
-internal fun ResolvedType.toIType(types: Map<String, IType>): IType = when (this) {
+internal fun ResolvedType.toIType(types: Map<String, IType>, location: Node): IType = when (this) {
     ResolvedPrimitiveType.CHAR -> CHAR
     ResolvedPrimitiveType.INT, ResolvedPrimitiveType.LONG -> INT
     ResolvedPrimitiveType.BOOLEAN -> BOOLEAN
     ResolvedPrimitiveType.DOUBLE, ResolvedPrimitiveType.FLOAT -> DOUBLE
-    is ResolvedReferenceType -> getTypeByName(this.qualifiedName, types)
-    is ResolvedArrayType -> ArrayType(componentType.toIType(types))
-    is LazyType -> getTypeByName(this.erasure().describe(), types)
+    is ResolvedReferenceType -> getTypeByName(this.qualifiedName, location, types)
+    is ResolvedArrayType -> ArrayType(componentType.toIType(types, location))
+    is LazyType -> getTypeByName(this.erasure().describe(), location, types)
     is ResolvedTypeVariable -> types["java.lang.Object"]!!
     is NullType -> NULL.type
-    else -> error("unsupported expression type ${this::class.qualifiedName}", this)
+    else -> error("unsupported expression type ${this::class.qualifiedName}", location)
 }
 
-internal fun ResolvedType.toJavaType(): Class<*> = when (this) {
+internal fun ResolvedType.toJavaType(location: Node): Class<*> = when (this) {
     ResolvedPrimitiveType.CHAR -> Char::class.java
     ResolvedPrimitiveType.INT, ResolvedPrimitiveType.LONG -> Int::class.java
     ResolvedPrimitiveType.BOOLEAN -> Boolean::class.java
     ResolvedPrimitiveType.DOUBLE, ResolvedPrimitiveType.FLOAT -> Double::class.java
-    is ResolvedReferenceType -> getClassByName(this.qualifiedName)
-    is ResolvedArrayType -> Array.newInstance(this.componentType.toJavaType(), 0).javaClass
-    is LazyType -> getClassByName(this.describe())
+    is ResolvedReferenceType -> getClassByName(this.qualifiedName, location)
+    is ResolvedArrayType -> Array.newInstance(this.componentType.toJavaType(location), 0).javaClass
+    is LazyType -> getClassByName(this.describe(), location)
     is ResolvedTypeVariable -> Any::class.java // Generics compile to Object
     is NullType -> Nothing::class.java
-    else -> error("unsupported expression type ${this::class.qualifiedName}", this)
+    else -> error("unsupported expression type ${this::class.qualifiedName}", location)
 }
 
 internal fun Expression.getResolvedJavaType(): Class<*> = kotlin.runCatching {
-    calculateResolvedType().toJavaType()
+    calculateResolvedType().toJavaType(this)
 }.onFailure { println("Failed to resolve Java type of $this: $it") }.getOrThrow()
 
 internal fun Expression.getResolvedIType(types: Map<String, IType>): IType = kotlin.runCatching {
-    calculateResolvedType().toIType(types)
+    calculateResolvedType().toIType(types, this)
 }.onFailure { println("Failed to resolve type of $this: $it")  }.getOrThrow()
 
-internal fun Class<*>.findCompatibleMethod(name: String, parameterTypes: Iterable<Class<*>>): Method? =
+internal fun Class<*>.findCompatibleMethod(name: String, parameterTypes: Collection<Class<*>>): Method? =
     methods.find {
-        it.name == name && it.parameterTypes.zip(parameterTypes).all {
-            p -> p.first == p.second || p.second.isAssignableFrom(p.first)
+        it.name == name && it.parameterTypes.size == parameterTypes.size && it.parameterTypes.zip(parameterTypes).all {
+            p -> p.first == p.second || p.second.isAssignableFrom(p.first) || p.second.isImplicitlyCastableTo(p.first)
         }
     }
 
-internal fun IType.toJavaType(): Class<*> = when(this) {
-    is IReferenceType -> target.toJavaType()
-    is IArrayType -> Array.newInstance(this.componentType.toJavaType(), 0).javaClass
+// Can this class be implicitly (widening conversion) cast to the other?
+// See also: https://docs.oracle.com/javase/specs/jls/se10/html/jls-5.html
+internal fun Class<*>.isImplicitlyCastableTo(other: Class<*>): Boolean =
+    if (this == other) true
+    else if (isPrimitive) when (this) {
+        Int::class.java -> other == Long::class.java || other == Float::class.java || other == Double::class.java
+        Long::class.java -> other == Float::class.java || other == Double::class.java
+        Float::class.java -> other == Double::class.java
+        Char::class.java -> other == Int::class.java || other == Long::class.java || other == Float::class.java || other == Double::class.java
+        Byte::class.java -> other == Short::class.java || other == Int::class.java || other == Long::class.java || other == Float::class.java || other == Double::class.java
+        else -> false
+    }
+    else other == this.wrapperType || other.isAssignableFrom(this)
+
+internal fun IType.toJavaType(location: Node): Class<*> = when(this) {
+    is IReferenceType -> target.toJavaType(location)
+    is IArrayType -> Array.newInstance(this.componentType.toJavaType(location), 0).javaClass
     is HostRecordType -> this.type
     INT -> Int::class.java
     DOUBLE -> Double::class.java
     BOOLEAN -> Boolean::class.java
     CHAR -> Char::class.java
     VOID -> Void::class.java
-    else -> error("IType $this has no matching Java type")
+    else -> error("IType $this has no matching Java type", location)
 }
 
 internal val Class<*>.wrapperType: Class<*>
