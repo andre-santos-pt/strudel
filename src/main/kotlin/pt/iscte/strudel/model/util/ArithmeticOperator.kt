@@ -7,7 +7,7 @@ import pt.iscte.strudel.vm.RuntimeErrorType
 
 
 val IBinaryOperator.isArithmetic
-    get() = ArithmeticOperator.values().contains(this)
+    get() = ArithmeticOperator.values().contains(this)  // this is ArithmeticOperator ?
 
 enum class ArithmeticOperator (
     override var id: String?,

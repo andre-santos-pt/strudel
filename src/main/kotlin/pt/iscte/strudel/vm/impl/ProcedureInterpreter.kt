@@ -336,7 +336,7 @@ class ProcedureInterpreter(
                 vm.listeners.forEach { l ->
                     l.statement(s)
                 }
-                handleProcedureCall(s.procedure, args)
+                handleProcedureCall(s, args)
                 // to clear the return value from the stack
                 if(!s.procedure.returnType.isVoid)
                     valStack.pop()
@@ -481,7 +481,7 @@ class ProcedureInterpreter(
             is IProcedureCallExpression -> {
                 eval(*exp.arguments.reversed().toTypedArray())?.reversed()
                     ?.let {args ->
-                        handleProcedureCall(exp.procedure, args)
+                        handleProcedureCall(exp, args)
                     }
             }
 
@@ -503,33 +503,41 @@ class ProcedureInterpreter(
         }
     }
 
-    // TODO what if first element is null in instance procedure?
     private fun handleProcedureCall(
-        procDec: IProcedureDeclaration,
+        call: IProcedureCall,
         args: List<IValue>
-    ) {
-        if (procDec.isForeign) {
-            val ret = (procDec as ForeignProcedure).run(vm, args)
-            if(!procDec.returnType.isVoid)
-                valStack.push(ret!!)
+    ): IValue {
+        if (call.procedure.isForeign) {
+            return try {
+                (call.procedure as ForeignProcedure).run(vm, args) ?: NULL
+            }
+            catch (e: Exception) {
+                throw RuntimeError(RuntimeErrorType.FOREIGN_PROCEDURE, call, e.message)
+            }
         } else {
             val proc: IProcedureDeclaration =
-                if (procDec is IPolymorphicProcedure)
-                    procDec.module?.procedures?.find { p ->
-                        p.id == procDec.id && p.namespace == args[0].type.id
+                if (call.procedure is IPolymorphicProcedure)
+                    call.procedure.module?.procedures?.find { p ->
+                        p.id == call.procedure.id && p.namespace == args[0].type.id
                     }
-                        ?: throw UnsupportedOperationException("Could not find procedure ${procDec.id} within namespace ${args[0].type.id}")
+                        ?: throw UnsupportedOperationException("Could not find procedure ${call.id} within namespace ${args[0].type.id}")
                 else
-                    procDec as IProcedure
+                    call.procedure as IProcedure
 
             if (proc.isForeign) {
                 val run = (proc as ForeignProcedure).run(vm, args)
-                valStack.push(run!!)
+                return run!!
             } else {
-                val call = ProcedureInterpreter(vm, proc as IProcedure, *args.toTypedArray())
-                call.run()
-                if(!proc.returnType.isVoid)
-                    valStack.push(call.returnValue!!)
+                val callInterpreter = ProcedureInterpreter(
+                    vm,
+                    proc as IProcedure,
+                    *args.toTypedArray()
+                )
+                callInterpreter.run()
+                if (!proc.returnType.isVoid)
+                    return callInterpreter.returnValue!!
+                else
+                    return NULL
             }
         }
     }

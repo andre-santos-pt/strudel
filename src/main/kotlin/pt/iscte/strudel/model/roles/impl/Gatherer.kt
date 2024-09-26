@@ -23,7 +23,7 @@ class Gatherer(variable: IVariableDeclaration<*>) : IGatherer {
         return "$name ($operation)"
     }
 
-    private class Visitor constructor(val variable: IVariableDeclaration<*>) : IBlock.IVisitor {
+    private class Visitor(val variable: IVariableDeclaration<*>) : IBlock.IVisitor {
         var expressionList: MutableList<IProgramElement> = ArrayList<IProgramElement>()
         var accumulationExpression: IExpression? = null
         var allSameAcc = true

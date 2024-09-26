@@ -1,5 +1,6 @@
 package pt.iscte.strudel.tests
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.StringType
@@ -11,7 +12,7 @@ import pt.iscte.strudel.vm.impl.Value
 import kotlin.test.assertTrue
 
 val StringCreate = IForeignProcedure.create("String", "create", StringType, listOf(CHAR)) { m, args ->
-    Value(StringType, args[0].toString())
+    Value(StringType, args[0].value.toString())
 }
 
 val StringConcat = IForeignProcedure.create("String", "concat", StringType, listOf(StringType, StringType)) { m, args ->
@@ -34,7 +35,7 @@ class TestBuiltinString : pt.iscte.strudel.tests.BaseTest({
         println(module)
         procedure.createCFG().display()
         val r = vm.execute(procedure)
-        assertTrue("abc" == r?.value.toString(), r!!.value.toString())
+        assertEquals("abc", r?.value.toString())
     }
 }
 

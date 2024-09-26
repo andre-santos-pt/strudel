@@ -2,6 +2,7 @@ package pt.iscte.strudel.vm.impl
 
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.get
+import pt.iscte.strudel.model.impl.Conditional
 import pt.iscte.strudel.model.impl.Literal
 import pt.iscte.strudel.model.impl.PredefinedArrayAllocation
 import pt.iscte.strudel.model.util.*
@@ -168,6 +169,10 @@ class ProcedureInterpreterNoExpression(
                 is IBinaryExpression -> operator.on(
                     leftOperand.materialize(),
                     rightOperand.materialize()
+                )
+
+                is IConditionalExpression -> Conditional(
+                    condition.materialize(), trueCase.materialize(), falseCase.materialize()
                 )
 
 //                is IUnaryExpression -> "${e.operator}${materialize(e.operand)}"
@@ -341,9 +346,7 @@ class ProcedureInterpreterNoExpression(
                 vm.listeners.forEach { l ->
                     l.statement(s)
                 }
-                handleProcedureCall(
-                    s.procedure,
-                    s.arguments.map { evaluate(it) })
+                handleProcedureCall(s)
                 return true
             }
 
@@ -494,9 +497,7 @@ class ProcedureInterpreterNoExpression(
                 unopearation(exp.operator, operand.type, operand)
             }
 
-            is IProcedureCallExpression -> handleProcedureCall(
-                exp.procedure,
-                exp.arguments.map { evaluate(it) })
+            is IProcedureCallExpression -> handleProcedureCall(exp)
 
             is IRecordAllocation -> {
                 vm.allocateRecord(exp.recordType)
@@ -514,38 +515,42 @@ class ProcedureInterpreterNoExpression(
 
     // TODO what if first element is null in instance procedure?
     private fun handleProcedureCall(
-        procDec: IProcedureDeclaration,
-        args: List<IValue>
+        call: IProcedureCall
     ): IValue {
-        if (procDec.isForeign) {
-            return (procDec as ForeignProcedure).run(vm, args) ?: NULL
+        val args = call.arguments.map { evaluate(it) }
+        if (call.procedure.isForeign) {
+            return try {
+                (call.procedure as ForeignProcedure).run(vm, args) ?: NULL
+            }
+            catch (e: Exception) {
+                throw RuntimeError(RuntimeErrorType.FOREIGN_PROCEDURE, call, e.message)
+            }
         } else {
             val proc: IProcedureDeclaration =
-                if (procDec is IPolymorphicProcedure)
-                    procDec.module?.procedures?.find { p ->
-                        p.id == procDec.id && p.namespace == args[0].type.id
+                if (call.procedure is IPolymorphicProcedure)
+                    call.procedure.module?.procedures?.find { p ->
+                        p.id == call.procedure.id && p.namespace == args[0].type.id
                     }
-                        ?: throw UnsupportedOperationException("Could not find procedure ${procDec.id} within namespace ${args[0].type.id}")
+                        ?: throw UnsupportedOperationException("Could not find procedure ${call.id} within namespace ${args[0].type.id}")
                 else
-                    procDec as IProcedure
+                    call.procedure as IProcedure
 
             if (proc.isForeign) {
                 val run = (proc as ForeignProcedure).run(vm, args)
                 return run!!
             } else {
-                val call = ProcedureInterpreterNoExpression(
+                val callInterpreter = ProcedureInterpreterNoExpression(
                     vm,
                     proc as IProcedure,
                     *args.toTypedArray()
                 )
-                call.run()
+                callInterpreter.run()
                 if (!proc.returnType.isVoid)
-                    return call.returnValue!!
+                    return callInterpreter.returnValue!!
                 else
                     return NULL
             }
         }
-        throw UnsupportedOperationException("Could not find procedure ${procDec.id} within namespace ${args[0].type.id}")
     }
 
     private fun unopearation(
