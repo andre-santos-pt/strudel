@@ -14,11 +14,11 @@ import pt.iscte.strudel.parsing.java.OUTER_PARAM
 import pt.iscte.strudel.parsing.java.defaultTypes
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.ArrayType
+import pt.iscte.strudel.parsing.java.LoadingError
 import pt.iscte.strudel.vm.NULL
 import java.lang.reflect.Array
 import java.lang.reflect.Method
 import kotlin.jvm.optionals.getOrNull
-import pt.iscte.strudel.parsing.java.error
 import kotlin.reflect.full.cast
 import kotlin.reflect.full.createType
 
@@ -44,25 +44,25 @@ internal fun getTypeByName(qualifiedName: String, location: Node, types: Map<Str
         var type = defaultTypes[componentTypeName] ?: types[componentTypeName] ?: HostRecordType(getClassByName(componentTypeName, location).canonicalName)
         (0 until arrayTypeDepth).forEach { _ -> type = type.array() }
         type
-    }.getOrElse { error("unsupported type $qualifiedName", location) }
+    }.getOrElse { LoadingError.translation("could not find IType $qualifiedName", location) }
 }
 
 internal fun getClassByName(qualifiedName: String, location: Node): Class<*> {
     val arrayTypeDepth = Regex("\\[\\]").findAll(qualifiedName).count()
     if (arrayTypeDepth == 0)
-        return runCatching { Class.forName(qualifiedName) }.getOrElse { error("unsupported class $qualifiedName", location) }
+        return runCatching { Class.forName(qualifiedName) }.getOrElse { LoadingError.translation("could not find class $qualifiedName", location) }
 
     return runCatching {
         val componentTypeName = qualifiedName.replace("[]", "")
         var cls = Class.forName(componentTypeName)
         (0 until arrayTypeDepth).forEach { _ -> cls = cls.arrayType() }
         cls
-    }.getOrElse { error("unsupported class $qualifiedName", location) }
+    }.getOrElse { LoadingError.translation("could not find class $qualifiedName", location) }
 }
 
 internal fun getTypeFromJavaParser(node: Node, type: Type, types: Map<String, IType>, location: Node): IType =
     runCatching { getTypeByName(type.resolve().erasure().describe(), location, types) }.getOrNull() ?:
-    runCatching { getTypeByName(type.asString(), location, types) }.getOrNull() ?: error("could not find type: $type", node)
+    runCatching { getTypeByName(type.asString(), location, types) }.getOrNull() ?: LoadingError.translation("could not find IType $type", node)
 
 internal fun ResolvedType.toIType(types: Map<String, IType>, location: Node): IType = when (this) {
     ResolvedPrimitiveType.CHAR -> CHAR
@@ -74,7 +74,7 @@ internal fun ResolvedType.toIType(types: Map<String, IType>, location: Node): IT
     is LazyType -> getTypeByName(this.erasure().describe(), location, types)
     is ResolvedTypeVariable -> types["java.lang.Object"]!!
     is NullType -> NULL.type
-    else -> error("unsupported expression type ${this::class.qualifiedName}", location)
+    else -> LoadingError.translation("could not convert resolved type ${this::class.qualifiedName} to IType", location)
 }
 
 internal fun ResolvedType.toJavaType(location: Node): Class<*> = when (this) {
@@ -87,7 +87,7 @@ internal fun ResolvedType.toJavaType(location: Node): Class<*> = when (this) {
     is LazyType -> getClassByName(this.describe(), location)
     is ResolvedTypeVariable -> Any::class.java // Generics compile to Object
     is NullType -> Nothing::class.java
-    else -> error("unsupported expression type ${this::class.qualifiedName}", location)
+    else -> LoadingError.translation("could not convert resolved type ${this::class.qualifiedName} to Java class", location)
 }
 
 internal val ResolvedType.simpleNameAsString: String
@@ -136,7 +136,7 @@ internal fun IType.toJavaType(location: Node): Class<*> = when(this) {
     BOOLEAN -> Boolean::class.java
     CHAR -> Char::class.java
     VOID -> Void::class.java
-    else -> error("IType $this has no matching Java type", location)
+    else -> LoadingError.translation("IType $this has no matching Java type", location)
 }
 
 internal val Class<*>.wrapperType: Class<*>

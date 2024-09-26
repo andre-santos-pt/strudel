@@ -35,13 +35,13 @@ class JavaStatement2Strudel(
             fun FieldAccessExpr.findBaseScope(): Expression = when(scope) {
                 is NameExpr -> scope
                 is FieldAccessExpr -> (scope as FieldAccessExpr).findBaseScope()
-                else -> unsupported("field access", stmt)
+                else -> LoadingError.unsupported("field access", stmt)
             }
 
             fun handleAssign(block: IBlock, a: AssignExpr): IStatement {
                 // NameExpr
                 fun handleNameExpr(name: NameExpr): IStatement {
-                    val target = findVariable(name.toString()) ?: error("not found", a)
+                    val target = findVariable(name.toString()) ?: LoadingError.translation("variable not found", a)
                     val v = when (a.operator) {
                         AssignExpr.Operator.ASSIGN -> exp2Strudel.map(a.value)
                         else -> a.operator.map(a).on(exp2Strudel.map(name), exp2Strudel.map(a.value))
@@ -64,7 +64,7 @@ class JavaStatement2Strudel(
                                 exp2Strudel.map(arrayAccess.index),
                                 exp2Strudel.map(a.value)
                             )
-                        else -> unsupported("assign operator ${a.operator}", a)
+                        else -> LoadingError.unsupported("assign operator ${a.operator}", a)
                     }
                 }
 
@@ -78,10 +78,10 @@ class JavaStatement2Strudel(
                             block.FieldSet(
                                 exp2Strudel.map(fieldAccessExpr.scope) as ITargetExpression,
                                 types[typeId]?.asRecordType?.fields?.find { it.id == fieldAccessExpr.nameAsString }
-                                    ?: unsupported("field access", a),
+                                    ?: LoadingError.unsupported("field access", a),
                                 exp2Strudel.map(a.value)
                             )
-                        else -> unsupported("assign operator ${a.operator}", a)
+                        else -> LoadingError.unsupported("assign operator ${a.operator}", a)
                     }
                 }
 
@@ -89,7 +89,7 @@ class JavaStatement2Strudel(
                     is NameExpr -> handleNameExpr(a.target as NameExpr)
                     is ArrayAccessExpr -> handleArrayAccessExpr(a.target as ArrayAccessExpr)
                     is FieldAccessExpr -> handleFieldAccessExpr(a.target as FieldAccessExpr)
-                    else -> unsupported("assignment", a)
+                    else -> LoadingError.unsupported("assignment", a)
                 }
             }
 
@@ -106,7 +106,7 @@ class JavaStatement2Strudel(
                                     varExp.field,
                                     varExp + lit(1)
                                 )
-                                else -> unsupported("${s.operator} on ${s.expression}", s)
+                                else -> LoadingError.unsupported("${s.operator} on ${s.expression}", s)
                             }
                         UnaryExpr.Operator.PREFIX_DECREMENT, UnaryExpr.Operator.POSTFIX_DECREMENT ->
                             when (val varExp = exp2Strudel.map(s.expression)) {
@@ -116,16 +116,16 @@ class JavaStatement2Strudel(
                                     varExp.field,
                                     varExp - lit(1)
                                 )
-                                else -> unsupported("${s.operator} on ${s.expression}", s)
+                                else -> LoadingError.unsupported("${s.operator} on ${s.expression}", s)
                             }
-                        else -> unsupported("unary expression statement", s)
+                        else -> LoadingError.unsupported("unary expression statement", s)
                     }
                     is MethodCallExpr -> {
                         translator.handleMethodCall(procedure, procedures, types, s, exp2Strudel::map) { m, args ->
                             ProcedureCall(block, m, arguments = args)
                         }
                     }
-                    else -> unsupported("expression statement", s)
+                    else -> LoadingError.unsupported("expression statement", s)
                 }
 
             if (stmt is EmptyStmt) return
@@ -307,7 +307,7 @@ class JavaStatement2Strudel(
                 is ExpressionStmt -> handleExpressionStmt(stmt)
                 is ThrowStmt -> handleThrowStmt(stmt)
                 is AssertStmt -> handleAssertStmt(stmt)
-                else -> unsupported("statement $this (${this::class.qualifiedName})", stmt)
+                else -> LoadingError.unsupported("statement $this (${this::class.qualifiedName})", stmt)
             }
         }
     }

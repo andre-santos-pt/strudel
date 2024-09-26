@@ -3,9 +3,9 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import pt.iscte.strudel.parsing.java.Java2Strudel
-import pt.iscte.strudel.parsing.java.StrudelUnsupportedException
 import pt.iscte.strudel.model.impl.ArrayElementAssignment
 import pt.iscte.strudel.model.impl.RecordFieldAssignment
+import pt.iscte.strudel.parsing.java.LoadingError
 import kotlin.test.assertIs
 
 class TestUnaryExpressionReplace {
@@ -48,7 +48,7 @@ class TestUnaryExpressionReplace {
                 }
             }
         """.trimIndent()
-        assertThrows<StrudelUnsupportedException> {
+        assertThrows<LoadingError> {
             Java2Strudel().load(src)
         }
     }
@@ -85,7 +85,7 @@ class TestUnaryExpressionReplace {
                 }
             }
         """.trimIndent()
-        assertThrows<StrudelUnsupportedException> {
+        assertThrows<LoadingError> {
             Java2Strudel().load(src)
         }
     }

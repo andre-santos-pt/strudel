@@ -32,7 +32,7 @@ class JavaExpression2Strudel(
         getField(id) ?: if (declaringType != null) declaringType!!.findFieldInHierarchy(id) else null
 
     // Finds the variable for a given ID
-    fun findVariable(id: String): IVariableDeclaration<*>? =
+    private fun findVariable(id: String): IVariableDeclaration<*>? =
         procedure.variables.find { it.id == id } ?: procedure.parameters.find { it.id == THIS_PARAM }?.let { p ->
             ((p.type as IReferenceType).target as IRecordType).findFieldInHierarchy(id)
         }
@@ -75,9 +75,9 @@ class JavaExpression2Strudel(
                     else if (procedureDeclaringType.isSame(fieldOwnerType))
                         procedure.thisParameter.field(target as IField)
                     else
-                        unsupported("inner class variable more than 1 nested types deep", exp)
+                        LoadingError.unsupported("inner class variable more than 1 nested types deep", exp)
                 }
-                else target?.expression() ?: error("not found $exp", exp)
+                else target?.expression() ?: LoadingError.translation("not found $exp", exp)
             }
 
             is ThisExpr -> procedure.thisParameter.expression()
@@ -91,8 +91,11 @@ class JavaExpression2Strudel(
             is UnaryExpr -> mapUnaryOperator(exp).on(map(exp.expression)).apply {
                 // TODO review
                 val from = exp.range.get().begin.column
-                val to = exp.expression.range.get().begin.column - 1
-                setProperty(OPERATOR_LOC, SourceLocation(exp.expression.range.get().begin.line, from, to))
+                val to = exp.expression.range.get().end.column - 1
+                setProperty(
+                    OPERATOR_LOC,
+                    SourceLocation(exp.expression.range.get().begin.line, exp.expression.range.get().end.line, from, to)
+                )
             }
 
             is BinaryExpr -> when (exp.operator) {
@@ -106,7 +109,7 @@ class JavaExpression2Strudel(
                             if (leftRange.begin.line == rightRange.begin.line) {
                                 val from = leftRange.end.column + 1
                                 val to = rightRange.begin.column - 1
-                                setProperty(OPERATOR_LOC, SourceLocation(leftRange.begin.line, from, to))
+                                setProperty(OPERATOR_LOC, SourceLocation(leftRange.begin.line, rightRange.end.line, from, to))
                             }
                         }
                     }
@@ -119,15 +122,15 @@ class JavaExpression2Strudel(
                     PrimitiveType.Primitive.INT -> UnaryOperator.CAST_TO_INT.on(map(exp.expression))
                     PrimitiveType.Primitive.DOUBLE -> UnaryOperator.CAST_TO_DOUBLE.on(map(exp.expression))
                     PrimitiveType.Primitive.CHAR -> UnaryOperator.CAST_TO_CHAR.on(map(exp.expression))
-                    else -> unsupported("cast to primitive type ${p.name}", exp)
+                    else -> LoadingError.unsupported("cast to primitive type ${p.name}", exp)
                 }
-                else -> unsupported("cast to non-primitive type $t", exp)
+                else -> LoadingError.unsupported("cast to non-primitive type $t", exp)
             }
 
             // TODO multi level
             is ArrayCreationExpr -> {
                 if (exp.levels.any { !it.dimension.isPresent })
-                    unsupported("multi-dimension array initialization with partial dimensions", exp)
+                    LoadingError.unsupported("multi-dimension array initialization with partial dimensions", exp)
 
                 val arrayType = types.mapType(exp.elementType, exp).array()
 
@@ -141,7 +144,7 @@ class JavaExpression2Strudel(
                 val baseType = when (val parent = exp.parentNode.getOrNull) {
                     is ArrayCreationExpr -> types.mapType(parent.elementType, exp)
                     is VariableDeclarator -> types.mapType(parent.type, exp)
-                    else -> unsupported("array initializer", exp)
+                    else -> LoadingError.unsupported("array initializer", exp)
                 }
                 baseType.asArrayType.heapAllocationWith(values)
             }
@@ -183,7 +186,8 @@ class JavaExpression2Strudel(
                             )
                         }
                         else {
-                            val f = types[typeId]?.asRecordType?.fields?.find { it.id == exp.nameAsString } ?: error(
+                            val f = types[typeId]?.asRecordType?.fields?.find { it.id == exp.nameAsString } ?:
+                            LoadingError.translation(
                                 "could not find field \"${exp.nameAsString}\" within record type $typeId", exp
                             )
                             map(exp.scope).field(f)
@@ -198,7 +202,7 @@ class JavaExpression2Strudel(
 
             is ConditionalExpr -> Conditional(map(exp.condition), map(exp.thenExpr), map(exp.elseExpr))
 
-            else -> unsupported("expression type ${exp::class.simpleName}", exp)
+            else -> LoadingError.unsupported("expression type ${exp::class.simpleName}", exp)
         }.bind(exp)
     }
 }
@@ -210,14 +214,14 @@ fun AssignExpr.Operator.map(a: AssignExpr): IBinaryOperator =
         AssignExpr.Operator.MULTIPLY -> ArithmeticOperator.MUL
         AssignExpr.Operator.DIVIDE -> ArithmeticOperator.DIV
         AssignExpr.Operator.REMAINDER -> ArithmeticOperator.MOD
-        else -> unsupported("assign operator", a)
+        else -> LoadingError.unsupported("assign operator", a)
     }
 
 fun mapUnaryOperator(exp: UnaryExpr): IUnaryOperator = when (exp.operator) {
     UnaryExpr.Operator.LOGICAL_COMPLEMENT -> UnaryOperator.NOT
     UnaryExpr.Operator.PLUS -> UnaryOperator.PLUS
     UnaryExpr.Operator.MINUS -> UnaryOperator.MINUS
-    else -> unsupported("unary operator", exp)
+    else -> LoadingError.unsupported("unary operator", exp)
 }
 
 fun mapBinaryOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
@@ -246,5 +250,5 @@ fun mapBinaryOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
         else
             LogicalOperator.XOR
 
-    else -> unsupported("binary operator", exp)
+    else -> LoadingError.unsupported("binary operator", exp)
 }

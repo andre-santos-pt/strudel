@@ -25,48 +25,6 @@ import pt.iscte.strudel.parsing.ITranslator
 import pt.iscte.strudel.parsing.java.extensions.matches
 import pt.iscte.strudel.parsing.java.extensions.qualifiedName
 import java.io.File
-import javax.tools.Diagnostic
-import javax.tools.JavaFileObject
-import kotlin.reflect.KClass
-
-class StrudelUnsupportedException(msg: String, val nodes: List<Node>) : RuntimeException(msg) {
-    val locations = nodes.map { SourceLocation(it) }
-
-    fun getFirstNodeType(): KClass<out Node>? = nodes.firstOrNull()?.let { it::class }
-
-    constructor(msg: String, node: Node) : this(msg, listOf(node))
-}
-
-class StrudelCompilationException(message: String, val nodes: List<Node>) : RuntimeException(message) {
-    constructor(message: String, node: Node): this(message, listOf(node))
-}
-
-@Suppress("NOTHING_TO_INLINE") // inline because otherwise test fails (KotlinNothingValueException)
-inline fun unsupported(msg: String, node: Node): Nothing {
-    throw StrudelUnsupportedException("Unsupported $msg in: $node", node)
-}
-
-@Suppress("NOTHING_TO_INLINE")
-inline fun unsupported(msg: String, nodes: List<Node>): Nothing {
-    throw StrudelUnsupportedException("Unsupported $msg in:\n\t${nodes.joinToString()}", nodes)
-}
-
-@Suppress("NOTHING_TO_INLINE")
-inline fun error(msg: String, node: Node): Nothing {
-    throw StrudelCompilationException("Compilation error at $node: $msg", node)
-}
-
-@Suppress("NOTHING_TO_INLINE")
-inline fun error(msg: String, nodes: List<Node>): Nothing {
-    throw StrudelCompilationException("Compilation error: $msg at:\n\t${nodes.joinToString()}", nodes)
-}
-
-@Suppress("NOTHING_TO_INLINE")
-inline fun error(unit: CompilationUnit, diagnostics: List<Diagnostic<out JavaFileObject>>): Nothing {
-    val message = diagnostics.joinToString(System.lineSeparator()) { "Error at line ${it.lineNumber}: ${it.getMessage(null)}" }
-    val nodes = diagnostics.map { unit.nodeAtLine(it.lineNumber.toInt())!! }
-    throw StrudelCompilationException(message, nodes)
-}
 
 val JPFacade: JavaParserFacade = JavaParserFacade.get(typeSolver())
 
@@ -75,6 +33,7 @@ class Java2Strudel(
     val foreignProcedures: List<IProcedureDeclaration> = defaultForeignProcedures,
     private val bindSource: Boolean = true,
     private val bindJavaParser: Boolean = true,
+    private val checkJavaCompilation: Boolean = true,
     private val preprocessing: CompilationUnit.() -> Unit = { } // Pre-process AST before translating
 ): ITranslator {
 
@@ -95,26 +54,26 @@ class Java2Strudel(
         val compilationUnit = StaticJavaParser.parse(file)
         val types = compilationUnit.apply(preprocessing).types
 
-        if (foreignProcedures.isNotEmpty()) // Java wouldn't compile anyway if foreign procedures were being used
+        if (!checkJavaCompilation || foreignProcedures.isNotEmpty())
             return translate(types)
 
         val diagnostics = ClassLoader.compile(file)
 
         if (diagnostics.isEmpty()) return translate(types)
-        else error(compilationUnit, diagnostics)
+        else LoadingError.compilation(diagnostics)
     }
 
     override fun load(files: List<File>): IModule =
         translate(files.flatMap {
             val compilationUnit = StaticJavaParser.parse(it)
             val types = compilationUnit.apply(preprocessing).types
-            if (foreignProcedures.isNotEmpty()) types
+            if (!checkJavaCompilation || foreignProcedures.isNotEmpty()) types
             else {
                 val diagnostics = ClassLoader.compile(it)
                 if (diagnostics.isEmpty())
                     types
                 else
-                    error(compilationUnit, diagnostics)
+                    LoadingError.compilation(diagnostics)
             }
         })
 
@@ -122,25 +81,23 @@ class Java2Strudel(
         val compilationUnit = StaticJavaParser.parse(src)
         val types = compilationUnit.apply(preprocessing).types
 
-        if (foreignProcedures.isNotEmpty())
+        if (!checkJavaCompilation || foreignProcedures.isNotEmpty())
             return translate(types)
 
         val diagnostics = ClassLoader.compile(compilationUnit.types.first { !it.isPrivate }.nameAsString, src)
         if (diagnostics.isEmpty())
             return translate(types)
         else
-            error(compilationUnit, diagnostics)
+            LoadingError.compilation(diagnostics)
     }
 
-    internal fun <T : IProgramElement> T.bind(
-        node: Node,
-        prop: String? = null
-    ): T {
+    internal fun <T : IProgramElement> T.bind(node: Node, prop: String? = null): T {
         if (bindSource && node.range.isPresent) {
             val range = node.range.get()
 
             val sourceLocation = SourceLocation(
                 range.begin.line,
+                range.end.line,
                 range.begin.column,
                 range.end.column
             )
@@ -156,7 +113,7 @@ class Java2Strudel(
                     is DoStmt -> 1
                     else -> 0
                 }
-                setProperty(KEYWORD_LOC, SourceLocation(range.begin.line, range.begin.column,  range.begin.column + len))
+                setProperty(KEYWORD_LOC, SourceLocation(range.begin.line, range.end.line, range.begin.column,  range.begin.column + len))
             }
         }
         if (bindJavaParser && prop == null)
@@ -177,7 +134,6 @@ class Java2Strudel(
         id: String,
         paramTypes: List<IType>
     ): IProcedureDeclaration? {
-        // println("Finding procedure $namespace.$id(${paramTypes.joinToString { it.id!! }})")
         val find = find { it.second.matches(namespace, id, paramTypes) }
         return find?.second ?: foreignProcedures.find { it.matches(namespace, id, paramTypes) }
     }
@@ -201,7 +157,7 @@ class Java2Strudel(
                 procedure.module!!,
                 namespace?.qualifiedName,
                 types
-            ) ?: error(
+            ) ?: LoadingError.translation(
                 "procedure matching method call $exp not found within namespace ${namespace?.qualifiedName}",
                 exp
             )
@@ -260,7 +216,7 @@ class Java2Strudel(
         fun IProcedureDeclaration.setPropertiesAndBind(callable: CallableDeclaration<*>, namespace: String) {
             // Check for unsupported modifiers
             if (callable.modifiers.any { !supportedModifiers.contains(it.keyword) })
-                unsupported("modifiers", callable.modifiers.filter { !supportedModifiers.contains(it.keyword) })
+                LoadingError.unsupported("modifiers", callable.modifiers.filter { !supportedModifiers.contains(it.keyword) }.map { SourceLocation(it) })
 
             // Set modifiers
             setFlag(*callable.modifiers.map { it.keyword.asString() }.toTypedArray())
@@ -448,7 +404,7 @@ class Java2Strudel(
 
             allClasses.forEach { c ->
                 if (c.extendedTypes.isNotEmpty())
-                    unsupported("extends keyword", c.extendedTypes.first())
+                    LoadingError.unsupported("extends keyword", c.extendedTypes.first())
 
                 /* FIXME method overloading should be OK unless signatures actually match
                 if (c.methods.groupBy { it.nameAsString }.any { it.value.size > 1 }) {
@@ -499,7 +455,7 @@ class Java2Strudel(
                             else types[variableDeclaration.typeAsString]
                                 ?: types[kotlin.runCatching { variableDeclaration.type.resolve().simpleNameAsString }.getOrDefault(variableDeclaration.type.asString())]
                         if (fieldType == null)
-                            error(
+                            LoadingError.translation(
                                 "Could not find type for variable declaration ${variableDeclaration.typeAsString} / ${
                                     variableDeclaration.type.resolve().simpleNameAsString}", variableDeclaration
                             )
@@ -545,13 +501,13 @@ class Java2Strudel(
                 val type = (types.mapType(r.qualifiedName, r) as IReferenceType).target as IRecordType
 
                 if (r.constructors.isNotEmpty())
-                    unsupported("record with explicit constructors", r)
+                    LoadingError.unsupported("record with explicit constructors", r)
 
                 // Check if record has 1 compact constructor
                 val compact: CompactConstructorDeclaration? =
                     if (r.compactConstructors.isEmpty()) null
                     else if (r.compactConstructors.size == 1) r.compactConstructors.first()
-                    else unsupported("record with multiple compact constructors", r)
+                    else LoadingError.unsupported("record with multiple compact constructors", r)
 
                 // Get default constructor
                 val constructor = proceduresPerType[r]?.first {
@@ -567,7 +523,7 @@ class Java2Strudel(
                                 ?: types[kotlin.runCatching { param.type.resolve().simpleNameAsString }
                                     .getOrDefault(param.type.asString())]
                         if (paramType == null)
-                            error(
+                            LoadingError.translation(
                                 "Could not find type for record parameter declaration ${param.typeAsString} / ${
                                     param.type.resolve().simpleNameAsString}", param
                             )
@@ -644,7 +600,7 @@ class Java2Strudel(
          */
         fun translateEnumDeclarations(enums: List<EnumDeclaration>) {
             if (enums.isNotEmpty())
-                unsupported("enum keyword", enums.first())
+                LoadingError.unsupported("enum keyword", enums.first())
         }
 
         /**
@@ -653,7 +609,7 @@ class Java2Strudel(
          */
         fun translateAnnotationDeclarations(annotations: List<AnnotationDeclaration>) {
             if (annotations.isNotEmpty())
-                unsupported("annotations", annotations.first())
+                LoadingError.unsupported("annotations", annotations.first())
         }
 
         translateClassAndInterfaceDeclarations(typeDeclarations.filterIsInstance<ClassOrInterfaceDeclaration>())
