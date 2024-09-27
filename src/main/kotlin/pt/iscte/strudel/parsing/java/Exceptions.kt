@@ -20,7 +20,7 @@ class LoadingError(val type: LoadingErrorType, message: String, val locations: L
         // COMPILATION
 
         inline fun compilation(diagnostics: List<Diagnostic<out JavaFileObject>>): Nothing {
-            val message = diagnostics.joinToString(System.lineSeparator()) { "Error at line ${it.lineNumber}: ${it.getMessage(null)}" }
+            val message = diagnostics.joinToString(System.lineSeparator()) { it.getMessage(null) }
             val locations = diagnostics.map { SourceLocation(it) }
             throw LoadingError(LoadingErrorType.JAVA_COMPILATION, message, locations)
         }

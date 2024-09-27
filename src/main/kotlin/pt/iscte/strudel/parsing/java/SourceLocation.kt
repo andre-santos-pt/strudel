@@ -17,7 +17,7 @@ open class SourceLocation(val startLine: Int, val endLine: Int, val startColumn:
         diagnostic.lineNumber.toInt(),
         diagnostic.lineNumber.toInt(),
         diagnostic.columnNumber.toInt(),
-        diagnostic.columnNumber.toInt()
+        (diagnostic.columnNumber +  diagnostic.endPosition - diagnostic.startPosition).toInt()
     )
 
     override fun toString(): String =
