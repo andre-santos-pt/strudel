@@ -4,7 +4,7 @@ import com.github.javaparser.ast.Node
 import javax.tools.Diagnostic
 import javax.tools.JavaFileObject
 
-open class SourceLocation(
+class SourceLocation(
     val startLine: Int,
     val endLine: Int,
     val startColumn: Int,

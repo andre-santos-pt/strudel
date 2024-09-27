@@ -312,7 +312,7 @@ class JavaStatement2Strudel(
                 is ExpressionStmt -> handleExpressionStmt(stmt)
                 is ThrowStmt -> handleThrowStmt(stmt)
                 is AssertStmt -> handleAssertStmt(stmt)
-                else -> LoadingError.unsupported("statement $this (${this::class.qualifiedName})", stmt)
+                else -> LoadingError.unsupported("statement ${stmt::class.java.simpleName}", stmt)
             }
         }
     }

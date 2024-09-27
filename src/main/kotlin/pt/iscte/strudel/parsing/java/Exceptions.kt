@@ -10,9 +10,16 @@ enum class LoadingErrorType {
     UNSUPPORTED
 }
 
-class LoadingError(val type: LoadingErrorType, val messages: List<Pair<String, SourceLocation>>) : RuntimeException(messages.joinToString { it.first }) {
+data class CompilationError(
+    val message: String,
+    val location: SourceLocation
+)
 
-    constructor(type: LoadingErrorType, message: String, location: SourceLocation) : this(type, listOf(Pair(message, location)))
+class LoadingError(val type: LoadingErrorType, val messages: List<CompilationError>) :
+    RuntimeException(messages.joinToString("; ") { it.message }) {
+
+    constructor(type: LoadingErrorType, message: String, location: SourceLocation) :
+            this(type, listOf(CompilationError(message, location)))
 
     @Suppress("NOTHING_TO_INLINE")
     companion object {
@@ -21,7 +28,7 @@ class LoadingError(val type: LoadingErrorType, val messages: List<Pair<String, S
 
         inline fun compilation(diagnostics: List<Diagnostic<out JavaFileObject>>): Nothing {
             throw LoadingError(LoadingErrorType.JAVA_COMPILATION, diagnostics.map {
-                Pair(it.getMessage(null), SourceLocation(it))
+                CompilationError(it.getMessage(null), SourceLocation(it))
             })
         }
 
@@ -33,7 +40,7 @@ class LoadingError(val type: LoadingErrorType, val messages: List<Pair<String, S
         // UNSUPPORTED
 
         inline fun unsupported(messages: List<Pair<String, SourceLocation>>): Nothing =
-            throw LoadingError(LoadingErrorType.UNSUPPORTED, messages.map { Pair("unsupported ${it.first}", it.second) })
+            throw LoadingError(LoadingErrorType.UNSUPPORTED, messages.map { CompilationError("unsupported ${it.first}", it.second) })
 
         inline fun unsupported(message: String, location: SourceLocation): Nothing =
             throw LoadingError(LoadingErrorType.UNSUPPORTED, "unsupported $message", location)
