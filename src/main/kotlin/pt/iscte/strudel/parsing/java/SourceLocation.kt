@@ -10,7 +10,7 @@ open class SourceLocation(val startLine: Int, val endLine: Int, val startColumn:
         node.range.get().begin.line,
         node.range.get().end.line,
         node.range.get().begin.column,
-        node.range.get().end.column
+        node.range.get().end.column,
     )
 
     constructor(diagnostic: Diagnostic<out JavaFileObject>) : this(

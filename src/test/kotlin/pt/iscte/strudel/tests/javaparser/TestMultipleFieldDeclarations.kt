@@ -10,7 +10,7 @@ class TestMultipleFieldDeclarations {
     @Test
     fun `Both have initializers`() {
         val src = """
-            public class Counter {
+            class Counter {
                 private int x = 10, y = 20;
             }
         """.trimIndent()
@@ -30,7 +30,7 @@ class TestMultipleFieldDeclarations {
     @Test
     fun `Only one initializer`() {
         val src = """
-            public class Counter {
+            class Counter {
                 private int x, y = 20;
             }
         """.trimIndent()

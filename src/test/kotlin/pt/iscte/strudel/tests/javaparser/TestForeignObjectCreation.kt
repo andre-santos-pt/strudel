@@ -11,7 +11,7 @@ class TestForeignObjectCreation {
     val src = """
         import java.util.Random;
         
-        public class StdRandom {
+        class StdRandom {
             public static int rand() {
                 Random random = new Random();
                 return random.nextInt(11);

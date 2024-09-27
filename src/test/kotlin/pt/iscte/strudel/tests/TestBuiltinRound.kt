@@ -16,7 +16,7 @@ class TestBuiltinRound: pt.iscte.strudel.tests.BaseTest({
       val d = Param(DOUBLE, "n")
       Return(MathRound.expression(d.expression()))
   }
-}, listOf(MathRound)) {
+}, listOf(MathRound), javaCompile = false) {
 
     @Test
     fun test() {

@@ -13,7 +13,7 @@ class TestJavaAssert {
     @Test
     fun test() {
         val src = """
-            public class Test {
+            class Test {
                 public static double sqrt(double x) {
                     assert x >= 0;
                     return Math.sqrt(x);

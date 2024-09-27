@@ -28,7 +28,7 @@ class TestBuiltinString : pt.iscte.strudel.tests.BaseTest({
         Assign(str, callExpression(StringConcat, str.expression(), CHAR.literal('b')))
         Return(callExpression(StringConcat, str.expression(), CHAR.literal('c')))
     }
-},listOf(StringCreate, StringConcat)) {
+},listOf(StringCreate, StringConcat), javaCompile = false) {
 
     @Test
     fun test() {

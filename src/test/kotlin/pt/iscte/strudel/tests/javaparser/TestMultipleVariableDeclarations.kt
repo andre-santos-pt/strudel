@@ -11,7 +11,7 @@ class TestMultipleVariableDeclarations {
     @Test
     fun testOneVariable() {
         val src = """
-            public class ExtremelyUsefulStaticMethods {
+            class ExtremelyUsefulStaticMethods {
                 public static int get() {
                     int i = 10;
                     return i + 10;
@@ -30,7 +30,7 @@ class TestMultipleVariableDeclarations {
     @Test
     fun testTwoVariablesBothInitializer() {
         val src = """
-            public class ExtremelyUsefulStaticMethods {
+            class ExtremelyUsefulStaticMethods {
                 public static int get() {
                     int i = 10, j = 20;
                     return i + j;

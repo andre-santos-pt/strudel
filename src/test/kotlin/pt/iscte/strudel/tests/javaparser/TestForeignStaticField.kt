@@ -9,7 +9,7 @@ class TestForeignStaticField {
     val src = """
         import java.util.Scanner;
         
-        public class Input {
+        class Input {
             public static void init() {
                 Scanner s = new Scanner(System.in);
             }

@@ -14,7 +14,7 @@ class TestNestedType {
     @Test
     fun `Declared but not used`() {
         val src = """
-            public class LinkedList<T> {
+            class LinkedList<T> {
                 private class Node {
                     public T item;
                     public Node next;
@@ -45,7 +45,7 @@ class TestNestedType {
         val src = """
             import java.util.Iterator;
                 
-            public class LinkedList<T> implements Iterable<T> {
+            class LinkedList<T> implements Iterable<T> {
                 private class Node {
                     public T item;
                     public Node next;
@@ -129,7 +129,7 @@ class TestNestedType {
     @Test
     fun `Declared and used`() {
         val src = """
-            public class LinkedList<T> {
+            class LinkedList<T> {
                 private class Node {
                     public T item;
                     public Node next;

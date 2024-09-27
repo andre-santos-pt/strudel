@@ -20,9 +20,9 @@ class TestSystemOut {
 
     @Test
     fun test() {
-        val model = Java2Strudel().load(code)
+        val model = Java2Strudel(checkJavaCompilation = false).load(code)
         val vm = IVirtualMachine.create()
-        var out = mutableListOf<String>()
+        val out = mutableListOf<String>()
         vm.addListener(object : IVirtualMachine.IListener {
             override fun systemOutput(text: String) {
                out.add(text)

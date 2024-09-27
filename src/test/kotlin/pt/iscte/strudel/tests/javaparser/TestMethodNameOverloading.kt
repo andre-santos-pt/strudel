@@ -12,7 +12,7 @@ class TestMethodNameOverloading {
     @Test
     fun test() {
         val src = """
-            public class Test {
+            class Test {
                 public static int root(int p) {
                     return p;
                 }

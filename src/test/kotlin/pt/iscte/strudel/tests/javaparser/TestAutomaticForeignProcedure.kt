@@ -12,7 +12,7 @@ class TestAutomaticForeignProcedure {
     @Test
     fun testOneStaticForeignProcedure() {
         val src = """
-            public class Rounder {
+            class Rounder {
                 public static int round(double x) {
                     return (int) Math.round(x);
                 }
@@ -30,7 +30,7 @@ class TestAutomaticForeignProcedure {
     @Test
     fun testMultipleStaticForeignProcedures() {
         val src = """
-            public class Rounder {
+            class Rounder {
                 public static int round(double x) {
                     return (int) Math.round(x);
                 }
@@ -56,7 +56,7 @@ class TestAutomaticForeignProcedure {
     @Test
     fun testMultipleInstanceForeignProcedures() {
         val src = """
-            public class ExtremelyUsefulStringMethods {
+            class ExtremelyUsefulStringMethods {
                 public static String substr(String x) {
                     return x.substring(1, 8);
                 }

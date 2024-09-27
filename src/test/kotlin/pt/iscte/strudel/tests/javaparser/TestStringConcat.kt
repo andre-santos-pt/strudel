@@ -12,7 +12,7 @@ class TestStringConcat {
     @Test
     fun testStringString() {
         val src = """
-            public class StringConcat {
+            class StringConcat {
                 public static String concatStringString(String x, String y) {
                     return x + y;
                 }
@@ -30,7 +30,7 @@ class TestStringConcat {
     @Test
     fun testStringPrimitive() {
         val src = """
-            public class StringConcat {
+            class StringConcat {
                 public static String concatStringPrimitive(String x, int y) {
                     return x + y;
                 }
@@ -50,7 +50,7 @@ class TestStringConcat {
         val src = """
             import java.lang.Math; 
             
-            public class StringConcat {
+            class StringConcat {
                 public static String concatLeft(String x) {
                     return x + Math.sqrt(2.0);
                 }
@@ -70,7 +70,7 @@ class TestStringConcat {
         val src = """
             import java.lang.Math; 
             
-            public class StringConcat {
+            class StringConcat {
                 public static String concatRight(String x) {
                     return Math.sqrt(2.0) + x;
                 }

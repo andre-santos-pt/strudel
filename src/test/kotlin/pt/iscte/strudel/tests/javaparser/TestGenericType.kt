@@ -12,7 +12,7 @@ class TestGenericType {
     @Test
     fun test() {
         val src = """
-            public class Wrapper<T> {
+            class Wrapper<T> {
                 private T value;
             }
         """.trimIndent()

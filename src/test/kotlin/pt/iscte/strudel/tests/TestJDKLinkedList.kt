@@ -21,7 +21,7 @@ class TestJDKLinkedList : pt.iscte.strudel.tests.BaseTest({
         Call(LListAdd, list.expression(), INT.literal(3))
         Return(list.expression())
     }
-}, listOf(LListCreate, LListAdd)) {
+}, listOf(LListCreate, LListAdd), javaCompile = false) {
 
     @Test
     fun test() {

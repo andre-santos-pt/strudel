@@ -47,7 +47,7 @@ tasks.withType<KotlinCompile> {
 tasks {
     register<Jar>("fatJar") {
         group = "distribution"
-        archiveClassifier.set("standalone")
+        //archiveClassifier.set("standalone")
         destinationDirectory.set(File("$buildDir/dist"))
         dependsOn.addAll(
             listOf(

@@ -10,7 +10,7 @@ class TestFieldInitializers {
     @Test
     fun `With Explicit Constructor`() {
         val src = """
-            public class Counter {
+            class Counter {
                 private int count = 9;
                 private int doubleCount = count * 2;
                 
@@ -52,7 +52,7 @@ class TestFieldInitializers {
     @Test
     fun `With Default Constructor`() {
         val src = """
-            public class Counter {
+            class Counter {
                 private int count = 10;
                 
                 public void inc() {

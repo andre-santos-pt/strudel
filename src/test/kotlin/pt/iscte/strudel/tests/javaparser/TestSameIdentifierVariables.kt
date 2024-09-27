@@ -10,7 +10,7 @@ class TestSameIdentifierVariables {
     @Test
     fun `test for`() {
         val src = """
-            public class ExtremelyUsefulStaticMethods {
+            class ExtremelyUsefulStaticMethods {
                 public static int get() {
                     int result = 0;
                     
@@ -40,7 +40,7 @@ class TestSameIdentifierVariables {
     @Test
     fun `test inner var`() {
         val src = """
-            public class ExtremelyUsefulStaticMethods {
+            class ExtremelyUsefulStaticMethods {
                 public static int get(int n) {
                     if(n % 2 == 0) {
                         int tmp = n / 2;

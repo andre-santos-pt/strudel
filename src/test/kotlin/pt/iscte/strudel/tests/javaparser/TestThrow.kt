@@ -20,7 +20,7 @@ class TestThrow {
     }
 
     val code = """
-        public class Test {
+        class Test {
             static int test(int n) {
                 if(n < 0)
                     throw new IllegalArgumentException("value is negative");

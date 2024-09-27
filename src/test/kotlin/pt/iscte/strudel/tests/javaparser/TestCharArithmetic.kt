@@ -11,7 +11,7 @@ class TestCharArithmetic {
     @Test
     fun testArithmeticOperators() {
         val src = """
-            public class CharArithmetic {
+            class CharArithmetic {
                 public static char next(char c) {
                     if (c == 'z')
                         return 'a';
@@ -63,7 +63,7 @@ class TestCharArithmetic {
     @Test
     fun testRelationalOperators() {
         val src = """
-            public class CharRelational {
+            class CharRelational {
                 public static boolean after(char c1, char c2) {
                     return c1 > c2;
                 }

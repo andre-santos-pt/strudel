@@ -10,7 +10,7 @@ class TestDependentFieldDeclarations {
     @Test
     fun `multi var`() {
         val src = """
-            public class Counter {
+            class Counter {
                 private int x = 10, y = x*3;
             }
         """.trimIndent()
@@ -30,7 +30,7 @@ class TestDependentFieldDeclarations {
     @Test
     fun `single vars`() {
         val src = """
-            public class Counter {
+            class Counter {
                 private int x = 10;
                 private int y = x*3;
             }
@@ -51,7 +51,7 @@ class TestDependentFieldDeclarations {
     @Test
     fun `var default val`() {
         val src = """
-            public class Counter {
+            class Counter {
                 private int x;
                  private int y = x+3;
             }

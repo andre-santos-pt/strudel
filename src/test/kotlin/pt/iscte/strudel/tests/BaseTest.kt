@@ -16,12 +16,12 @@ abstract class BaseTest {
     val module : IModule
     val vm: IVirtualMachine
 
-    constructor(javaSource: String) {
-        module = Java2Strudel().load(javaSource)
+    constructor(javaSource: String, javaCompile: Boolean = true) {
+        module = Java2Strudel(checkJavaCompilation = javaCompile).load(javaSource)
         vm = IVirtualMachine.create()
     }
 
-    constructor(conf: IModule.() -> Unit = {}, foreignProcedures: List<IProcedureDeclaration> = emptyList(), callStackMaximum: Int = 1024, loopIterationMax: Int = 1000000) {
+    constructor(conf: IModule.() -> Unit = {}, foreignProcedures: List<IProcedureDeclaration> = emptyList(), callStackMaximum: Int = 1024, loopIterationMax: Int = 1000000, javaCompile: Boolean = true) {
 //        module = module { id = this::class.simpleName }
         val tmp = module {
             id = this::class.simpleName
@@ -31,7 +31,7 @@ abstract class BaseTest {
             it.setProperty(NAMESPACE_PROP, tmp.id)
         }
         println(tmp)
-        module = Java2Strudel(foreignProcedures = foreignProcedures).load(tmp.toString())
+        module = Java2Strudel(foreignProcedures = foreignProcedures, checkJavaCompilation = javaCompile).load(tmp.toString())
         vm = IVirtualMachine.create(callStackMaximum = callStackMaximum, loopIterationMaximum = loopIterationMax, throwExceptions = false)
         //conf(module)
         //module.members.addAll(imports)

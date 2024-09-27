@@ -27,7 +27,7 @@ class TestRecordArray {
     @Test
     fun testNode() {
         val src = """
-            public class Node { }
+            class Node { }
         """.trimIndent()
         val module = Java2Strudel().load(src)
         val nodeType = module.getRecordType("Node")

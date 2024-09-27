@@ -193,6 +193,10 @@ class ProcedureInterpreterNoExpression(
                     )
                 else
                     this
+
+                is IProcedureCallExpression -> this.procedure.expression(
+                    this.arguments.map { it.materialize() }
+                )
 //                //  is IRecordFieldExpression -> "${materialize(e.target)}.${e.field}"
 //                is IConditionalExpression -> "${materialize(e.condition)} ? ${materialize(e.trueCase)} : ${materialize(e.falseCase)}"
 //                is IArrayAllocation -> "new ${e.componentType}[${e.dimensions.joinToString(", ") { materialize(it) }}]"
@@ -518,13 +522,29 @@ class ProcedureInterpreterNoExpression(
         call: IProcedureCall
     ): IValue {
         val args = call.arguments.map { evaluate(it) }
+
         if (call.procedure.isForeign) {
-            return try {
+            vm.listeners.forEach {
+                it.procedureCall(
+                    call.procedure,
+                    args,
+                    vm.callStack.previousFrame?.procedure
+                )
+            }
+            val ret =  try {
                 (call.procedure as ForeignProcedure).run(vm, args) ?: NULL
             }
             catch (e: Exception) {
                 throw RuntimeError(RuntimeErrorType.FOREIGN_PROCEDURE, call, e.message)
             }
+            vm.listeners.forEach {
+                it.procedureEnd(
+                    call.procedure,
+                    args,
+                    ret
+                )
+            }
+            return ret
         } else {
             val proc: IProcedureDeclaration =
                 if (call.procedure is IPolymorphicProcedure)
@@ -536,8 +556,22 @@ class ProcedureInterpreterNoExpression(
                     call.procedure as IProcedure
 
             if (proc.isForeign) {
+                vm.listeners.forEach {
+                    it.procedureCall(
+                        proc,
+                        args,
+                        vm.callStack.previousFrame?.procedure
+                    )
+                }
                 val run = (proc as ForeignProcedure).run(vm, args)
-                return run!!
+                vm.listeners.forEach {
+                    it.procedureEnd(
+                        proc,
+                        args,
+                        run
+                    )
+                }
+                return run ?: NULL
             } else {
                 val callInterpreter = ProcedureInterpreterNoExpression(
                     vm,

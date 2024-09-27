@@ -12,7 +12,7 @@ class TestUnaryExpressionReplace {
     @Test
     fun test() {
         val src = """
-            public class ArrayList {
+            class ArrayList {
                 int[] array = {1,2,3};
                 int next = 0;
                 
@@ -56,7 +56,7 @@ class TestUnaryExpressionReplace {
     @Test
     fun testWithinIf() {
         val src = """
-            public class Test {
+            class Test {
                 int inc(int n) {
                     return n + 1;
                 }
@@ -76,7 +76,7 @@ class TestUnaryExpressionReplace {
     @Test
     fun testUnsupport() {
         val src = """
-            public class ArrayList {
+            class ArrayList {
                 int[] array = {1,2,3};
                 int next = 0;
                 
@@ -93,7 +93,7 @@ class TestUnaryExpressionReplace {
     @Test
     fun testFor() {
         val src = """
-            public class ArrayList {
+            class ArrayList {
                 int[] list = {1,2,3};
             
                 int test() {
