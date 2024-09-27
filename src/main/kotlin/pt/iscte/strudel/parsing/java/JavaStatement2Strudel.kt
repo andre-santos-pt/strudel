@@ -8,6 +8,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.ProcedureCall
 import pt.iscte.strudel.model.impl.RecordFieldExpression
+import pt.iscte.strudel.model.impl.UnaryExpression
 import pt.iscte.strudel.model.impl.VariableExpression
 import pt.iscte.strudel.model.util.UnaryOperator
 import pt.iscte.strudel.parsing.java.extensions.getTypeFromJavaParser
@@ -22,6 +23,10 @@ class JavaStatement2Strudel(
 ) {
 
     private val decMap = mutableMapOf<VariableDeclarator, IVariableDeclaration<IBlock>>()
+
+    private fun IExpression.toCharCodeOrUnchanged(): IExpression =
+        if (this.type == CHAR) UnaryOperator.CAST_TO_INT.on(this)
+        else this
 
     fun translate(stmt: Statement, block: IBlock) {
         with(translator) {
@@ -99,26 +104,26 @@ class JavaStatement2Strudel(
 
                     is UnaryExpr -> when(s.operator) {
                         UnaryExpr.Operator.PREFIX_INCREMENT, UnaryExpr.Operator.POSTFIX_INCREMENT ->
-                            when (val varExp = exp2Strudel.map(s.expression)) {
-                                is VariableExpression -> block.Assign(varExp.variable, varExp + lit(1))
+                            when (val exp = exp2Strudel.map(s.expression)) {
+                                is VariableExpression -> block.Assign(exp.variable, exp.toCharCodeOrUnchanged() + lit(1))
                                 is RecordFieldExpression -> block.FieldSet(
-                                    varExp.target,
-                                    varExp.field,
-                                    varExp + lit(1)
+                                    exp.target,
+                                    exp.field,
+                                    exp + lit(1)
                                 )
                                 else -> LoadingError.unsupported("${s.operator} on ${s.expression}", s)
                             }
                         UnaryExpr.Operator.PREFIX_DECREMENT, UnaryExpr.Operator.POSTFIX_DECREMENT ->
-                            when (val varExp = exp2Strudel.map(s.expression)) {
-                                is VariableExpression -> block.Assign(varExp.variable, varExp - lit(1))
+                            when (val exp = exp2Strudel.map(s.expression)) {
+                                is VariableExpression -> block.Assign(exp.variable, exp.toCharCodeOrUnchanged() - lit(1))
                                 is RecordFieldExpression -> block.FieldSet(
-                                    varExp.target,
-                                    varExp.field,
-                                    varExp - lit(1)
+                                    exp.target,
+                                    exp.field,
+                                    exp - lit(1)
                                 )
                                 else -> LoadingError.unsupported("${s.operator} on ${s.expression}", s)
                             }
-                        else -> LoadingError.unsupported("unary expression statement", s)
+                        else -> LoadingError.unsupported("operator ${s.operator} on ${s.expression}", s)
                     }
                     is MethodCallExpr -> {
                         translator.handleMethodCall(procedure, procedures, types, s, exp2Strudel::map) { m, args ->

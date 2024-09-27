@@ -88,13 +88,14 @@ class JavaExpression2Strudel(
                 CHAR.array().heapAllocationWith(exp.value.map { CHAR.literal(it) })
             )
 
-            is UnaryExpr -> mapUnaryOperator(exp).on(map(exp.expression)).apply {
+            is UnaryExpr -> mapUnaryOperator(exp).on(exp.expression.toCharCodeOrDefault()).apply {
                 // TODO review
                 val from = exp.range.get().begin.column
                 val to = exp.expression.range.get().end.column - 1
+                val len = exp.expression.tokenRange.get().sumOf { it.text.length }
                 setProperty(
                     OPERATOR_LOC,
-                    SourceLocation(exp.expression.range.get().begin.line, exp.expression.range.get().end.line, from, to)
+                    SourceLocation(exp.expression.range.get().begin.line, exp.expression.range.get().end.line, from, to, len)
                 )
             }
 
@@ -109,7 +110,7 @@ class JavaExpression2Strudel(
                             if (leftRange.begin.line == rightRange.begin.line) {
                                 val from = leftRange.end.column + 1
                                 val to = rightRange.begin.column - 1
-                                setProperty(OPERATOR_LOC, SourceLocation(leftRange.begin.line, rightRange.end.line, from, to))
+                                setProperty(OPERATOR_LOC, SourceLocation(leftRange.begin.line, rightRange.end.line, from, to, to - from))
                             }
                         }
                     }

@@ -10,9 +10,9 @@ enum class LoadingErrorType {
     UNSUPPORTED
 }
 
-class LoadingError(val type: LoadingErrorType, message: String, val locations: List<SourceLocation>) : RuntimeException(message) {
+class LoadingError(val type: LoadingErrorType, val messages: List<Pair<String, SourceLocation>>) : RuntimeException(messages.joinToString { it.first }) {
 
-    constructor(type: LoadingErrorType, message: String, location: SourceLocation) : this(type, message, listOf(location))
+    constructor(type: LoadingErrorType, message: String, location: SourceLocation) : this(type, listOf(Pair(message, location)))
 
     @Suppress("NOTHING_TO_INLINE")
     companion object {
@@ -20,9 +20,9 @@ class LoadingError(val type: LoadingErrorType, message: String, val locations: L
         // COMPILATION
 
         inline fun compilation(diagnostics: List<Diagnostic<out JavaFileObject>>): Nothing {
-            val message = diagnostics.joinToString(System.lineSeparator()) { it.getMessage(null) }
-            val locations = diagnostics.map { SourceLocation(it) }
-            throw LoadingError(LoadingErrorType.JAVA_COMPILATION, message, locations)
+            throw LoadingError(LoadingErrorType.JAVA_COMPILATION, diagnostics.map {
+                Pair(it.getMessage(null), SourceLocation(it))
+            })
         }
 
         // TRANSLATION
@@ -32,13 +32,13 @@ class LoadingError(val type: LoadingErrorType, message: String, val locations: L
 
         // UNSUPPORTED
 
-        inline fun unsupported(message: String, locations: List<SourceLocation>): Nothing =
-            throw LoadingError(LoadingErrorType.UNSUPPORTED, message, locations)
+        inline fun unsupported(messages: List<Pair<String, SourceLocation>>): Nothing =
+            throw LoadingError(LoadingErrorType.UNSUPPORTED, messages.map { Pair("unsupported ${it.first}", it.second) })
 
         inline fun unsupported(message: String, location: SourceLocation): Nothing =
-            throw LoadingError(LoadingErrorType.UNSUPPORTED, message, location)
+            throw LoadingError(LoadingErrorType.UNSUPPORTED, "unsupported $message", location)
 
         inline fun unsupported(message: String, node: Node): Nothing =
-            throw LoadingError(LoadingErrorType.UNSUPPORTED, message, SourceLocation(node))
+            throw LoadingError(LoadingErrorType.UNSUPPORTED, "unsupported $message", SourceLocation(node))
     }
 }

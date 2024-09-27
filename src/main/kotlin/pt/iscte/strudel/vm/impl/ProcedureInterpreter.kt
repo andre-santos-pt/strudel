@@ -237,9 +237,12 @@ class ProcedureInterpreter(
 
         // Implicit upcasting
         fun IType.upcast(value: IValue?): IValue? = if (value == null) null else when (this) {
-            CHAR ->
-                if (value.type == CHAR) value
-                else unsupported("implicit cast of ${value.type.id} to $id")
+            CHAR -> when (value.type) {
+                CHAR -> value
+                INT -> vm.getValue(value.toInt().toChar())
+                DOUBLE -> vm.getValue(value.toDouble().toInt().toChar())
+                else -> unsupported("implicit cast of ${value.type.id} to $id")
+            }
             INT -> when (value.type) {
                 CHAR -> vm.getValue(value.toChar().code)
                 INT -> value

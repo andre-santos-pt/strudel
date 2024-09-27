@@ -133,7 +133,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestWeirdStudentBugs::class,
 
-    TestBitwiseXOR::class
+    TestBitwiseXOR::class,
+
+    TestLoadingErrors::class
 )
 class AllTests
 

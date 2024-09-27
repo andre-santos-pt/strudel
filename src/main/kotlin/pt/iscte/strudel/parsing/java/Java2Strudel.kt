@@ -94,12 +94,7 @@ class Java2Strudel(
         if (bindSource && node.range.isPresent) {
             val range = node.range.get()
 
-            val sourceLocation = SourceLocation(
-                range.begin.line,
-                range.end.line,
-                range.begin.column,
-                range.end.column
-            )
+            val sourceLocation = SourceLocation(node)
             if (prop == null)
                 setProperty(sourceLocation)
             else
@@ -118,7 +113,8 @@ class Java2Strudel(
                         range.begin.line,
                         range.end.line,
                         range.begin.column,
-                        range.begin.column + len
+                        range.begin.column + len,
+                        len
                     )
                 )
             }
@@ -245,9 +241,8 @@ class Java2Strudel(
             // Check for unsupported modifiers
             if (callable.modifiers.any { !supportedModifiers.contains(it.keyword) })
                 LoadingError.unsupported(
-                    "modifiers",
                     callable.modifiers.filter { !supportedModifiers.contains(it.keyword) }
-                        .map { SourceLocation(it) })
+                        .map { Pair("modifier ${it.keyword.asString()}", SourceLocation(it)) })
 
             // Set modifiers
             setFlag(*callable.modifiers.map { it.keyword.asString() }
@@ -809,7 +804,7 @@ class Java2Strudel(
          */
         fun translateEnumDeclarations(enums: List<EnumDeclaration>) {
             if (enums.isNotEmpty())
-                LoadingError.unsupported("enum keyword", enums.first())
+                LoadingError.unsupported("enum declarations", enums.first().name)
         }
 
         /**
@@ -818,7 +813,7 @@ class Java2Strudel(
          */
         fun translateAnnotationDeclarations(annotations: List<AnnotationDeclaration>) {
             if (annotations.isNotEmpty())
-                LoadingError.unsupported("annotations", annotations.first())
+                LoadingError.unsupported("annotation declarations", annotations.first().name)
         }
 
         translateClassAndInterfaceDeclarations(typeDeclarations.filterIsInstance<ClassOrInterfaceDeclaration>())

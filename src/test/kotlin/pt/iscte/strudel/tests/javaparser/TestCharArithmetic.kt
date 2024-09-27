@@ -9,6 +9,33 @@ import kotlin.test.assertTrue
 class TestCharArithmetic {
 
     @Test
+    fun testUnaryExpr() {
+        val src = """
+            class CharStuff {
+                public static char same(char c) {
+                    char a = c;
+                    a++;
+                    a--;
+                    return a;
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+        println(module)
+
+        val same = module.getProcedure("same")
+
+        val vm = IVirtualMachine.create()
+
+        assertEquals('a', vm.execute(same, vm.getValue('a'))?.value)
+        assertEquals('b', vm.execute(same, vm.getValue('b'))?.value)
+        assertEquals('c', vm.execute(same, vm.getValue('c'))?.value)
+        assertEquals('d', vm.execute(same, vm.getValue('d'))?.value)
+        assertEquals('e', vm.execute(same, vm.getValue('e'))?.value)
+        assertEquals('z', vm.execute(same, vm.getValue('z'))?.value)
+    }
+
+    @Test
     fun testArithmeticOperators() {
         val src = """
             class CharArithmetic {
