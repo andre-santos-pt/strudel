@@ -668,10 +668,16 @@ class ProcedureInterpreterNoExpression(
 
             is RelationalOperator -> {
                 if (operator == RelationalOperator.EQUAL)
-                    return Value(BOOLEAN, left.value == right.value)
+                    if(left.type.isNumber && right.type.isNumber)
+                        return Value(BOOLEAN, left.toDouble() == right.toDouble())
+                    else
+                        return Value(BOOLEAN, left.value == right.value)
 
                 if (operator == RelationalOperator.DIFFERENT)
-                    return Value(BOOLEAN, left.value != right.value)
+                    if(left.type.isNumber && right.type.isNumber)
+                        return Value(BOOLEAN, left.toDouble() != right.toDouble())
+                    else
+                        return Value(BOOLEAN, left.value != right.value)
 
                 val l: Double = left.toDouble()
                 val r: Double = right.toDouble()

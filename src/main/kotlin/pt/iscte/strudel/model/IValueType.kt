@@ -8,7 +8,7 @@ sealed interface IValueType<T> : IType {
     fun matchesLiteral(literal: String): Boolean
 
     fun literal(t: T): ILiteral {
-        require(matchesLiteral(t.toString()))
+//        require(matchesLiteral(t.toString()))
         return Literal(this, t.toString())
     }
 

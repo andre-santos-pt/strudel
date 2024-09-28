@@ -80,13 +80,13 @@ class Gatherer(variable: IVariableDeclaration<*>) : IGatherer {
             return null
         }
 
-        private fun match(op: IBinaryOperator): IGatherer.Operation =
+        private fun match(op: IBinaryOperator): IGatherer.Operation? =
             when (op) {
                 ArithmeticOperator.ADD -> IGatherer.Operation.ADD
                 ArithmeticOperator.SUB -> IGatherer.Operation.SUB
                 ArithmeticOperator.MUL -> IGatherer.Operation.MUL
                 ArithmeticOperator.DIV, ArithmeticOperator.IDIV -> IGatherer.Operation.DIV
-                else -> throw UnsupportedOperationException("unsupported operator: $op")
+                else -> null
             }
     }
 }
