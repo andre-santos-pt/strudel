@@ -26,4 +26,5 @@ internal class Value (override val type: IType, override val value: Any?) : IVal
 
     override val isTrue: Boolean = value == true
     override val isFalse: Boolean = value == false
+    override val isNumber: Boolean = type.isNumber
 }

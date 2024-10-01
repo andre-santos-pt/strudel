@@ -12,6 +12,7 @@ object NULL : IValue {
     override val isNull: Boolean = true
     override val isTrue: Boolean = false
     override val isFalse: Boolean = false
+    override val isNumber: Boolean = false
 }
 
 object VOID : IValue {
@@ -22,9 +23,12 @@ object VOID : IValue {
     override val isNull: Boolean = false
     override val isTrue: Boolean = false
     override val isFalse: Boolean = false
+    override val isNumber: Boolean = false
+
 }
 
 interface IValue {
+
     // TODO value overflow error
     val type: IType
     val value: Any?
@@ -35,6 +39,8 @@ interface IValue {
     val isTrue: Boolean
 
     val isFalse: Boolean
+
+    val isNumber: Boolean
 
     val memory: Int
         get() = type.bytes

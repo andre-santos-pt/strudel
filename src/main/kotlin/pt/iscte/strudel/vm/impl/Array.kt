@@ -50,6 +50,8 @@ internal class Array(private val t: IArrayType, length: Int) : IArray {
     override val isNull: Boolean = false
     override val isTrue: Boolean = false
     override val isFalse: Boolean = false
+    override val isNumber: Boolean = false
+
 
     override fun addListener(listener: IArray.IListener) {
        listeners.add(listener)

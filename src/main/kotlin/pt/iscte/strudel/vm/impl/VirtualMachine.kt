@@ -221,6 +221,7 @@ internal class VirtualMachine(
         override val isNull: Boolean = false
         override val isTrue: Boolean = false
         override val isFalse: Boolean = false
+        override val isNumber: Boolean = false
     }
 }
 

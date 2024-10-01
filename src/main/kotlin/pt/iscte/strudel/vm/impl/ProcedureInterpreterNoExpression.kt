@@ -668,13 +668,13 @@ class ProcedureInterpreterNoExpression(
 
             is RelationalOperator -> {
                 if (operator == RelationalOperator.EQUAL)
-                    if(left.type.isNumber && right.type.isNumber)
+                    if(left.isNumber && right.isNumber)
                         return Value(BOOLEAN, left.toDouble() == right.toDouble())
                     else
                         return Value(BOOLEAN, left.value == right.value)
 
                 if (operator == RelationalOperator.DIFFERENT)
-                    if(left.type.isNumber && right.type.isNumber)
+                    if(left.isNumber && right.isNumber)
                         return Value(BOOLEAN, left.toDouble() != right.toDouble())
                     else
                         return Value(BOOLEAN, left.value != right.value)

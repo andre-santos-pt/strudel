@@ -26,4 +26,5 @@ internal class Reference<T: IValue>(override var target: T) : IReference<T> {
 
     override val isTrue: Boolean = false
     override val isFalse: Boolean = false
+    override val isNumber: Boolean = false
 }

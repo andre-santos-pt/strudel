@@ -157,13 +157,13 @@ class Stepper(variable: IVariableDeclaration<*>) : IStepper {
                 expressionList.add(variable)
                 if ((be.operator === ArithmeticOperator.ADD || be.operator === ArithmeticOperator.SUB) &&
                     left is IVariableExpression && left.variable == variable.target && isConstant(right)
-                ) { // left variable and right literal
+                ) {
                     return getDirectionHelper(right as ILiteral, be)
-                } else if (be.operator == ArithmeticOperator.ADD &&
-                    left is ILiteral &&
+                } else if (be.operator == ArithmeticOperator.ADD || be.operator === ArithmeticOperator.SUB &&
+                    isConstant(left) &&
                     right is IVariableExpression &&
                     right.variable == variable.target
-                ) { // left
+                ) {
                     return getDirectionHelper(left as ILiteral, be)
                 }
             }
@@ -171,7 +171,7 @@ class Stepper(variable: IVariableDeclaration<*>) : IStepper {
         }
 
         private fun isConstant(e: IExpression): Boolean {
-            return e is ILiteral ||
+            return e is ILiteral && e.type == INT ||
                     e is IUnaryExpression && e.operator == UnaryOperator.MINUS && e.operand is ILiteral
         }
 

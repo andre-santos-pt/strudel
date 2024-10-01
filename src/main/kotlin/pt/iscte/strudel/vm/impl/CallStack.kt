@@ -30,7 +30,7 @@ internal class CallStack(override val virtualMachine: VirtualMachine, override v
     override fun newFrame(creator: () -> IStackFrame) {
         val frame = creator()
         require(frame.callStack === this)
-        if (size == maxSize) throw RuntimeError(RuntimeErrorType.STACK_OVERFLOW, frame.procedure, "stack overflow")
+        if (size == maxSize) throw RuntimeError(RuntimeErrorType.STACK_OVERFLOW, virtualMachine.instructionPointer, "stack overflow")
         stack.push(frame)
     }
 
