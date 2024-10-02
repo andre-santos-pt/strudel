@@ -133,7 +133,7 @@ import kotlin.reflect.full.hasAnnotation
 
     TestWeirdStudentBugs::class,
 
-    TestBitwiseXOR::class,
+    TestBitwiseOperations::class,
 
     TestLoadingErrors::class
 )

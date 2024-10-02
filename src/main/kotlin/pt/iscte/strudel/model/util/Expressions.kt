@@ -28,7 +28,12 @@ fun IExpression.solveIntArithmeticConstants(): IExpression =
             ArithmeticOperator.MUL -> left * right
             ArithmeticOperator.DIV, ArithmeticOperator.IDIV -> left / right
             ArithmeticOperator.MOD -> left % right
-            ArithmeticOperator.XOR -> left xor right
+            ArithmeticOperator.BITWISE_XOR -> left xor right
+            ArithmeticOperator.BITWISE_AND -> left and right
+            ArithmeticOperator.BITWISE_OR -> left or right
+            ArithmeticOperator.LEFT_SHIFT -> left shl right
+            ArithmeticOperator.SIGNED_RIGHT_SHIFT -> left shr right
+            ArithmeticOperator.UNSIGNED_RIGHT_SHIFT -> left ushr right
         }
         Literal(INT, res.toString())
     }

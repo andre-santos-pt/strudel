@@ -116,4 +116,32 @@ class TestCharArithmetic {
         assertTrue(vm.execute(before, vm.getValue('b'), vm.getValue('c'))?.value as Boolean)
         assertTrue(vm.execute(before, vm.getValue('a'), vm.getValue('c'))?.value as Boolean)
     }
+
+    @Test
+    fun test() {
+        val src = """
+            class Chars {
+                static char nextLetter(char letter){
+                    if (letter >= 'a' && letter < 'z')
+                        letter += 1;
+                    else
+                        letter = 'a';
+                    return (letter);
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+        println(module)
+
+        val nextLetter = module.getProcedure("nextLetter")
+
+        val vm = IVirtualMachine.create()
+
+        assertEquals('a', vm.execute(nextLetter, vm.getValue('z'))?.value)
+        assertEquals('b', vm.execute(nextLetter, vm.getValue('a'))?.value)
+        assertEquals('c', vm.execute(nextLetter, vm.getValue('b'))?.value)
+        assertEquals('d', vm.execute(nextLetter, vm.getValue('c'))?.value)
+        assertEquals('e', vm.execute(nextLetter, vm.getValue('d'))?.value)
+        assertEquals('f', vm.execute(nextLetter, vm.getValue('e'))?.value)
+    }
 }

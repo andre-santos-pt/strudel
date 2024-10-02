@@ -48,8 +48,8 @@ class JavaStatement2Strudel(
                 fun handleNameExpr(name: NameExpr): IStatement {
                     val target = findVariable(name.toString()) ?: LoadingError.translation("variable not found", a)
                     val v = when (a.operator) {
-                        AssignExpr.Operator.ASSIGN -> exp2Strudel.map(a.value)
-                        else -> a.operator.map(a).on(exp2Strudel.map(name), exp2Strudel.map(a.value))
+                        AssignExpr.Operator.ASSIGN -> exp2Strudel.map(a.value).toCharCodeOrUnchanged()
+                        else -> a.operator.map(a).on(exp2Strudel.map(name).toCharCodeOrUnchanged(), exp2Strudel.map(a.value).toCharCodeOrUnchanged())
                     }
                     return if (target.isField)
                         block.FieldSet(
@@ -67,7 +67,7 @@ class JavaStatement2Strudel(
                             block.ArraySet(
                                 exp2Strudel.map(arrayAccess.name) as ITargetExpression,
                                 exp2Strudel.map(arrayAccess.index),
-                                exp2Strudel.map(a.value)
+                                exp2Strudel.map(a.value).toCharCodeOrUnchanged()
                             )
                         else -> LoadingError.unsupported("assign operator ${a.operator}", a)
                     }
@@ -84,7 +84,7 @@ class JavaStatement2Strudel(
                                 exp2Strudel.map(fieldAccessExpr.scope) as ITargetExpression,
                                 types[typeId]?.asRecordType?.fields?.find { it.id == fieldAccessExpr.nameAsString }
                                     ?: LoadingError.unsupported("field access", a),
-                                exp2Strudel.map(a.value)
+                                exp2Strudel.map(a.value).toCharCodeOrUnchanged()
                             )
                         else -> LoadingError.unsupported("assign operator ${a.operator}", a)
                     }

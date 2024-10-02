@@ -18,12 +18,18 @@ enum class ArithmeticOperator (
     DIV("/"),
     IDIV("/"),
     MOD("%"),
-    XOR("^");
+    BITWISE_XOR("^"),
+    BITWISE_AND("&"),
+    BITWISE_OR("|"),
+    LEFT_SHIFT("<<"),
+    SIGNED_RIGHT_SHIFT(">>"),
+    UNSIGNED_RIGHT_SHIFT(">>>");
 
-    override fun isValidFor(left: IExpression, right: IExpression) =
-        if (this == XOR) left.type == INT && right.type == INT
-        else left.type.isNumber && right.type.isNumber
-                // || (left.type == INT || left.type == CHAR &&
+    override fun isValidFor(left: IExpression, right: IExpression) = when (this) {
+        ADD, SUB, MUL, DIV, IDIV, MOD -> left.type.isNumber && right.type.isNumber
+        else -> left.type == INT && right.type == INT
+    }
+    // || (left.type == INT || left.type == CHAR &&
 
     override fun getResultType(left: IExpression, right: IExpression): IType {
         //require(isValidFor(left, right))
