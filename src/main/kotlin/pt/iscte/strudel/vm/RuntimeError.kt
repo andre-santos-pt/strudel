@@ -1,12 +1,26 @@
 package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.IArrayAccess
-import pt.iscte.strudel.model.IArrayAllocation
 import pt.iscte.strudel.model.IExpression
 import pt.iscte.strudel.model.IProgramElement
 
 enum class RuntimeErrorType {
-    NULL_POINTER, ARRAY_INDEX_BOUNDS, NEGATIVE_ARRAY_SIZE, NONINIT_VARIABLE, LOOP_MAX, STACK_OVERFLOW, OUT_OF_MEMORY, VALUE_OVERFLOW, ASSERTION, DIVBYZERO, FOREIGN_PROCEDURE, EXCEPTION, UNSUPPORTED
+    LOOP_MAX,
+    STACK_OVERFLOW,
+    OUT_OF_MEMORY,
+
+    DIVBYZERO,
+    NONINIT_VARIABLE,
+    NULL_POINTER,
+
+    ARRAY_INDEX_BOUNDS,
+    NEGATIVE_ARRAY_SIZE,
+
+    VALUE_OVERFLOW,
+
+    FOREIGN_PROCEDURE,
+    EXCEPTION,
+    UNSUPPORTED
 }
 
 open class RuntimeError(
@@ -45,15 +59,14 @@ class ArrayIndexError(
 }
 
 class NegativeArraySizeError(
-    element: IArrayAllocation,
-    val invalidSize: Int,
-    val sizeExpression: IExpression
+    lengthExpression: IExpression,
+    val invalidSize: Int
 ) : RuntimeError(
-    RuntimeErrorType.NEGATIVE_ARRAY_SIZE, element, "negative array size: $invalidSize"
+    RuntimeErrorType.NEGATIVE_ARRAY_SIZE, lengthExpression, "negative array size: $invalidSize"
 ) {
 
     override fun toString(): String {
         return super.toString() +
-                " ; invalid size: " + invalidSize + " ; expression: " + sizeExpression
+                " ; invalid size: " + invalidSize + " ; expression: " + sourceElement
     }
 }

@@ -25,7 +25,7 @@ import pt.iscte.strudel.parsing.java.extensions.matches
 import pt.iscte.strudel.parsing.java.extensions.qualifiedName
 import java.io.File
 
-val JPFacade: JavaParserFacade = JavaParserFacade.get(typeSolver())
+
 
 class Java2Strudel(
     val foreignProcedures: List<IProcedureDeclaration> = defaultForeignProcedures,
@@ -34,6 +34,7 @@ class Java2Strudel(
     private val checkJavaCompilation: Boolean = true,
     private val preprocessing: CompilationUnit.() -> Unit = { } // Pre-process AST before translating
 ) {
+    internal val JPFacade: JavaParserFacade = JavaParserFacade.get(typeSolver())
 
     private val supportedModifiers = listOf(
         Modifier.Keyword.STATIC,
@@ -60,7 +61,9 @@ class Java2Strudel(
 
         val compilationUnit = StaticJavaParser.parse(src)
         val types = compilationUnit.apply(preprocessing).types
-        return translate(types)
+        val module = translate(types)
+        JavaParserFacade.clearInstances()
+        return module
     }
 
     // src cannot have public classes

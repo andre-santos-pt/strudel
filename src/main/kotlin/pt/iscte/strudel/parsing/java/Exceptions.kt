@@ -28,7 +28,7 @@ class LoadingError(val type: LoadingErrorType, val messages: List<CompilationErr
 
         inline fun compilation(diagnostics: List<Diagnostic<out JavaFileObject>>): Nothing {
             throw LoadingError(LoadingErrorType.JAVA_COMPILATION, diagnostics.map {
-                CompilationError(it.getMessage(null), SourceLocation(it))
+                CompilationError(it.getMessage(null).lines().firstOrNull() ?: "", SourceLocation(it))
             })
         }
 

@@ -59,13 +59,14 @@ internal object ClassLoader {
             PrintWriter(error),
             fileManager,
             diagnostics,
-            null,
+            listOf("-XDuseUnsharedTable"),
             null,
             listOf(JavaSourceFromString(name, src))
         )
 
         task.call()
         fileManager.close()
+        standardFileManager.close()
 
         return diagnostics.diagnostics.filter { it.kind == Diagnostic.Kind.ERROR }
     }

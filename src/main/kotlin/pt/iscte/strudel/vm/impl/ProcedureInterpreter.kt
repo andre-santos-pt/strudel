@@ -414,9 +414,8 @@ class ProcedureInterpreter(
                 dims.forEachIndexed { i, d ->
                     if (d.toInt() < 0)
                         throw NegativeArraySizeError(
-                            exp,
-                            d.toInt(),
-                            exp.dimensions[i]
+                            exp.dimensions[i],
+                            d.toInt()
                         )
                 }
 

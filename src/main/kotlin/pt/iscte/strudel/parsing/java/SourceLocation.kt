@@ -17,7 +17,10 @@ class SourceLocation(
         node.range.get().end.line,
         node.range.get().begin.column,
         node.range.get().end.column,
-        node.tokenRange.get().sumOf { it.text.length }
+        if(node.range.get().begin.line == node.range.get().end.line)
+            node.range.get().end.column - node.range.get().begin.column
+        else
+            node.tokenRange.get().sumOf { it.text.length }
     )
 
     constructor(diagnostic: Diagnostic<out JavaFileObject>) : this(
@@ -25,7 +28,7 @@ class SourceLocation(
         diagnostic.lineNumber.toInt(),
         diagnostic.columnNumber.toInt(),
         (diagnostic.columnNumber +  diagnostic.endPosition - diagnostic.startPosition).toInt(),
-        (diagnostic.endPosition - diagnostic.startPosition + 1).toInt()
+        (diagnostic.endPosition - diagnostic.startPosition).toInt()
     )
 
     override fun toString(): String =

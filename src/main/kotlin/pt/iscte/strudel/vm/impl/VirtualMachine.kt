@@ -5,9 +5,9 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.vm.*
 
 internal class VirtualMachine(
-    override val callStackMaximum: Int = 1024,
+    override val callStackMaximum: Int = 512,
     override val loopIterationMaximum: Int = 1000,
-    override val availableMemory: Int = 1000, // TODO
+    override val availableMemory: Int = 1024,
     override val throwExceptions: Boolean = true
 ) : IVirtualMachine {
     private val stack: ICallStack
