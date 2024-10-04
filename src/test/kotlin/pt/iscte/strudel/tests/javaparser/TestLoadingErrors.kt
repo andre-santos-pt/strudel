@@ -31,7 +31,7 @@ class TestLoadingErrors {
         assertEquals(11, location.startColumn)
         assertEquals(11, location.endColumn)
 
-        assertEquals(1, location.length)
+        assertEquals(0, location.length)
     }
 
     @Test

@@ -28,7 +28,7 @@ class SourceLocation(
         diagnostic.lineNumber.toInt(),
         diagnostic.columnNumber.toInt(),
         (diagnostic.columnNumber +  diagnostic.endPosition - diagnostic.startPosition).toInt(),
-        (diagnostic.endPosition - diagnostic.startPosition + 1).toInt()
+        (diagnostic.endPosition - diagnostic.startPosition).toInt()
     )
 
     override fun toString(): String =
