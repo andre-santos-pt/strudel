@@ -13,7 +13,7 @@ interface IModuleView : IProgramElement {
     val procedures: List<IProcedureDeclaration>
 }
 
-interface IModule : IModuleView {
+interface IModule : IModuleView, ITypeProvider {
 
     val members : MutableCollection<IModuleMember>
 

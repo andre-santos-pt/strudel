@@ -3,6 +3,10 @@ package pt.iscte.strudel.model.impl
 import pt.iscte.strudel.model.*
 
 internal class Module : ProgramElement(), IModule {
+
+    private val arrayTypeCache = mutableMapOf<IType, IArrayType>()
+    private val referenceTypeCache = mutableMapOf<IType, IReferenceType>()
+
     override val members = mutableListOf<IModuleMember>()
 
     override fun add(member: IModuleMember) {
@@ -43,6 +47,24 @@ internal class Module : ProgramElement(), IModule {
         }
         return output
     }
+
+    override fun getArrayType(componentType: IType): IArrayType =
+        if (arrayTypeCache.containsKey(componentType))
+            arrayTypeCache[componentType]!!
+        else {
+            val t = ArrayType(componentType)
+            arrayTypeCache[componentType] = t
+            t
+        }
+
+    override fun getReferenceType(targetType: IType): IReferenceType =
+        if (referenceTypeCache.containsKey(targetType))
+            referenceTypeCache[targetType]!!
+        else {
+            val t = ReferenceType(targetType)
+            referenceTypeCache[targetType] = t
+            t
+        }
 
 
 //    fun loadBuiltInProcedures(clazz: Class<*>) {

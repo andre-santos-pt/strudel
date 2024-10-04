@@ -1,5 +1,6 @@
 package pt.iscte.strudel.model
 
+import pt.iscte.strudel.model.impl.ArrayType
 import pt.iscte.strudel.model.impl.Literal
 import pt.iscte.strudel.model.impl.ProgramElement
 
@@ -20,6 +21,17 @@ sealed interface IValueType<T> : IType {
 internal abstract class ValueType<T> : ProgramElement(), IValueType<T> {
     override fun toString(): String = id!!
 
+    private var arrayType: IArrayType? = null
+
+    override fun array(): IArrayType {
+        if (arrayType == null)
+            arrayType = ArrayType(this)
+        return arrayType!!
+    }
+
+    override fun reference(): IReferenceType {
+        throw UnsupportedOperationException("Cannot allocate reference to value type")
+    }
 }
 
 

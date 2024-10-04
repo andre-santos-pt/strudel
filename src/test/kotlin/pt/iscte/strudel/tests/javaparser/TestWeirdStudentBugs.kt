@@ -120,4 +120,29 @@ class TestWeirdStudentBugs {
             vm.execute(isVowel, vm.getValue('u'))
         }
     }
+
+    @Test
+    fun testArraySum() {
+        val src = """
+            class Test {
+                static int foo() {
+                    int[] numbers = {1, 2, 3, 4}; 
+                    int sum = numbers[0];
+                    sum = sum + numbers[1];
+                    sum = sum + numbers[2];
+                    sum = sum + numbers[3];
+                    return sum;
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+
+        println(module)
+
+        val foo = module.getProcedure("foo")
+
+        val vm = IVirtualMachine.create()
+
+        assertEquals(10, vm.execute(foo)?.value)
+    }
 }

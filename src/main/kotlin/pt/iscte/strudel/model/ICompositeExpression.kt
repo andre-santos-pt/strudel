@@ -105,8 +105,10 @@ interface IArrayAccess : ITargetExpression, ICompositeExpression {
     override val type: IType
         get() = if(target.type.isArrayReference)
             ((target.type as IReferenceType).target as IArrayType).componentType
+        else if (target.type.isArray)
+            target.type.asArrayType.componentType // TODO review target type
         else
-            target.type // TODO review target type
+            target.type
 
     override val parts get() = listOf(target, index)
 

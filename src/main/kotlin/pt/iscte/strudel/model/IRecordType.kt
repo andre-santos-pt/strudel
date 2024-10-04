@@ -1,5 +1,6 @@
 package pt.iscte.strudel.model
 
+import pt.iscte.strudel.model.impl.ArrayType
 import pt.iscte.strudel.model.impl.RecordAllocation
 import pt.iscte.strudel.model.impl.ReferenceType
 import pt.iscte.strudel.model.impl.VariableDeclaration
@@ -54,6 +55,14 @@ class UnboundRecordType(
     override val module: IModule? = null
     override val fields: MutableList<IVariableDeclaration<IRecordType>> = mutableListOf()
 
+    override fun array(): IArrayType {
+        throw UnsupportedOperationException("Cannot allocate array of unbound record type!")
+    }
+
+    override fun reference(): IReferenceType {
+        throw UnsupportedOperationException("Cannot get reference to unbound record type!")
+    }
+
     override fun addField(type: IType, configure: (IField) -> Unit): IField {
         TODO("Not yet implemented")
     }
@@ -63,10 +72,6 @@ class UnboundRecordType(
     }
 
     override fun heapAllocation(): IRecordAllocation {
-        TODO("Not yet implemented")
-    }
-
-    override fun reference(): IReferenceType {
         TODO("Not yet implemented")
     }
 
@@ -92,9 +97,23 @@ class HostRecordType(
 ): IRecordType {
     val type = Class.forName(qualifiedName)
 
-
     override val module: IModule? = null
     override val fields: MutableList<IVariableDeclaration<IRecordType>> = mutableListOf()
+
+    private var referenceType: IReferenceType? = null
+    private var arrayType: IArrayType? = null
+
+    override fun array(): IArrayType {
+        if (arrayType == null)
+            arrayType = ArrayType(this)
+        return arrayType!!
+    }
+
+    override fun reference(): IReferenceType {
+        if (referenceType == null)
+            referenceType = ReferenceType(this)
+        return referenceType!!
+    }
 
     override fun addField(type: IType, configure: (IField) -> Unit): IField {
        throw UnsupportedOperationException()

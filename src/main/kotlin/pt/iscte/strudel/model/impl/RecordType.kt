@@ -2,9 +2,11 @@ package pt.iscte.strudel.model.impl
 
 import pt.iscte.strudel.model.*
 
-internal class RecordType(override val module: IModule)
-    : ProgramElement(), IRecordType {
+internal class RecordType(override val module: IModule) : ProgramElement(), IRecordType {
     override val fields: MutableList<IVariableDeclaration<IRecordType>> = mutableListOf()
+
+    private var referenceType: IReferenceType? = null
+    private var arrayType: IArrayType? = null
 
     init {
         module.add(this)
@@ -25,9 +27,17 @@ internal class RecordType(override val module: IModule)
         return RecordAllocation(this)
     }
 
-//    override fun reference(): IReferenceType {
-//        return this.reference()
-//    }
+    override fun array(): IArrayType {
+        if (arrayType == null)
+            arrayType = ArrayType(this)
+        return arrayType!!
+    }
+
+    override fun reference(): IReferenceType {
+        if (referenceType == null)
+            referenceType = ReferenceType(this)
+        return referenceType!!
+    }
 
     override fun toString(): String = "class $id {\n " + fields.joinToString(separator = "\n") {
         "\t${it.type.id} ${it.id};"

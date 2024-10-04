@@ -619,8 +619,6 @@ class ProcedureInterpreterNoExpression(
             else -> throw UnsupportedOperationException(operator.toString())
         }
 
-
-
     private fun binoperation(
         exp: IBinaryExpression,
         left: IValue,

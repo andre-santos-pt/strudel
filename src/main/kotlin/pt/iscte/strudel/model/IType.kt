@@ -3,8 +3,14 @@ package pt.iscte.strudel.model
 import pt.iscte.strudel.model.impl.ArrayType
 import pt.iscte.strudel.model.impl.ReferenceType
 
-interface IType : IProgramElement {
+interface ITypeProvider {
 
+    fun getArrayType(componentType: IType): IArrayType
+
+    fun getReferenceType(targetType: IType): IReferenceType
+}
+
+interface IType : IProgramElement {
     val bytes: Int
 
     val isVoid: Boolean
@@ -27,30 +33,19 @@ interface IType : IProgramElement {
     val isRecordReference: Boolean
         get() = isReference && (this as IReferenceType).target is IRecordType
 
+    val isArray: Boolean
+        get() = this is IArrayType
     val asArrayType: IArrayType
-        get() = (this as IReferenceType).target as IArrayType
+        get() = if (this is IArrayType) this else (this as IReferenceType).target as IArrayType
 
     val asRecordType: IRecordType
         get() = if (this is IRecordType) this else (this as IReferenceType).target as IRecordType
-    fun reference(): IReferenceType =
-        if(TypeCache.reference.containsKey(this))
-            TypeCache.reference[this]!!
-        else {
-            val t = ReferenceType(this)
-            TypeCache.reference[this] = t
-            t
-        }
 
     val defaultExpression: IExpression
 
-    fun array(): IArrayType =
-        if(TypeCache.array.containsKey(this))
-            TypeCache.array[this]!!
-        else {
-            val t = ArrayType(this)
-            TypeCache.array[this] = t
-            t
-        }
+    fun reference(): IReferenceType
+
+    fun array(): IArrayType
 
     fun array(n: Int): IArrayType {
         var a = array()
@@ -61,16 +56,14 @@ interface IType : IProgramElement {
     }
 }
 
-
-private object TypeCache {
-    val array = mutableMapOf<IType, IArrayType>()
-    val reference = mutableMapOf<IType, IReferenceType>()
-}
-
 object VOID : IType {
 
     override fun reference(): IReferenceType {
-        throw RuntimeException("not valid")
+        throw UnsupportedOperationException("cannot get reference to void type")
+    }
+
+    override fun array(): IArrayType {
+        throw UnsupportedOperationException("cannot allocate array of void type")
     }
 
     override fun toString(): String {
@@ -102,8 +95,13 @@ object VOID : IType {
 val ANY = UnboundType()
 
 class UnboundType(override val defaultExpression: IExpression = NULL_LITERAL) : IType {
+
     override fun reference(): IReferenceType {
-        TODO("Not yet implemented")
+        throw UnsupportedOperationException("cannot get reference to unbound type")
+    }
+
+    override fun array(): IArrayType {
+        throw UnsupportedOperationException("cannot allocate array of unbound type")
     }
 
     override fun setProperty(key: String, value: Any?) {

@@ -245,14 +245,21 @@ fun mapBinaryOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
     BinaryExpr.Operator.GREATER -> RelationalOperator.GREATER
     BinaryExpr.Operator.GREATER_EQUALS -> RelationalOperator.GREATER_EQUAL
 
-    BinaryExpr.Operator.BINARY_AND -> if (exp.isIntegerArithmetic()) ArithmeticOperator.BITWISE_AND else LogicalOperator.AND
-    BinaryExpr.Operator.BINARY_OR -> if (exp.isIntegerArithmetic()) ArithmeticOperator.BITWISE_OR else LogicalOperator.OR
+    BinaryExpr.Operator.BINARY_AND ->
+        if (exp.isIntegerArithmetic()) ArithmeticOperator.BITWISE_AND
+        else LogicalOperator.AND
+
+    BinaryExpr.Operator.BINARY_OR ->
+        if (exp.isIntegerArithmetic()) ArithmeticOperator.BITWISE_OR
+        else LogicalOperator.OR
+
+    BinaryExpr.Operator.XOR ->
+        if (exp.isIntegerArithmetic()) ArithmeticOperator.BITWISE_XOR
+        else LogicalOperator.XOR
 
     BinaryExpr.Operator.LEFT_SHIFT -> ArithmeticOperator.LEFT_SHIFT
     BinaryExpr.Operator.SIGNED_RIGHT_SHIFT -> ArithmeticOperator.SIGNED_RIGHT_SHIFT
     BinaryExpr.Operator.UNSIGNED_RIGHT_SHIFT -> ArithmeticOperator.UNSIGNED_RIGHT_SHIFT
-
-    BinaryExpr.Operator.XOR -> if (exp.isIntegerArithmetic()) ArithmeticOperator.BITWISE_XOR else LogicalOperator.XOR
 
     else -> LoadingError.unsupported("binary operator", exp)
 }
