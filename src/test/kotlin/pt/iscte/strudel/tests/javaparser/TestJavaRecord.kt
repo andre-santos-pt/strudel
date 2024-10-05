@@ -194,4 +194,39 @@ class TestJavaRecord {
 
         println(module)
     }
+
+    @Test
+    fun testCalls() {
+        val src = """
+            record Point(int x, int y) { }
+
+            class Test {
+                static Point sum(Point p, int n) {
+                    return new Point(p.x() + n, p.y() + n);
+                }
+                    
+                static boolean areEqual(Point a, Point b) {
+                    return a.equals(b);
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+        val qqType = module.getRecordType("Point")
+
+        println(module)
+
+        val vm = IVirtualMachine.create()
+
+        val sum = module.getProcedure("sum", "Test")
+        val sumRes = vm.execute(sum, vm.allocateRecord(module.getRecordType("Point")), vm.getValue(4))
+
+        assertIs<IReference<IRecord>>(sumRes)
+        assertEquals(4, sumRes.target.getField(qqType["x"]).value)
+        assertEquals(4, sumRes.target.getField(qqType["y"]).value)
+
+        val areEqual = module.getProcedure("areEqual", "Test")
+        val areEqualRes = vm.execute(areEqual, vm.allocateRecord(module.getRecordType("Point")), vm.allocateRecord(module.getRecordType("Point")))
+        assert(areEqualRes?.isTrue == true)
+
+    }
 }

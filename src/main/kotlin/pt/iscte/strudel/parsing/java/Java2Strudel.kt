@@ -26,7 +26,6 @@ import pt.iscte.strudel.parsing.java.extensions.qualifiedName
 import java.io.File
 
 
-
 class Java2Strudel(
     val foreignProcedures: List<IProcedureDeclaration> = defaultForeignProcedures,
     private val bindSource: Boolean = true,
@@ -245,7 +244,12 @@ class Java2Strudel(
             if (callable.modifiers.any { !supportedModifiers.contains(it.keyword) })
                 LoadingError.unsupported(
                     callable.modifiers.filter { !supportedModifiers.contains(it.keyword) }
-                        .map { Pair("modifier ${it.keyword.asString()}", SourceLocation(it)) })
+                        .map {
+                            Pair(
+                                "modifier ${it.keyword.asString()}",
+                                SourceLocation(it)
+                            )
+                        })
 
             // Set modifiers
             setFlag(*callable.modifiers.map { it.keyword.asString() }
@@ -398,6 +402,45 @@ class Java2Strudel(
                 }
             }
 
+        fun Parameter.translateRecordField(
+            declaringRecord: RecordDeclaration
+        ): IProcedureDeclaration = Procedure(
+            types.mapType(type, this),
+            nameAsString
+        ).apply {
+            setFlag("public")
+            setProperty(NAMESPACE_PROP, declaringRecord.qualifiedName)
+            val recordType = types.mapType(
+                declaringRecord,
+                this@translateRecordField
+            )
+            addParameter(recordType).apply {
+                id = THIS_PARAM
+            }
+        }
+
+        fun RecordDeclaration.translateRecordEquals(): IProcedureDeclaration =
+            Procedure(
+                BOOLEAN,
+                "equals"
+            ).apply {
+                setFlag("public")
+                setProperty(
+                    NAMESPACE_PROP,
+                    this@translateRecordEquals.qualifiedName
+                )
+                val recordType = types.mapType(
+                    this@translateRecordEquals,
+                    this@translateRecordEquals
+                )
+                addParameter(recordType).apply {
+                    id = THIS_PARAM
+                }
+                addParameter(recordType).apply {
+                    id = "other"
+                }
+            }
+
         /**
          * Creates a default constructor for a JavaParser type declaration.
          * @param type JavaParser type declaration.
@@ -456,7 +499,15 @@ class Java2Strudel(
                 it to it.translateMethodDeclaration<T>((it.parentNode.get() as T).qualifiedName)
             }
 
-            return defaultConstructors + explicitConstructors + methods
+            val implicitRecordMethods =
+                if (this is RecordDeclaration)
+                    parameters.map {
+                        null to it.translateRecordField(this)
+                    } + listOf(null to this.translateRecordEquals())
+                else
+                    listOf()
+
+            return defaultConstructors + explicitConstructors + methods + implicitRecordMethods
         }
 
         // Collect all procedures beforehand (to have something to bind procedure calls to, if needed)
@@ -692,18 +743,18 @@ class Java2Strudel(
                             )
                         )
 
-                        // Generate get() method for field
-                        Procedure(
-                            types.mapType(param.type, param),
-                            param.nameAsString
-                        ).apply {
-                            setFlag("public")
-                            setProperty(NAMESPACE_PROP, r.qualifiedName)
-                            val t = addParameter(constructor.returnType).apply {
-                                id = THIS_PARAM
+                        // implicit field body
+                        proceduresPerType[r]?.find { it.first == null && it.second.id == param.nameAsString }
+                            ?.let {
+                                val p = it.second as IProcedure
+                                p.block.Return(
+                                    p.thisParameter.field(
+                                        type.getField(
+                                            param.nameAsString
+                                        )!!
+                                    )
+                                )
                             }
-                            block.Return(t.field(field))
-                        }
                     }
 
                     val procedures: List<Pair<CallableDeclaration<*>?, IProcedureDeclaration>>? =
@@ -759,16 +810,10 @@ class Java2Strudel(
                     constructor.block.Return(constructor.thisParameter)
 
                     // Generate equals() for record type
-                    Procedure(BOOLEAN, "equals").apply {
-                        setFlag("public")
-                        setFlag(EQUALS_FLAG)
-                        setProperty(NAMESPACE_PROP, r.qualifiedName)
-                        val self = addParameter(constructor.returnType).apply {
-                            id = THIS_PARAM
-                        }
-                        val other = addParameter(constructor.returnType).apply {
-                            id = "other"
-                        }
+                    (proceduresPerType[r]?.find { it.first == null && it.second.id == "equals" }?.second
+                            as? IProcedure)?.apply {
+                        val self = parameters[0]
+                        val other = parameters[1]
                         var exp: ICompositeExpression? = null
                         type.fields.forEach {
                             val field = self.field(it)
@@ -795,7 +840,7 @@ class Java2Strudel(
                                     comparison
                                 )
                         }
-                        block.Return(exp ?: False)
+                        this@apply.block.Return(exp ?: False)
                     }
                 }
             }
@@ -807,7 +852,10 @@ class Java2Strudel(
          */
         fun translateEnumDeclarations(enums: List<EnumDeclaration>) {
             if (enums.isNotEmpty())
-                LoadingError.unsupported("enum declarations", enums.first().name)
+                LoadingError.unsupported(
+                    "enum declarations",
+                    enums.first().name
+                )
         }
 
         /**
@@ -816,7 +864,10 @@ class Java2Strudel(
          */
         fun translateAnnotationDeclarations(annotations: List<AnnotationDeclaration>) {
             if (annotations.isNotEmpty())
-                LoadingError.unsupported("annotation declarations", annotations.first().name)
+                LoadingError.unsupported(
+                    "annotation declarations",
+                    annotations.first().name
+                )
         }
 
         translateClassAndInterfaceDeclarations(typeDeclarations.filterIsInstance<ClassOrInterfaceDeclaration>())
