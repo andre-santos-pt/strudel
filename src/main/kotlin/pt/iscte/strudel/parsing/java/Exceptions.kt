@@ -49,3 +49,8 @@ class LoadingError(val type: LoadingErrorType, val messages: List<CompilationErr
             throw LoadingError(LoadingErrorType.UNSUPPORTED, "unsupported $message", SourceLocation(node))
     }
 }
+
+enum class ReturnError {
+    EXCEPTION_THROWN,
+    ASSERTION_FAILED
+}

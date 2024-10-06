@@ -26,15 +26,13 @@ enum class RuntimeErrorType {
 open class RuntimeError(
     val type: RuntimeErrorType,
     val sourceElement: IProgramElement?,
-    override val message: String?) : RuntimeException() {
+    message: String?
+) : RuntimeException(message) {
 
     override fun toString(): String {
         return "$type at $sourceElement: $message"
     }
 }
-
-class ExceptionError(sourceElement: IProgramElement, msg: String?)
-    : RuntimeError(RuntimeErrorType.EXCEPTION, sourceElement, msg)
 
 class ArrayIndexError(
     element: IArrayAccess,

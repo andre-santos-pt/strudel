@@ -304,7 +304,9 @@ class ProcedureInterpreter(
 
             is IReturn ->
                 if(s.isError) {
-                    throw ExceptionError(s, s.errorMessage.toString())
+                    val error = eval(s.expression!!)
+                    val errorMessage = if(error?.isNull == true) s.error?.toString() else error.toString()
+                    throw RuntimeError(RuntimeErrorType.EXCEPTION, s, errorMessage)
                 }
                 else if (s.expression != null) {
                     val e =

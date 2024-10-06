@@ -2,11 +2,13 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
 import pt.iscte.strudel.parsing.java.Java2Strudel
-import pt.iscte.strudel.vm.ExceptionError
+import pt.iscte.strudel.parsing.java.ReturnError
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class TestJavaAssert {
 
@@ -24,7 +26,7 @@ class TestJavaAssert {
 
         println(module)
 
-        val vm = IVirtualMachine.create()
+        val vm = IVirtualMachine.create(throwExceptions = false)
 
         val sqrt = module.getProcedure("sqrt")
 
@@ -33,11 +35,33 @@ class TestJavaAssert {
             assertEquals(2.0, vm.execute(sqrt, vm.getValue(4))?.value)
             assertEquals(4.0, vm.execute(sqrt, vm.getValue(16))?.value)
         }
+        val r = vm.execute(sqrt, vm.getValue(-1))
+        assertNull(r)
+        assertNotNull(vm.error)
+        assertEquals(ReturnError.ASSERTION_FAILED.toString(), vm.error?.message)
+    }
 
-        assertThrows<ExceptionError> {
-            vm.execute(sqrt, vm.getValue(-1))
-            vm.execute(sqrt, vm.getValue(-2))
-            vm.execute(sqrt, vm.getValue(-3))
-        }
+    @Test
+    fun testMessage() {
+        val src = """
+            class Test {
+                public static double sqrt(double x) {
+                    assert x >= 0 : "must be positive, but found " + x;
+                    return Math.sqrt(x);
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+
+        println(module)
+
+        val vm = IVirtualMachine.create(throwExceptions = false)
+
+        val sqrt = module.getProcedure("sqrt")
+
+        val r  = vm.execute(sqrt, vm.getValue(-1.5))
+        assertNull(r)
+        assertNotNull(vm.error)
+        assertEquals("must be positive, but found -1.5", vm.error?.message)
     }
 }

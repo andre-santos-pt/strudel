@@ -3,6 +3,7 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.IProcedure
+import pt.iscte.strudel.parsing.java.ReturnError
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.RuntimeError
 import pt.iscte.strudel.vm.RuntimeErrorType
@@ -52,7 +53,7 @@ class TestThrow {
         vm.addListener(listener)
         val ret = vm.execute(model.procedures[1] as IProcedure, vm.getValue(101))
         assertNotNull(listener.error)
-        assertEquals("ArrayIndexOutOfBoundsException", listener.error?.message)
+        assertEquals(ReturnError.EXCEPTION_THROWN.toString(), listener.error?.message)
         assertNull(ret)
     }
 

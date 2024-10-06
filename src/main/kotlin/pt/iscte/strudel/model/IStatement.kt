@@ -30,11 +30,13 @@ interface IContinue : IStatement {
     override fun isSame(s: IProgramElement) = s is IContinue
 }
 
+
 interface IReturn : IStatement, IExpressionHolder {
     override var expression: IExpression?
     override val parent: IBlock
-    val isError: Boolean
-    val errorMessage: String?
+    val error: Any?
+
+    val isError: Boolean get() = error != null
     
     val isVoid: Boolean
         get() = expression == null

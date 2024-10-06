@@ -92,8 +92,8 @@ internal class Return(
     override var parent: IBlock,
     override var expression: IExpression? = null,
     index: Int = -1,
-    override var isError: Boolean = false,
-    override val errorMessage: String? = null)
+    override val error: Any? = null
+)
     : Statement(parent), IReturn {
 
     init {
@@ -102,11 +102,11 @@ internal class Return(
 
     override fun toString() =
         tabs(parent) +
-                if (isError) "throw Exception(${if (errorMessage != null) "\"$errorMessage\"" else ""})"
+                if (isError) "throw Exception($expression)"
                 else "return ${expression?: ""};"
 
     override fun copyTo(newParent: IBlockHolder, index: Int): IReturn {
-        val copy = Return(newParent.block, expression, index, isError)
+        val copy = Return(newParent.block, expression, index, error)
         copy.cloneProperties(this)
         return copy
     }

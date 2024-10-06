@@ -5,10 +5,10 @@ import org.junit.jupiter.api.assertThrows
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.extensions.hasThisParameter
-import pt.iscte.strudel.vm.ExceptionError
 import pt.iscte.strudel.vm.IRecord
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
+import pt.iscte.strudel.vm.RuntimeError
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
@@ -136,7 +136,7 @@ class TestJavaRecord {
         val interval = vm.allocateRecord(type)
 
         val constructor = module.getProcedure("\$init")
-        assertThrows<ExceptionError> {
+        assertThrows<RuntimeError> {
             vm.execute(constructor, interval, vm.getValue(10), vm.getValue(0))
         }
     }

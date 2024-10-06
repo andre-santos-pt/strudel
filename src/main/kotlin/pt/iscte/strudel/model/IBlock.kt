@@ -32,7 +32,6 @@ interface IBlockHolder : IProgramElement {
 
     //@JsName("addReturnExp")
     fun addReturn(exp: IExpression): IReturn = Return(block, exp)
-    fun addReturnError(exp: IExpression): IReturn = Return(block, exp, isError = true)
 
     fun addSelection(guard: IExpression, vararg flags: String): ISelection =
         Selection(block, guard, hasAlternative = false)

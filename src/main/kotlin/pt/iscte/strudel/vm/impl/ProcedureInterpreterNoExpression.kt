@@ -318,7 +318,9 @@ class ProcedureInterpreterNoExpression(
 
             is IReturn ->
                 if (s.isError) {
-                    throw ExceptionError(s, s.errorMessage.toString())
+                    val error = if(s.expression != null) evaluate(s.expression!!) else NULL
+                    val errorMessage = if(error.isNull) s.error?.toString() else error.toString()
+                    throw RuntimeError(RuntimeErrorType.EXCEPTION, s, errorMessage)
                 } else if (s.expression != null) {
                     val value =
                         if (s.isVoid) evaluate(s.expression!!)

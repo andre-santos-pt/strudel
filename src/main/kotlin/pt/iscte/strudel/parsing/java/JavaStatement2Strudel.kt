@@ -282,8 +282,8 @@ class JavaStatement2Strudel(
                 val args = exc?.arguments
                 val statement =
                     block.ReturnError(
-                        if (args?.isEmpty() == true) exc.typeAsString
-                        else args?.joinToString { if (it is StringLiteralExpr) it.value else it.toString() } ?: ""
+                       if(args?.isNotEmpty() == true) exp2Strudel.map(args[0]!!) else NULL_LITERAL,
+                        ReturnError.EXCEPTION_THROWN
                     )
                 stmt.comment.translateComment()?.let { statement.documentation = it }
                 statement.bind(stmt)
@@ -294,8 +294,8 @@ class JavaStatement2Strudel(
                 val check = stmt.check
                 val guard = UnaryOperator.NOT.on(exp2Strudel.map(check))
                 val statement = block.If(guard).block.ReturnError(
-                    if (stmt.message.isPresent) exp2Strudel.map(stmt.message.get()).toString()
-                    else "Assertion failed: $check"
+                    if(stmt.message.isPresent) exp2Strudel.map(stmt.message.get()) else NULL_LITERAL,
+                    ReturnError.ASSERTION_FAILED
                 )
                 stmt.comment.translateComment()?.let { statement.documentation = it }
                 statement.bind(stmt)

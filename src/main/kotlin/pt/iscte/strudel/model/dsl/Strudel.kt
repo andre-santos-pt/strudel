@@ -124,8 +124,7 @@ fun IBlock.Return(e: IExpression): IReturn = Return(this, e)
 
 fun IBlock.ReturnVoid(): IReturn = Return(this, null)
 
-fun IBlock.ReturnError(msg: String): IReturn = Return(this, null, isError = true, errorMessage = msg)
-
+fun IBlock.ReturnError(errorMessage: IExpression, error: Any): IReturn = Return(this, errorMessage, error = error)
 
 fun IBlock.Break(): IBreak = Break(this)
 
