@@ -54,6 +54,15 @@ class JavaExpression2Strudel(
         else map(this)
     }.getOrDefault(map(this))
 
+    private fun IBinaryOperator.onCharCodeOrDefault(left: Expression, right: Expression): IExpression =
+        kotlin.runCatching {
+            val leftType = left.calculateResolvedType()
+            val rightType = right.calculateResolvedType()
+            if (this == RelationalOperator.EQUAL && leftType == ResolvedPrimitiveType.CHAR && rightType == ResolvedPrimitiveType.CHAR)
+                on(map(left), map(right))
+            else on(left.toCharCodeOrDefault(), right.toCharCodeOrDefault())
+        }.getOrDefault(on(left.toCharCodeOrDefault(), right.toCharCodeOrDefault()))
+
     fun map(exp: Expression): IExpression = with(translator) {
         when (exp) {
             is IntegerLiteralExpr -> lit(exp.value.toInt())
@@ -102,8 +111,9 @@ class JavaExpression2Strudel(
             is BinaryExpr -> when (exp.operator) {
                 BinaryExpr.Operator.AND -> Conditional(map(exp.left), map(exp.right), False) // short-circuit &&
                 BinaryExpr.Operator.OR -> Conditional(map(exp.left), True, map(exp.right)) // short-circuit ||
-                else ->
-                    mapBinaryOperator(exp).on(exp.left.toCharCodeOrDefault(), exp.right.toCharCodeOrDefault()).apply {
+                else -> {
+
+                    mapBinaryOperator(exp).onCharCodeOrDefault(exp.left, exp.right).apply {
                         if (exp.left.range.isPresent && exp.right.range.isPresent) {
                             val leftRange = exp.left.range.get()
                             val rightRange = exp.right.range.get()
@@ -114,6 +124,7 @@ class JavaExpression2Strudel(
                             }
                         }
                     }
+                }
             }
 
             is EnclosedExpr -> map(exp.inner)

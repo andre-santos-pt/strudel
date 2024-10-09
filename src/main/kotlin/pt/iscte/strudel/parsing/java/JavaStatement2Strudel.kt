@@ -24,8 +24,9 @@ class JavaStatement2Strudel(
 
     private val decMap = mutableMapOf<VariableDeclarator, IVariableDeclaration<IBlock>>()
 
-    private fun IExpression.toCharCodeOrUnchanged(): IExpression =
-        if (this.type == CHAR) UnaryOperator.CAST_TO_INT.on(this)
+    private fun IExpression.toCharCodeOrUnchanged(targetType: IType? = null): IExpression =
+        if (this.type == CHAR && (targetType == null || targetType != CHAR))
+            UnaryOperator.CAST_TO_INT.on(this)
         else this
 
     fun translate(stmt: Statement, block: IBlock) {
@@ -48,7 +49,7 @@ class JavaStatement2Strudel(
                 fun handleNameExpr(name: NameExpr): IStatement {
                     val target = findVariable(name.toString()) ?: LoadingError.translation("variable not found", a)
                     val v = when (a.operator) {
-                        AssignExpr.Operator.ASSIGN -> exp2Strudel.map(a.value).toCharCodeOrUnchanged()
+                        AssignExpr.Operator.ASSIGN -> exp2Strudel.map(a.value).toCharCodeOrUnchanged(target.type)
                         else -> a.operator.map(a).on(exp2Strudel.map(name).toCharCodeOrUnchanged(), exp2Strudel.map(a.value).toCharCodeOrUnchanged())
                     }
                     return if (target.isField)
@@ -63,12 +64,19 @@ class JavaStatement2Strudel(
                 // ArrayAccessExpr
                 fun handleArrayAccessExpr(arrayAccess: ArrayAccessExpr): IStatement {
                     return when (a.operator) { // TODO compound assignment operators
-                        AssignExpr.Operator.ASSIGN ->
+                        AssignExpr.Operator.ASSIGN -> {
+                            val target = exp2Strudel.map(arrayAccess.name) as ITargetExpression
+                            val type = when (val t = target.type) {
+                                is IReferenceType -> t.target.asArrayType.componentType
+                                is IArrayType -> t.componentType
+                                else -> t
+                            }
                             block.ArraySet(
-                                exp2Strudel.map(arrayAccess.name) as ITargetExpression,
+                                target,
                                 exp2Strudel.map(arrayAccess.index),
-                                exp2Strudel.map(a.value).toCharCodeOrUnchanged()
+                                exp2Strudel.map(a.value).toCharCodeOrUnchanged(type)
                             )
+                        }
                         else -> LoadingError.unsupported("assign operator ${a.operator}", a)
                     }
                 }
@@ -79,13 +87,15 @@ class JavaStatement2Strudel(
                         if (fieldAccessExpr.scope.isThisExpr) procedure.namespace
                         else JPFacade.solve(fieldAccessExpr.findBaseScope()).correspondingDeclaration.type.asReferenceType().id
                     return when (a.operator) { // TODO compound assignment operators
-                        AssignExpr.Operator.ASSIGN ->
+                        AssignExpr.Operator.ASSIGN -> {
+                            val target = exp2Strudel.map(fieldAccessExpr.scope) as ITargetExpression
                             block.FieldSet(
-                                exp2Strudel.map(fieldAccessExpr.scope) as ITargetExpression,
+                                target,
                                 types[typeId]?.asRecordType?.fields?.find { it.id == fieldAccessExpr.nameAsString }
                                     ?: LoadingError.unsupported("field access", a),
-                                exp2Strudel.map(a.value).toCharCodeOrUnchanged()
+                                exp2Strudel.map(a.value).toCharCodeOrUnchanged(target.type)
                             )
+                        }
                         else -> LoadingError.unsupported("assign operator ${a.operator}", a)
                     }
                 }

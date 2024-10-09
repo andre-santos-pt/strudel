@@ -135,7 +135,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestBitwiseOperations::class,
 
-    TestLoadingErrors::class
+    TestLoadingErrors::class,
+
+    TestCharArray::class
 )
 class AllTests
 

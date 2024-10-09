@@ -253,7 +253,11 @@ class ProcedureInterpreterNoExpression(
             is IArrayElementAssignment -> {
                 val array = evaluate(s.arrayAccess.target)
                 val index = evaluate(s.arrayAccess.index)
-                val value = s.arrayAccess.target.type.upcast(evaluate(s.expression))
+                val componentType = when (val t = s.arrayAccess.target.type) {
+                    is IArrayType -> t.componentType
+                    else -> t
+                }
+                val value = componentType.upcast(evaluate(s.expression))
 
                 vm.listeners.forEach { l ->
                     l.expressionEvaluation(
