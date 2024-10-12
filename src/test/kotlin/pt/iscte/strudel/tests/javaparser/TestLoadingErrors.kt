@@ -111,4 +111,20 @@ class TestLoadingErrors {
         assertEquals(28, location.endColumn)
         assertEquals(5, location.length)
     }
+
+    @Test
+    fun testNewArrayCompilationErrorLocation() {
+        val src = """
+            class Test {
+                static int foo(int[] a) {
+                    int[] b = int[a.length];
+                    return b.length;
+                }
+            }
+        """.trimIndent()
+        val ex = assertThrows<LoadingError> { Java2Strudel().load(src) }
+        println(ex.messages.joinToString(System.lineSeparator()))
+
+        assertEquals(ex.type, LoadingErrorType.JAVA_COMPILATION)
+    }
 }

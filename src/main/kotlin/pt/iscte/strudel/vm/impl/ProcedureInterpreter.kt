@@ -275,7 +275,11 @@ class ProcedureInterpreter(
             )?.let {
                 val array = it[0]
                 val index = it[1]
-                val value = s.arrayAccess.target.type.upcast(it[2])!!
+                val componentType = when (val t = s.arrayAccess.target.type) {
+                    is IArrayType -> t.componentType
+                    else -> t
+                }
+                val value = componentType.upcast(it[2])!!
                 vm.listeners.forEach { l -> l.expressionEvaluation(s.expression, s, value, s.expression.materialize()) }
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
