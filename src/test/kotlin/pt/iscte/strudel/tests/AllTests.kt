@@ -137,7 +137,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestLoadingErrors::class,
 
-    TestCharArray::class
+    TestCharArray::class,
+
+    TestJPForVarResolveBug::class
 )
 class AllTests
 
