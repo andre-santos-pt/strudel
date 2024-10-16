@@ -277,6 +277,7 @@ class ProcedureInterpreter(
                 val index = it[1]
                 val componentType = when (val t = s.arrayAccess.target.type) {
                     is IArrayType -> t.componentType
+                    is IReferenceType -> t.target.asArrayType.componentType
                     else -> t
                 }
                 val value = componentType.upcast(it[2])!!
