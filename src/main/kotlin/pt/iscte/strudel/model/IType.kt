@@ -3,6 +3,7 @@ package pt.iscte.strudel.model
 import pt.iscte.strudel.model.impl.ArrayType
 import pt.iscte.strudel.model.impl.ReferenceType
 
+
 interface ITypeProvider {
 
     fun getArrayType(componentType: IType): IArrayType
@@ -92,7 +93,50 @@ object VOID : IType {
         get() = 0
 }
 
-val ANY = UnboundType()
+object ANY : IType {
+
+    private var referenceType: IReferenceType? = null
+    private var arrayType: IArrayType? = null
+
+    override fun reference(): IReferenceType {
+        if (referenceType == null)
+            referenceType = ReferenceType(this)
+        return referenceType!!
+    }
+
+    override fun array(): IArrayType {
+        if (arrayType == null)
+            arrayType = ArrayType(this)
+        return arrayType!!
+    }
+
+    override fun toString(): String {
+        return "Object"
+    }
+
+    override fun setProperty(key: String, value: Any?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun getProperty(key: String): Any? {
+        TODO("Not yet implemented")
+    }
+
+    override var id: String? = "Object"
+        set(value) = check(false)
+
+    override val defaultExpression: IExpression
+        get() = NULL_LITERAL
+
+    override fun cloneProperties(e: IProgramElement) {
+        throw UnsupportedOperationException()
+    }
+
+    override val bytes: Int
+        get() = 0
+}
+
+//val ANY = UnboundType()
 
 class UnboundType(override val defaultExpression: IExpression = NULL_LITERAL) : IType {
 
@@ -128,6 +172,5 @@ class UnboundType(override val defaultExpression: IExpression = NULL_LITERAL) : 
 
     override val bytes: Int
         get() = TODO("Not yet implemented")
-
 }
 

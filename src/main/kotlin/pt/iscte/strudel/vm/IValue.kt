@@ -15,17 +15,16 @@ object NULL : IValue {
     override val isNumber: Boolean = false
 }
 
-object VOID : IValue {
-    override val value = null
-    override val type: IType get() = UnboundType()
-    override fun toString() = "void"
-    override fun copy() = this
-    override val isNull: Boolean = false
-    override val isTrue: Boolean = false
-    override val isFalse: Boolean = false
-    override val isNumber: Boolean = false
-
-}
+//object VOID : IValue {
+//    override val value = null
+//    override val type: IType get() = UnboundType()
+//    override fun toString() = "void"
+//    override fun copy() = this
+//    override val isNull: Boolean = false
+//    override val isTrue: Boolean = false
+//    override val isFalse: Boolean = false
+//    override val isNumber: Boolean = false
+//}
 
 interface IValue {
 

@@ -43,7 +43,7 @@ internal fun getTypeByName(qualifiedName: String, location: Node, types: Map<Str
         val componentTypeName = qualifiedName.replace("[]", "")
         var type = defaultTypes[componentTypeName] ?: types[componentTypeName] ?: HostRecordType(getClassByName(componentTypeName, location).canonicalName)
         (0 until arrayTypeDepth).forEach { _ -> type = type.array() }
-        type
+        type.reference()
     }.getOrElse { LoadingError.translation("could not find IType $qualifiedName", location) }
 }
 

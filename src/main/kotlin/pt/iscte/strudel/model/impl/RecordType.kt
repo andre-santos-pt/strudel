@@ -29,7 +29,7 @@ internal class RecordType(override val module: IModule) : ProgramElement(), IRec
 
     override fun array(): IArrayType {
         if (arrayType == null)
-            arrayType = ArrayType(this)
+            arrayType = ArrayType(reference())
         return arrayType!!
     }
 

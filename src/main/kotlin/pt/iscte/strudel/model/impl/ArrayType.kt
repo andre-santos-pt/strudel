@@ -22,7 +22,7 @@ internal class ArrayType(override val componentType: IType) : ProgramElement(), 
 
     override fun array(): IArrayType {
         if (arrayType == null)
-            arrayType = ArrayType(this)
+            arrayType = ArrayType(reference())
         return arrayType!!
     }
 
