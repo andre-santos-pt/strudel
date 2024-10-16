@@ -2,7 +2,7 @@ package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.IArrayType
 
-const val ARRAY_OVERHEAD = 24
+const val ARRAY_OVERHEAD = 28
 
 interface IArray : IMemory {
 
@@ -12,7 +12,7 @@ interface IArray : IMemory {
     override fun copy(): IArray
 
     override val memory: Int
-        get() = length * (type as IArrayType).bytes + ARRAY_OVERHEAD
+        get() = ARRAY_OVERHEAD + length * (type as IArrayType).bytes
 
     var elements: List<IValue>
 

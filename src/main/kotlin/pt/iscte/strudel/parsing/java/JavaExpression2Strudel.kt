@@ -141,7 +141,7 @@ class JavaExpression2Strudel(
 
             // TODO multi level
             is ArrayCreationExpr -> {
-                if (exp.levels.any { !it.dimension.isPresent })
+                if (exp.levels.size > 1 && exp.levels.any { !it.dimension.isPresent })
                     LoadingError.unsupported("multi-dimension array initialization with partial dimensions", exp)
 
                 val arrayType = types.mapType(exp.elementType, exp).array()
@@ -154,7 +154,7 @@ class JavaExpression2Strudel(
             is ArrayInitializerExpr -> {
                 val values = exp.values.map { map(it) }
                 val baseType = when (val parent = exp.parentNode.getOrNull) {
-                    is ArrayCreationExpr -> types.mapType(parent.elementType, exp)
+                    is ArrayCreationExpr -> types.mapType(parent.elementType, exp).array()
                     is VariableDeclarator -> types.mapType(parent.type, exp)
                     else -> LoadingError.unsupported("array initializer", exp)
                 }

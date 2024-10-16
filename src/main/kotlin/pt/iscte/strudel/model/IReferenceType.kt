@@ -13,10 +13,9 @@ interface IReferenceType : IType {
         return t
     }
 
-
     override val defaultExpression: IExpression
         get() = NULL_LITERAL
 
     override val bytes: Int
-        get() = 4
+        get() = 8
 }
