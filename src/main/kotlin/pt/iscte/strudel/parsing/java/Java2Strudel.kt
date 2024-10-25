@@ -493,6 +493,7 @@ class Java2Strudel(
                 else listOf()
 
             val methods = methods.map {
+                it.replaceBinaryOperatorAssignWithRegularAssign()
                 it.replaceStringPlusWithConcat()
                 it.substituteControlBlocks()
                 it.replaceIncDecAsExpressions()
@@ -784,6 +785,7 @@ class Java2Strudel(
 
                     // If type has a compact constructor, inject statements into default constructor
                     if (compact != null) {
+                        compact.replaceBinaryOperatorAssignWithRegularAssign()
                         compact.replaceStringPlusWithConcat()
                         compact.substituteControlBlocks()
                         compact.replaceIncDecAsExpressions()

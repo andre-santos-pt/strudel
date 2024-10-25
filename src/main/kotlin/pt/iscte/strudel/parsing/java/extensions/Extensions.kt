@@ -83,11 +83,31 @@ val TypeDeclaration<*>.nestedTypes: List<TypeDeclaration<*>>
 
 internal fun VariableDeclarator.isGeneric(type: ClassOrInterfaceDeclaration): Boolean =
     typeAsString in type.typeParameters.map { it.nameAsString } ||
-            (type.findAncestor(ClassOrInterfaceDeclaration::class.java).getOrNull?.let { isGeneric(it) } ?: false)
+            (type.findAncestor(ClassOrInterfaceDeclaration::class.java).getOrNull?.let { isGeneric(it) } == true)
 
 internal fun Parameter.isGeneric(type: RecordDeclaration): Boolean =
     typeAsString in type.typeParameters.map { it.nameAsString } ||
-            (type.findAncestor(RecordDeclaration::class.java).getOrNull?.let { isGeneric(it) } ?: false)
+            (type.findAncestor(RecordDeclaration::class.java).getOrNull?.let { isGeneric(it) } == true)
+
+internal fun Node.replaceBinaryOperatorAssignWithRegularAssign() =
+    accept(object : VoidVisitorAdapter<Any>() {
+        override fun visit(n: AssignExpr, arg: Any?) {
+            if (n.operator.toBinaryOperator().isPresent) {
+                val target = n.target
+                val value = n.value
+
+                val binaryOperator = n.operator.toBinaryOperator().get()
+
+                val newValue = BinaryExpr(target, value, binaryOperator)
+                val newAssign = AssignExpr(target, newValue, AssignExpr.Operator.ASSIGN)
+
+                n.replace(newAssign)
+                newValue.accept(this, arg)
+
+            } else
+                super.visit(n, arg)
+        }
+    }, null)
 
 internal fun BodyDeclaration<*>.replaceStringPlusWithConcat() {
     fun Expression.isStringType(): Boolean = calculateResolvedType().describe() == "java.lang.String"
@@ -107,7 +127,7 @@ internal fun BodyDeclaration<*>.replaceStringPlusWithConcat() {
             else MethodCallExpr(this, "toString")
         }
 
-    val visitor = object : VoidVisitorAdapter<Any>() {
+    accept(object : VoidVisitorAdapter<Any>() {
         override fun visit(n: BinaryExpr, arg: Any?) {
             if (n.operator == BinaryExpr.Operator.PLUS && (n.left.isStringType() || n.right.isStringType())) {
                 val left = n.left.toStringExpression()
@@ -119,8 +139,7 @@ internal fun BodyDeclaration<*>.replaceStringPlusWithConcat() {
             } else
                 super.visit(n, arg)
         }
-    }
-    accept(visitor, null)
+    }, null)
 }
 
 

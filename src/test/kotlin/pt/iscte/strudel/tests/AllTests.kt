@@ -139,7 +139,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestCharArray::class,
 
-    TestJPForVarResolveBug::class
+    TestJPForVarResolveBug::class,
+
+    TestJavaStringIncrement::class
 )
 class AllTests
 
