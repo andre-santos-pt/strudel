@@ -3,6 +3,7 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.extensions.getString
+import pt.iscte.strudel.tests.referenceValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -35,7 +36,7 @@ class TestAutomaticForeignProcedure {
                     return (int) Math.round(x);
                 }
                 
-                public static int integerValueOf(String x) {
+                public static Integer integerValueOf(String x) {
                     return Integer.valueOf(x);
                 }
             }
@@ -50,7 +51,7 @@ class TestAutomaticForeignProcedure {
         assertEquals(3, vm.execute(round, vm.getValue(3.14))?.value)
 
         val str = getString("8")
-        assertEquals(8, vm.execute(valueOf, str)?.value)
+        assertEquals(Integer.valueOf(8), vm.execute(valueOf, str)?.value)
     }
 
     @Test
@@ -80,8 +81,8 @@ class TestAutomaticForeignProcedure {
         val length = module.getProcedure("length")
 
         val str = getString("hello world")
-        assertEquals("ello wo", vm.execute(substr, str)?.value)
-        assertEquals("ello world", vm.execute(substrToEnd, str)?.value)
+        assertEquals("ello wo", vm.execute(substr, str)?.referenceValue)
+        assertEquals("ello world", vm.execute(substrToEnd, str)?.referenceValue)
 
         assertEquals(0, vm.execute(length, getString(""))?.value)
         assertEquals(1, vm.execute(length, getString("a"))?.value)

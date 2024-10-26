@@ -8,6 +8,7 @@ import pt.iscte.strudel.model.impl.PredefinedArrayAllocation
 import pt.iscte.strudel.model.util.*
 import pt.iscte.strudel.vm.*
 import java.lang.RuntimeException
+import java.lang.reflect.InvocationTargetException
 
 private const val DIVIDE_BY_ZERO_MSG = "Cannot divide by zero"
 
@@ -543,8 +544,8 @@ class ProcedureInterpreterNoExpression(
             val ret =  try {
                 (call.procedure as ForeignProcedure).run(vm, args) ?: NULL
             }
-            catch (e: Exception) {
-                throw RuntimeError(RuntimeErrorType.FOREIGN_PROCEDURE, call, e.message)
+            catch (e: InvocationTargetException) {
+                throw RuntimeError(RuntimeErrorType.FOREIGN_PROCEDURE, call, e.message ?: e.targetException.message)
             }
             vm.listeners.forEach {
                 it.procedureEnd(

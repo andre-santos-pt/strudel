@@ -7,6 +7,8 @@ import pt.iscte.strudel.parsing.java.StringType
 import pt.iscte.strudel.parsing.java.extensions.getString
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.IProcedure
+import pt.iscte.strudel.parsing.java.allocateStringArray
+import pt.iscte.strudel.tests.referenceValue
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
@@ -83,16 +85,17 @@ class TestComparablePolymorphicParameter {
         val module = Java2Strudel().load(insertion)
         val vm = IVirtualMachine.create()
 
-        val x = vm.allocateArrayOf(StringType, getString("dois"), getString("quatro"), getString("um"), getString("tres"))
-
+//        val x = vm.allocateArrayOf(StringType.reference(), getString("dois"), getString("quatro"), getString("um"), getString("tres"))
+       // val x = vm.allocateArrayOf(StringType.reference(), getString("dois"), getString("quatro"), getString("um"), getString("tres"))
+        val x = vm.allocateStringArray("dois", "quatro", "um", "tres")
         val sort = module.getProcedure(("sort"))
         vm.execute(sort, x)
 
         println(x)
 
-        assertEquals("dois", x.target.getElement(0).value)
-        assertEquals("quatro", x.target.getElement(1).value)
-        assertEquals("tres", x.target.getElement(2).value)
-        assertEquals("um", x.target.getElement(3).value)
+        assertEquals("dois", x.target.getElement(0).referenceValue)
+        assertEquals("quatro", x.target.getElement(1).referenceValue)
+        assertEquals("tres", x.target.getElement(2).referenceValue)
+        assertEquals("um", x.target.getElement(3).referenceValue)
     }
 }

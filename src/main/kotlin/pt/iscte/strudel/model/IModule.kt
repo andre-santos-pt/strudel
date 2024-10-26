@@ -59,11 +59,11 @@ interface IModule : IModuleView, ITypeProvider {
     fun getConstant(match: (IConstantDeclaration) -> Boolean) : IConstantDeclaration?
         = members.filterIsInstance<IConstantDeclaration>().find {match(it)}
 
-    fun getProcedure(id: String, namespace: String? = null): IProcedure
-            = members.filterIsInstance<IProcedure>().find { it.id == id && (namespace == null || it.namespace == namespace)}!!
+    fun getProcedure(id: String, namespace: String? = null): IProcedureDeclaration
+            = members.filterIsInstance<IProcedureDeclaration>().find { it.id == id && (namespace == null || it.namespace == namespace)}!!
 
-    fun getProcedure(id: String, namespace: String? = null, match: (IProcedure) -> Boolean): IProcedure =
-        members.filterIsInstance<IProcedure>().find { it.id == id &&  (namespace == null || it.namespace == namespace) && match(it)}!!
+    fun getProcedure(id: String, namespace: String? = null, match: (IProcedureDeclaration) -> Boolean): IProcedureDeclaration =
+        members.filterIsInstance<IProcedureDeclaration>().find { it.id == id &&  (namespace == null || it.namespace == namespace) && match(it)}!!
 
     fun getProcedure(id: String, vararg parameterTypes: IType = arrayOf()): IProcedure =
         members.filterIsInstance<IProcedure>().find {

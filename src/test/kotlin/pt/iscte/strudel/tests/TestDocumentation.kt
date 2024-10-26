@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.INT
+import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.IReturn
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
@@ -108,7 +109,7 @@ class TestDocumentation {
             }
         """.trimIndent()
 
-        val procedure = Java2Strudel().load(src).getProcedure("hello")
+        val procedure = Java2Strudel().load(src).getProcedure("hello") as IProcedure
         val returnStmt = procedure.find(IReturn::class, 0)
 
         assertEquals("Returns the int 42. :)", returnStmt.documentation)

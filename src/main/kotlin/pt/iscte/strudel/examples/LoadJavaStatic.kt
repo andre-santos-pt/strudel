@@ -31,8 +31,8 @@ fun main() {
     val module = Java2Strudel().load(javaCode)
     println(module)
 
-    runSearch(module.getProcedure("linearSearch"))
-    runSearch(module.getProcedure("binarySearch"))
+    runSearch(module.getProcedure("linearSearch") as IProcedure)
+    runSearch(module.getProcedure("binarySearch") as IProcedure)
 }
 
 

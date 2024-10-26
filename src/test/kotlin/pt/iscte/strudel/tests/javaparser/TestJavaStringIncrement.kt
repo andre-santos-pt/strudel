@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.extensions.getString
+import pt.iscte.strudel.tests.referenceValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 
@@ -27,6 +28,6 @@ class TestJavaStringIncrement {
 
         val vm = IVirtualMachine.create()
 
-        assertEquals("ping pong!", vm.execute(ping, getString("ping"))?.value)
+        assertEquals("ping pong!", vm.execute(ping, getString("ping"))?.referenceValue)
     }
 }

@@ -3,6 +3,7 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.ILoop
+import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.util.find
 import kotlin.test.assertEquals
 
@@ -32,16 +33,16 @@ class TestVarsInScope {
             }
         """.trimIndent()
         val module = Java2Strudel().load(src)
-
-        val innerLoop = module.getProcedure("bubbleSort").find(ILoop::class,1)
+        val procedure = module.getProcedure("bubbleSort") as IProcedure
+        val innerLoop = procedure.find(ILoop::class,1)
         var varsInner = innerLoop.block.variablesInScope().map { it.id }
         assertEquals(listOf("j","i","n","swapped","arr"), varsInner)
 
-        val outerLoop = module.getProcedure("bubbleSort").find(ILoop::class,0)
+        val outerLoop = procedure.find(ILoop::class,0)
         var varsOuter = outerLoop.block.variablesInScope().map { it.id }
         assertEquals(listOf("i","n","swapped","arr"), varsOuter)
 
-        val procBody = module.getProcedure("bubbleSort").block
+        val procBody = procedure.block
         var varsBody = procBody.variablesInScope().map { it.id }
         assertEquals(listOf("n","swapped","arr"), varsBody)
     }

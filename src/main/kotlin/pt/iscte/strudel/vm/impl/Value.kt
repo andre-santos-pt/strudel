@@ -16,9 +16,6 @@ internal class Value (override val type: IType, override val value: Any?) : IVal
     }
 
     override fun toString() =
-        if(type == CHAR)
-            "'$value'"
-        else
             value.toString()
 
     override fun copy() = this

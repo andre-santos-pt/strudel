@@ -30,7 +30,13 @@ internal class ProcedureCall(
 
     override fun toString(): String =
         (if (parent != NullBlock) tabs(parent) else "") +
-                (if (procedure.namespace != null) procedure.namespace + "." else "") +
+                (if (procedure.namespace != null) procedure.namespace!!.shortNamespace + "." else "") +
                 "${procedure.id}(" + arguments.joinToString(", ") { "$it" } + ")" +
                 (if (parent != NullBlock) ";" else "")
+
+    private val String.shortNamespace get() =
+        if(startsWith("java.lang"))
+            substring(lastIndexOf('.')+1)
+        else
+            this
 }

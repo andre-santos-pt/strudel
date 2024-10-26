@@ -9,6 +9,7 @@ import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import pt.iscte.strudel.parsing.java.*
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.vm.*
+import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
 import kotlin.jvm.optionals.getOrDefault
@@ -31,7 +32,7 @@ val IRecordType.hasEquals: Boolean
 val IRecordType.equals: IProcedureDeclaration
     get() = module!!.procedures.first { it.hasFlag(EQUALS_FLAG) }
 
-fun getString(value: String): IValue = Value(StringType, java.lang.String(value))
+fun getString(value: String): IReference<*> = Reference(Value(StringType, value))
 
 val <T> Optional<T>.getOrNull: T?
     get() = if (isPresent) this.get() else null

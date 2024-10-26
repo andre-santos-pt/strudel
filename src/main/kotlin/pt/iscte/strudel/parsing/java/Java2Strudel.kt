@@ -223,6 +223,8 @@ class Java2Strudel(
      * @return A Strudel [IModule].
      */
     private fun translate(typeDeclarations: List<TypeDeclaration<*>>) = module {
+        members.addAll(foreignProcedures)
+
         val types = defaultTypes.toMutableMap()
 
         // Collect all types beforehand (to have something to bind to later, if needed)

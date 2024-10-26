@@ -7,6 +7,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.IControlFlowGraph
 import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.module
+import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
@@ -107,4 +108,4 @@ abstract class BaseTest {
     }
 }
 
-
+val IValue?.referenceValue get() = (this as IReference<*>).target.value

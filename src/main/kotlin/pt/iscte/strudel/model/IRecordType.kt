@@ -1,9 +1,9 @@
 package pt.iscte.strudel.model
 
+import pt.iscte.strudel.model.impl.*
 import pt.iscte.strudel.model.impl.ArrayType
 import pt.iscte.strudel.model.impl.RecordAllocation
 import pt.iscte.strudel.model.impl.ReferenceType
-import pt.iscte.strudel.model.impl.VariableDeclaration
 
 const val RECORD_OVERHEAD = 16
 
@@ -46,10 +46,10 @@ interface IRecordType : IType, IModuleMember {
 }
 
 class UnboundRecordType(
-    id: String
+    override var id: String?
 ): IRecordType {
     init {
-        setProperty(ID_PROP, id)
+        //setProperty(ID_PROP, id)
     }
 
     override val module: IModule? = null
@@ -135,18 +135,28 @@ class HostRecordType(
         throw UnsupportedOperationException()
     }
 
-    override fun getProperty(key: String): Any {
+    override fun getProperty(key: String): Any =
         if(key == ID_PROP)
-            return type.name
+//            return   if(type.packageName == "java.lang")
+//                type.simpleName
+//            else
+                type.name
         else
             throw UnsupportedOperationException()
-    }
 
-    override fun toString(): String = type.name
+
+    override fun toString(): String =
+        if(type.packageName == "java.lang")
+            type.simpleName
+        else
+            type.name
 
     override fun isSame(e: IProgramElement): Boolean {
         return e is HostRecordType && type == e.type
     }
+
+    override val isRecordReference: Boolean
+        get() = true
 
     override val bytes: Int
         get() = RECORD_OVERHEAD // TODO

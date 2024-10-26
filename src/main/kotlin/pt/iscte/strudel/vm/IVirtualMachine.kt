@@ -1,6 +1,7 @@
 package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.*
+import pt.iscte.strudel.parsing.java.StringType
 import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.VirtualMachine
 import pt.iscte.strudel.vm.impl.defaultValue
@@ -55,7 +56,7 @@ interface IVirtualMachine {
 
     fun systemOutput(text: String)
 
-    fun execute(procedure: IProcedure, vararg arguments: IValue): IValue?
+    fun execute(procedure: IProcedureDeclaration, vararg arguments: IValue): IValue?
 
     fun allocateArray(baseType: IType, length: Int): IReference<IArray> {
         val array = heapMemory.allocateArray(baseType, length)

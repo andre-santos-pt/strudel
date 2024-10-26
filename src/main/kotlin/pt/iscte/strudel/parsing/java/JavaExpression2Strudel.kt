@@ -18,6 +18,7 @@ import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.model.util.UnaryOperator
 import pt.iscte.strudel.parsing.java.extensions.*
+import pt.iscte.strudel.vm.impl.ForeignProcedure
 
 class JavaExpression2Strudel(
     val procedure: IProcedure,
@@ -93,10 +94,18 @@ class JavaExpression2Strudel(
 
             is NullLiteralExpr -> NULL_LITERAL
 
-            is StringLiteralExpr -> translator.foreignProcedures.find { it.id == NEW_STRING }!!.expression(
-                CHAR.array().heapAllocationWith(exp.value.map { CHAR.literal(it) })
-            )
-
+            is StringLiteralExpr -> {
+                val content = exp.value
+                    .replace("\\n","\n")
+                    .replace("\\t","\t")
+                    .replace("\\\"","\"")
+                    .replace("\\\\", "\\")
+                translator.foreignProcedures.find { it.id == NEW_STRING }!!
+                    .expression(
+                        CHAR.array()
+                            .heapAllocationWith(content.map { CHAR.literal(it) })
+                    )
+            }
             is UnaryExpr -> mapUnaryOperator(exp).on(exp.expression.toCharCodeOrDefault()).apply {
                 // TODO review
                 val from = exp.range.get().begin.column
@@ -169,11 +178,27 @@ class JavaExpression2Strudel(
                     procedures.findProcedure(exp.type.nameAsString, INIT, paramTypes)
                     ?: kotlin.runCatching { procedures.findProcedure(exp.type.resolve().simpleNameAsString, INIT, paramTypes) }.getOrNull()
                     ?: exp.asForeignProcedure(procedure.module!!, types)
-                val alloc = types.mapType(exp.type, exp).asRecordType.heapAllocation()
-                if (const.hasOuterParameter)
-                    const.expression(listOf(procedure.thisParameter.exp(), alloc) + exp.arguments.map { map(it) })
-                else
-                    const.expression(listOf(alloc) + exp.arguments.map { map(it) })
+                if(const is ForeignProcedure) {
+                    const.expression(exp.arguments.map { map(it) })
+                }
+                else {
+                    val alloc = types.mapType(
+                        exp.type,
+                        exp
+                    ).asRecordType.heapAllocation()
+                    if (const.hasOuterParameter)
+                        const.expression(
+                            listOf(
+                                procedure.thisParameter.exp(),
+                                alloc
+                            ) + exp.arguments.map { map(it) })
+                    else
+                        const.expression(listOf(alloc) + exp.arguments.map {
+                            map(
+                                it
+                            )
+                        })
+                }
             }
 
             is FieldAccessExpr -> {

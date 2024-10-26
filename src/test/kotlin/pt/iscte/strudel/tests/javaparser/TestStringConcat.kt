@@ -3,6 +3,7 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.extensions.getString
+import pt.iscte.strudel.tests.referenceValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.math.sqrt
 import kotlin.test.assertEquals
@@ -24,7 +25,7 @@ class TestStringConcat {
         val concat = module.getProcedure("concatStringString")
 
         val result = vm.execute(concat, getString("hello "), getString("world"))
-        assertEquals("hello world", result?.value)
+        assertEquals("hello world", result?.referenceValue)
     }
 
     @Test
@@ -42,7 +43,7 @@ class TestStringConcat {
         val concat = module.getProcedure("concatStringPrimitive")
 
         val result = vm.execute(concat, getString("hello "), vm.getValue(2))
-        assertEquals("hello 2", result?.value)
+        assertEquals("hello 2", result?.referenceValue)
     }
 
     @Test
@@ -62,7 +63,7 @@ class TestStringConcat {
         val concat = module.getProcedure("concatLeft")
 
         val result = vm.execute(concat, getString("hello "))
-        assertEquals("hello ${sqrt(2.0)}", result?.value)
+        assertEquals("hello ${sqrt(2.0)}", result?.referenceValue)
     }
 
     @Test
@@ -82,6 +83,6 @@ class TestStringConcat {
         val concat = module.getProcedure("concatRight")
 
         val result = vm.execute(concat, getString(" hello"))
-        assertEquals("${sqrt(2.0)} hello", result?.value)
+        assertEquals("${sqrt(2.0)} hello", result?.referenceValue)
     }
 }

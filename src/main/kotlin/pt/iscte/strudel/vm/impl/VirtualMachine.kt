@@ -72,27 +72,38 @@ internal class VirtualMachine(
 
 
     override fun getNullReference(): IReference<*> = Reference(NULL)
+
     //@JsName("execute")
     override fun execute(
-        procedure: IProcedure,
+        procedure: IProcedureDeclaration,
         vararg arguments: IValue
     ): IValue? {
         require(arguments.size == procedure.parameters.size) {
             "number of arguments (${arguments.size}) do not match ${procedure.id}(${procedure.parameters.size})"
         }
         error = null
-        return try {
-            call = ProcedureInterpreterNoExpression(this, procedure, *arguments)
-            call?.run()
-            call?.returnValue
-        } catch (e: RuntimeError) {
-            error = e
-            listeners.forEach { it.executionError(e) }
-            if(throwExceptions)
-                throw e
-            else
-                null
-        }
+
+        if (procedure is IProcedure)
+            return try {
+                call = ProcedureInterpreterNoExpression(
+                    this,
+                    procedure,
+                    *arguments
+                )
+                call?.run()
+                call?.returnValue
+            } catch (e: RuntimeError) {
+                error = e
+                listeners.forEach { it.executionError(e) }
+                if (throwExceptions)
+                    throw e
+                else
+                    null
+            }
+        else if(procedure is ForeignProcedure)
+            return procedure.run(this, arguments.toList())
+        else
+            throw RuntimeException("could not execute: ${procedure.id}")
     }
 
     override fun systemOutput(text: String) {
@@ -108,8 +119,12 @@ internal class VirtualMachine(
         private val objects: MutableList<IValue> = mutableListOf()
 
         private fun add(v: IValue) {
-            if(memory + v.memory > availableMemory)
-                throw RuntimeError(RuntimeErrorType.OUT_OF_MEMORY, null, "out of memory")
+            if (memory + v.memory > availableMemory)
+                throw RuntimeError(
+                    RuntimeErrorType.OUT_OF_MEMORY,
+                    null,
+                    "out of memory"
+                )
             objects.add(v)
         }
 
@@ -204,7 +219,7 @@ internal class VirtualMachine(
         }
 
         override fun toString(): String {
-            return  "(" + fields.filterNot { it.key.id == OUTER_PARAM }.entries.joinToString { it.key.id + ": " + it.value } + ")"
+            return "(" + fields.filterNot { it.key.id == OUTER_PARAM }.entries.joinToString { it.key.id + ": " + it.value } + ")"
         }
 
 

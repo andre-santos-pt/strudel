@@ -141,7 +141,17 @@ import kotlin.reflect.full.hasAnnotation
 
     TestJPForVarResolveBug::class,
 
-    TestJavaStringIncrement::class
+    TestJavaStringIncrement::class,
+
+    TestForeignErrors::class,
+
+    TestMultiNameResolves::class,
+
+    TestStringCreationArray::class,
+
+    TestStringEquals::class,
+
+    TestStringEscapes::class
 )
 class AllTests
 

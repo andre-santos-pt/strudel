@@ -92,7 +92,7 @@ class TestsPaper {
 
     @Test
     fun testDebug() {
-        val binarySearch = Java2Strudel().load(binarySearchCode).getProcedure("binarySearch")
+        val binarySearch = Java2Strudel().load(binarySearchCode).getProcedure("binarySearch") as IProcedure
         val vm = VirtualMachine()
         val array = vm.allocateArrayOf(INT,
             1, 2, 4, 5, 7, 7, 9, 10, 10, 11, 14, 15, 15, 17, 20, 21, 22
