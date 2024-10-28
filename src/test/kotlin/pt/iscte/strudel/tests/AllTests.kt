@@ -151,7 +151,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestStringEquals::class,
 
-    TestStringEscapes::class
+    TestStringEscapes::class,
+
+    TestCallStaticInInstance::class
 )
 class AllTests
 

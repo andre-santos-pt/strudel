@@ -1,20 +1,13 @@
 package pt.iscte.strudel.parsing.java.extensions
 
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
-import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.ast.expr.VariableDeclarationExpr
-import com.github.javaparser.ast.stmt.BlockStmt
-import com.github.javaparser.ast.type.ClassOrInterfaceType
-import com.github.javaparser.ast.type.ReferenceType
-import com.github.javaparser.ast.type.Type
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import com.github.javaparser.resolution.model.typesystem.ReferenceTypeImpl
 import com.github.javaparser.resolution.types.ResolvedReferenceType
 import com.github.javaparser.resolution.types.ResolvedType
-import com.github.javaparser.symbolsolver.reflectionmodel.ReflectionClassDeclaration
 import pt.iscte.strudel.model.IProcedureDeclaration
 import pt.iscte.strudel.model.IType
 
@@ -55,7 +48,13 @@ internal fun MethodCallExpr.getNamespace(
         // local var resolve has to be first than class
         if(scope is NameExpr)
             scope.resolveLocalDeclaration()?.let {
-                return Namespace(it.simpleNameAsString, false, false)
+                val static = if(it is ReferenceTypeImpl && it.typeDeclaration.isPresent)
+                    it.typeDeclaration.get().declaredMethods.find { m ->
+                        m.name == this.nameAsString
+                    }?.isStatic ?: false
+                else
+                    false
+                return Namespace(it.simpleNameAsString, false, static)
             }
 
         val scopeIsCurrentlyLoadedType: Boolean =
