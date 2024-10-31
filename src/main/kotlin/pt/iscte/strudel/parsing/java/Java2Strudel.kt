@@ -818,6 +818,8 @@ class Java2Strudel(
                             as? IProcedure)?.apply {
                         val self = parameters[0]
                         val other = parameters[1]
+                        //other.expression().instanceOf(type)
+                        //this@apply.block.If(other.)
                         var exp: ICompositeExpression? = null
                         type.fields.forEach {
                             val field = self.field(it)

@@ -51,7 +51,7 @@ class TestAutomaticForeignProcedure {
         assertEquals(3, vm.execute(round, vm.getValue(3.14))?.value)
 
         val str = getString("8")
-        assertEquals(Integer.valueOf(8), vm.execute(valueOf, str)?.value)
+        assertEquals(Integer.valueOf(8), vm.execute(valueOf, str)?.referenceValue)
     }
 
     @Test

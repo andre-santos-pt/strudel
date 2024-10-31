@@ -54,7 +54,7 @@ class TestComparator {
     @Test
     fun test() {
         val model = Java2Strudel().load(code)
-        val vm = IVirtualMachine.create()
+        val vm = IVirtualMachine.create(availableMemory = 4000)
 
         val ret1 = vm.execute(model.procedures.find { it.id == "test1" }!! as IProcedure)
         ret1?.checkStringArrayContent("um", "tres", "cinco", "quatro")

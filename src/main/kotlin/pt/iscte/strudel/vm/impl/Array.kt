@@ -60,4 +60,9 @@ internal class Array(private val t: IArrayType, length: Int) : IArray {
     override fun removeListener(listener: IArray.IListener) {
        listeners.remove(listener)
     }
+
+    override fun equals(other: Any?): Boolean {
+        return other is Array && array.size == other.array.size &&
+                array.mapIndexed { i, v -> v == other.array[i] }.all { it }
+    }
 }

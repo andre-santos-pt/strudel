@@ -36,7 +36,7 @@ class TestMultiNameResolves {
     }
     """.trimIndent()
 
-        val vm = IVirtualMachine.create()
+        val vm = IVirtualMachine.create(availableMemory = 4000)
         val module = Java2Strudel().load(code)
         println(module)
         val args = arrayOf(
@@ -66,7 +66,7 @@ String join(String[] elements, String separator) {
 }
     """.trimIndent()
 
-        val vm = IVirtualMachine.create()
+        val vm = IVirtualMachine.create(availableMemory = 4000)
         val module = Java2Strudel().load(code)
         println(module)
         val args = arrayOf(

@@ -10,7 +10,7 @@ import pt.iscte.strudel.vm.NULL
 
 internal class Reference<T: IValue>(override var target: T) : IReference<T> {
     override val type: IType
-        get() = target.type.reference()
+        get() = target.type.reference() // FIXME isto esta estranho
 
     override val value: Any
         get() = target
@@ -27,4 +27,12 @@ internal class Reference<T: IValue>(override var target: T) : IReference<T> {
     override val isTrue: Boolean = false
     override val isFalse: Boolean = false
     override val isNumber: Boolean = false
+
+    override fun equals(other: Any?): Boolean {
+        return other is Reference<*> && target == other.target
+    }
+
+    override fun hashCode(): Int {
+        return target.hashCode()
+    }
 }

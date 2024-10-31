@@ -153,7 +153,11 @@ import kotlin.reflect.full.hasAnnotation
 
     TestStringEscapes::class,
 
-    TestCallStaticInInstance::class
+    TestCallStaticInInstance::class,
+
+    TestForeignJavaPrimitives::class,
+
+    TestForeignJavaObjects::class
 )
 class AllTests
 
