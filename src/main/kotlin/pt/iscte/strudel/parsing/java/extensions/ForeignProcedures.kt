@@ -55,7 +55,6 @@ internal fun foreign(
                 val caller = a.first()
                 if (caller!!.javaClass != method.declaringClass)
                     error("Cannot invoke instance method $method with object instance $caller: is ${caller.javaClass.canonicalName}, should be ${method.declaringClass.canonicalName}")
-                //val arguments = args.slice(1 until args.size).map { it.value }
                 val arguments = a.drop(1)
                 method.invoke(caller, *arguments.toTypedArray())
             } else

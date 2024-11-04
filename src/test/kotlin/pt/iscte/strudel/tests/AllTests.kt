@@ -157,7 +157,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestForeignJavaPrimitives::class,
 
-    TestForeignJavaObjects::class
+    TestForeignJavaObjects::class,
+
+    TestNoSystemExit::class
 )
 class AllTests
 

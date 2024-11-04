@@ -24,6 +24,9 @@ import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.parsing.java.extensions.matches
 import pt.iscte.strudel.parsing.java.extensions.qualifiedName
 import java.io.File
+import java.util.*
+import kotlin.Comparator
+import kotlin.collections.ArrayList
 
 
 class Java2Strudel(
@@ -31,8 +34,23 @@ class Java2Strudel(
     private val bindSource: Boolean = true,
     private val bindJavaParser: Boolean = true,
     private val checkJavaCompilation: Boolean = true,
-    private val preprocessing: CompilationUnit.() -> Unit = { } // Pre-process AST before translating
-) {
+    private val preprocessing: CompilationUnit.() -> Unit = { }, // Pre-process AST before translating
+    private val allowedForeignNamespaces: List<String> = listOf(
+        java.lang.Integer::class.java.canonicalName,
+        java.lang.Double::class.java.canonicalName,
+        java.lang.Character::class.java.canonicalName,
+        java.lang.Boolean::class.java.canonicalName,
+        String::class.java.canonicalName,
+        Math::class.java.canonicalName,
+        Random::class.java.canonicalName,
+        Comparator::class.java.canonicalName,
+        Comparable::class.java.canonicalName,
+        Arrays::class.java.canonicalName,
+        Collections::class.java.canonicalName,
+        List::class.java.canonicalName,
+        ArrayList::class.java.canonicalName
+        )
+    ) {
     internal val JPFacade: JavaParserFacade = JavaParserFacade.get(typeSolver())
 
     private val supportedModifiers = listOf(
@@ -169,11 +187,14 @@ class Java2Strudel(
                 namespace?.qualifiedName,
                 exp.nameAsString,
                 paramTypes
-            ) ?: exp.asForeignProcedure(
+            ) ?:
+            (if(namespace?.qualifiedName in allowedForeignNamespaces)
+                exp.asForeignProcedure(
                 procedure.module!!,
                 namespace?.qualifiedName,
                 types
-            ) ?: LoadingError.translation(
+            ) else null)
+                ?: LoadingError.translation(
                 "procedure matching method call $exp not found within namespace ${namespace?.qualifiedName}",
                 exp
             )
@@ -496,7 +517,7 @@ class Java2Strudel(
 
             val methods = methods.map {
                 it.replaceBinaryOperatorAssignWithRegularAssign()
-                it.replaceStringPlusWithConcat()
+                it.replaceStringPlusWithConcat(types)
                 it.substituteControlBlocks()
                 it.replaceIncDecAsExpressions()
                 it to it.translateMethodDeclaration<T>((it.parentNode.get() as T).qualifiedName)
@@ -788,7 +809,7 @@ class Java2Strudel(
                     // If type has a compact constructor, inject statements into default constructor
                     if (compact != null) {
                         compact.replaceBinaryOperatorAssignWithRegularAssign()
-                        compact.replaceStringPlusWithConcat()
+                        compact.replaceStringPlusWithConcat(types)
                         compact.substituteControlBlocks()
                         compact.replaceIncDecAsExpressions()
                         val stmtTranslator = JavaStatement2Strudel(

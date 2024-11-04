@@ -67,7 +67,7 @@ internal fun MethodCallExpr.getNamespace(
         if (scopeIsCurrentlyLoadedType || scopeIsCurrentlyLoadedForeignType || scopeIsValidJavaClass)
             Namespace(scope.toString(), isAbstract = false, isStatic = true)
         else if (isAbstractMethodCall) when (val type =
-            scope.calculateResolvedType()) {
+            scope.getResolvedType()) {
             is ResolvedReferenceType -> Namespace(
                 type.qualifiedName,
                 isAbstract = true,

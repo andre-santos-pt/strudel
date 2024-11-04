@@ -63,17 +63,17 @@ class TestForeignJavaObjects {
                  return list.toArray(new String[0]).length;
             }
             
-            static int testScanner() {
-                String s = "um dois tres";
-                int c = 0;
-                Scanner scan = new Scanner(s);
-                while(scan.hasNext()) {
-                    scan.next();
-                    c++;
-                }
-                scan.close();
-                return c;
-            }
+//            static int testScanner() {
+//                String s = "um dois tres";
+//                int c = 0;
+//                Scanner scan = new Scanner(s);
+//                while(scan.hasNext()) {
+//                    scan.next();
+//                    c++;
+//                }
+//                scan.close();
+//                return c;
+//            }
                  
         }
     """.trimIndent()

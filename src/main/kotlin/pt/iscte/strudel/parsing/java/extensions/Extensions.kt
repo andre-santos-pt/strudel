@@ -6,6 +6,7 @@ import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.comments.Comment
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
+import com.github.javaparser.resolution.types.ResolvedType
 import pt.iscte.strudel.parsing.java.*
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.vm.*
@@ -110,17 +111,22 @@ internal fun Node.replaceBinaryOperatorAssignWithRegularAssign() =
         }
     }, null)
 
-internal fun BodyDeclaration<*>.replaceStringPlusWithConcat() {
-    fun Expression.isStringType(): Boolean = calculateResolvedType().describe() == "java.lang.String"
+internal fun BodyDeclaration<*>.replaceStringPlusWithConcat(types: MutableMap<String, IType>) {
+    fun Expression.isStringType(): Boolean {
+        val resolvedType = getResolvedType()
+        return  resolvedType is ResolvedType && resolvedType.describe() == "java.lang.String"
+    }
+       // calculateResolvedType().describe() == "java.lang.String"
 
     fun Expression.toStringExpression(): Expression =
         if (this is CharLiteralExpr) StringLiteralExpr(value)
         else if (isLiteralExpr && this !is StringLiteralExpr) StringLiteralExpr(toString())
         else run {
-            val type = calculateResolvedType()
+            val type = getResolvedType()
+            //val type = calculateResolvedType()
             if (isNameExpr && type.isReferenceType) MethodCallExpr(this, "toString")
             else if (isNameExpr && type.isPrimitive) MethodCallExpr(
-                NameExpr(type.asPrimitive().boxTypeClass.simpleName),
+                NameExpr(type.asPrimitive().boxTypeClass.name),
                 SimpleName("toString"),
                 NodeList(this)
             )

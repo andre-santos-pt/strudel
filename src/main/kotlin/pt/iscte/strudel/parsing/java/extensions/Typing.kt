@@ -177,9 +177,20 @@ internal val ResolvedType.simpleNameAsString: String
     }
 
 internal fun Expression.getResolvedJavaType(): Class<*> = kotlin.runCatching {
-    calculateResolvedType().toJavaType(this)
+    getResolvedType().toJavaType(this)
 }.onFailure { println("Failed to resolve Java type of $this: $it") }
     .getOrThrow()
+
+internal fun Expression.getResolvedType(): ResolvedType =
+    kotlin.runCatching {
+        try {
+            calculateResolvedType()
+        } catch (e: UnsolvedSymbolException) {
+            this.resolveHack() ?: throw e
+        }
+    }.onFailure {
+        println("Failed to resolve type of $this: $it")
+    }.getOrThrow()
 
 internal fun Expression.getResolvedIType(types: Map<String, IType>): IType =
     kotlin.runCatching {
@@ -191,6 +202,7 @@ internal fun Expression.getResolvedIType(types: Map<String, IType>): IType =
     }.onFailure {
         println("Failed to resolve type of $this: $it")
     }.getOrThrow()
+
 
 // TODO hack to cover JP solver bug
 private fun Expression.resolveHack(types: Map<String, IType>): IType? {
@@ -216,6 +228,30 @@ private fun Expression.resolveHack(types: Map<String, IType>): IType? {
         parentFor = parentFor.get().findAncestor(ForStmt::class.java)
     }
 
+    return null
+}
+
+// TODO hack to cover JP solver bug
+private fun Expression.resolveHack(): ResolvedType? {
+    if (this !is NameExpr)
+        return null
+
+    var parentFor = this.findAncestor(ForStmt::class.java)
+    while (parentFor.isPresent) {
+
+        val dec =
+            parentFor.get().initialization.find {
+                it is VariableDeclarationExpr &&
+                        it.variables.any {
+                            it.nameAsString == this.nameAsString
+                        }
+            } as? VariableDeclarationExpr
+
+        dec?.let {
+            return it.commonType.resolve()
+        }
+        parentFor = parentFor.get().findAncestor(ForStmt::class.java)
+    }
     return null
 }
 

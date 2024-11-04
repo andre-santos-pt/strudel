@@ -50,15 +50,15 @@ class JavaExpression2Strudel(
     // Translates an expression, but automatically casts character expressions to integers.
     // Used in binary expression which use characters.
     private fun Expression.toCharCodeOrDefault(): IExpression = kotlin.runCatching {
-        val type = this.calculateResolvedType()
+        val type = this.getResolvedType()
         if (type == ResolvedPrimitiveType.CHAR) UnaryOperator.CAST_TO_INT.on(map(this))
         else map(this)
     }.getOrDefault(map(this))
 
     private fun IBinaryOperator.onCharCodeOrDefault(left: Expression, right: Expression): IExpression =
         kotlin.runCatching {
-            val leftType = left.calculateResolvedType()
-            val rightType = right.calculateResolvedType()
+            val leftType = left.getResolvedType()
+            val rightType = right.getResolvedType()
             if (this == RelationalOperator.EQUAL && leftType == ResolvedPrimitiveType.CHAR && rightType == ResolvedPrimitiveType.CHAR)
                 on(map(left), map(right))
             else on(left.toCharCodeOrDefault(), right.toCharCodeOrDefault())
@@ -210,7 +210,7 @@ class JavaExpression2Strudel(
                         val thisType = (thisParam.type as IReferenceType).target as IRecordType
                         thisParam.field(thisType.getField(exp.nameAsString)!!)
                     } else {
-                        val type = kotlin.runCatching { JPFacade.solve(exp.scope).correspondingDeclaration.type }.getOrDefault(exp.scope.calculateResolvedType())
+                        val type = kotlin.runCatching { JPFacade.solve(exp.scope).correspondingDeclaration.type }.getOrDefault(exp.scope.getResolvedType())
                         val typeId = type.simpleNameAsString
                         val isJavaStatic = "$typeId.${exp.nameAsString}".endsWith(exp.toString())
 
@@ -262,7 +262,7 @@ fun mapUnaryOperator(exp: UnaryExpr): IUnaryOperator = when (exp.operator) {
 }
 
 private fun BinaryExpr.isIntegerArithmetic(): Boolean =
-    left.calculateResolvedType() == ResolvedPrimitiveType.INT && right.calculateResolvedType() == ResolvedPrimitiveType.INT
+    left.getResolvedType() == ResolvedPrimitiveType.INT && right.getResolvedType() == ResolvedPrimitiveType.INT
 
 fun mapBinaryOperator(exp: BinaryExpr): IBinaryOperator = when (exp.operator) {
     BinaryExpr.Operator.PLUS -> ArithmeticOperator.ADD
