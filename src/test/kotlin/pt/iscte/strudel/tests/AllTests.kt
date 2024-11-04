@@ -159,7 +159,11 @@ import kotlin.reflect.full.hasAnnotation
 
     TestForeignJavaObjects::class,
 
-    TestNoSystemExit::class
+    TestNoSystemExit::class,
+
+    TestForResolveAssignPlus::class,
+
+    TestStringMemory::class
 )
 class AllTests
 

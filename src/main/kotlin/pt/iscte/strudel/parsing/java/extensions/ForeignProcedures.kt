@@ -43,31 +43,38 @@ internal fun foreign(
         parameterTypes
     )
     { vm, args ->
-        val a = args.map {
+        val jvmArgs = args.map {
             it.toJvm()
         }
         val res =
             if (Modifier.isStatic(method.modifiers)) // static --> no caller
-                method.invoke(null, *a.toTypedArray())
+                method.invoke(null, *jvmArgs.toTypedArray())
             else if (args.size == 1) { // not static --> caller is $this parameter
-                method.invoke(a.first())
+                method.invoke(jvmArgs.first())
             } else if (args.size > 1) {
-                val caller = a.first()
+                val caller = jvmArgs.first()
                 if (caller!!.javaClass != method.declaringClass)
                     error("Cannot invoke instance method $method with object instance $caller: is ${caller.javaClass.canonicalName}, should be ${method.declaringClass.canonicalName}")
-                val arguments = a.drop(1)
+                val arguments = jvmArgs.drop(1)
                 method.invoke(caller, *arguments.toTypedArray())
             } else
                 error("Cannot invoke instance method $method with 0 arguments: missing (at least) object reference $THIS_PARAM")
 
-        a.forEachIndexed  { i, p ->
-            if(!a::class.java.isPrimitive && args[i] is IReference<*>) {
-                val ref = jvmToStrudel(vm, types, p!!::class.java, a[i])
+        // propagate side effects in arrays
+        jvmArgs.forEachIndexed  { i, p ->
+            if(!jvmArgs::class.java.isPrimitive && args[i] is IReference<*>) {
                 val srcTarget = (args[i] as IReference<*>).target
-                val modTarget = (ref as IReference<*>).target
                 if(srcTarget is IArray) {
-                    for(i in 0 until srcTarget.length)
-                        srcTarget.setElement(i, (modTarget as IArray).getElement(i))
+                    for(i in 0 until srcTarget.length) {
+                        val e = jvmToStrudel(
+                            vm,
+                            types,
+                            p!!::class.java.componentType,
+                            Array.get(p, i)
+                        )
+                        if(e != srcTarget.getElement(i))
+                            srcTarget.setElement(i, e)
+                    }
                 }
             }
         }
