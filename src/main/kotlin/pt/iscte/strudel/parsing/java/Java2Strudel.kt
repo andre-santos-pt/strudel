@@ -663,7 +663,7 @@ class Java2Strudel(
 
                         val f = recordType.addField(fieldType) {
                             id = variableDeclaration.nameAsString
-                        }
+                        }.bind(field.variables.first().name, ID_LOC)
 
                         // Store field initializer JavaParser expressions
                         // (these are translated and injected into constructor(s) later)
@@ -758,6 +758,7 @@ class Java2Strudel(
                         // Add type field
                         val field =
                             type.addField(paramType) { id = param.nameAsString }
+                                .bind(param.name, ID_LOC)
                         val constructorParam =
                             constructor.parameters.first { it.type == field.type && it.id == field.id }
                         fieldSetters.add(
