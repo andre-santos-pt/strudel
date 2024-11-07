@@ -163,7 +163,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestForResolveAssignPlus::class,
 
-    TestStringMemory::class
+    TestStringMemory::class,
+
+    TestExplicitConstructor::class
 )
 class AllTests
 

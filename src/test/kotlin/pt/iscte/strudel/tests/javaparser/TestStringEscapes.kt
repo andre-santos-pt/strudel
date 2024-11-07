@@ -2,7 +2,6 @@ package pt.iscte.strudel.tests.javaparser
 
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.parsing.java.Java2Strudel
-import pt.iscte.strudel.parsing.java.extensions.getString
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 
@@ -13,7 +12,7 @@ class TestStringEscapes {
         val src = """
             class Newline {
                 public static void main() {
-                    String s = "hello\nworld";
+                   String s = "hello\nworld";
                    System.out.println(s);
                 }
             }
@@ -25,7 +24,7 @@ class TestStringEscapes {
         val main = module.getProcedure("main")
         vm.addListener(object: IVirtualMachine.IListener {
             override fun systemOutput(text: String) {
-                assertEquals("hello\nworld\n", text)
+                assertEquals("hello\nworld" + System.lineSeparator(), text)
             }
         })
         vm.execute(main)

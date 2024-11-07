@@ -1,6 +1,7 @@
 package pt.iscte.strudel.parsing.java
 
 import com.github.javaparser.ast.body.CallableDeclaration
+import com.github.javaparser.ast.body.TypeDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
@@ -8,9 +9,9 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.ProcedureCall
 import pt.iscte.strudel.model.impl.RecordFieldExpression
-import pt.iscte.strudel.model.impl.UnaryExpression
 import pt.iscte.strudel.model.impl.VariableExpression
 import pt.iscte.strudel.model.util.UnaryOperator
+import pt.iscte.strudel.parsing.java.extensions.getOrNull
 import pt.iscte.strudel.parsing.java.extensions.getTypeFromJavaParser
 import pt.iscte.strudel.parsing.java.extensions.mapType
 import pt.iscte.strudel.parsing.java.extensions.translateComment
@@ -311,6 +312,24 @@ class JavaStatement2Strudel(
                 statement.bind(stmt)
             }
 
+            // ExplicitConstructorInvocationStmt
+            fun handleExplicitConstructorInvocationStmt(stmt: ExplicitConstructorInvocationStmt) {
+                if (!stmt.isThis)
+                    LoadingError.unsupported("explicit constructor", stmt)
+
+                val declaringType = stmt.findAncestor(TypeDeclaration::class.java).getOrNull ?:
+                    LoadingError.translation("Could not find declaring type of explicit constructor", stmt)
+
+                val type: IType = types.mapType(declaringType, stmt)
+                val args: List<IExpression> = stmt.arguments.map { exp2Strudel.map(it) }
+
+                val constructor = procedures.findProcedure(type.id, INIT, args.map { it.type }) ?:
+                LoadingError.translation("Could not find matching constructor for explicit constructor invocation", stmt)
+
+                val statement = block.Call(constructor, block.ownerProcedure.thisParameter.exp(), *args.toTypedArray())
+                statement.bind(stmt)
+            }
+
             when (stmt) {
                 is ReturnStmt -> handleReturnStmt(stmt)
                 is IfStmt -> handleIfStmt(stmt)
@@ -322,6 +341,7 @@ class JavaStatement2Strudel(
                 is ExpressionStmt -> handleExpressionStmt(stmt)
                 is ThrowStmt -> handleThrowStmt(stmt)
                 is AssertStmt -> handleAssertStmt(stmt)
+                is ExplicitConstructorInvocationStmt -> handleExplicitConstructorInvocationStmt(stmt)
                 else -> LoadingError.unsupported("statement ${stmt::class.java.simpleName}", stmt)
             }
         }
