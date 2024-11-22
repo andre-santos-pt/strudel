@@ -219,7 +219,7 @@ internal class VirtualMachine(
         }
 
         override fun toString(): String {
-            return "(" + fields.filterNot { it.key.id == OUTER_PARAM }.entries.joinToString { it.key.id + ": " + it.value } + ")"
+            return "${type.id}(" + fields.filterNot { it.key.id == OUTER_PARAM }.entries.joinToString { it.key.id + ": " + it.value } + ")"
         }
 
 

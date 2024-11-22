@@ -74,10 +74,10 @@ interface IVirtualMachine {
         val array = heapMemory.allocateArray(baseType, values.size)
         values.forEachIndexed { i, e ->
             val v =
-                if (baseType.isValueType) getValue(e)
+                if (e is IValue) e
+                else if (baseType.isValueType) getValue(e)
                 else if (baseType.isArrayReference) e as IReference<IArray>
                 else if (baseType.isRecordReference) e as IReference<IRecord>
-                else if (e is IValue) e // Can leave as IValue since require() checks types after anyway
                 else allocateRecord(baseType as IRecordType)
 
             // || (v.type.isReference && baseType.isSame((v.type as IReferenceType).target))

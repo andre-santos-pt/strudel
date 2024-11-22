@@ -835,6 +835,8 @@ class Java2Strudel(
                     }
                     constructor.block.Return(constructor.thisParameter)
 
+                    constructor.setProperty(JP, compact) // TODO
+
                     // Generate equals() for record type
                     (proceduresPerType[r]?.find { it.first == null && it.second.id == "equals" }?.second
                             as? IProcedure)?.apply {
