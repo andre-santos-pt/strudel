@@ -35,7 +35,7 @@ class JavaStatement2Strudel(
             val exp2Strudel = JavaExpression2Strudel(procedure, block, procedures, types, translator, decMap)
 
             fun findVariable(id: String): IVariableDeclaration<*>? =
-                procedure.variables.find { it.id == id } ?:
+                procedure.variables.findLast { it.id == id } ?:
                 procedure.parameters.find { it.id == THIS_PARAM }?.
                 let { p -> ((p.type as IReferenceType).target as IRecordType).getField(id) }
 

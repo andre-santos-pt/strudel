@@ -165,7 +165,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestStringMemory::class,
 
-    TestExplicitConstructor::class
+    TestExplicitConstructor::class,
+
+    TestVarsWithSameId::class
 )
 class AllTests
 
