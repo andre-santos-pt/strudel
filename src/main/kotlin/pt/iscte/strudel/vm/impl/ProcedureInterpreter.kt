@@ -8,8 +8,6 @@ import pt.iscte.strudel.model.util.*
 import pt.iscte.strudel.vm.*
 import java.lang.RuntimeException
 
-private const val DIVIDE_BY_ZERO_MSG = "Cannot divide by zero"
-
 class ProcedureInterpreter(
     val vm: IVirtualMachine,
     val procedure: IProcedure,
@@ -98,11 +96,7 @@ class ProcedureInterpreter(
                         if (guardEval.isTrue) {
                             blockStack.push(BlockExec(next.block, true))
                             if (loopCount[next] == vm.loopIterationMaximum)
-                                throw RuntimeError(
-                                    RuntimeErrorType.LOOP_MAX,
-                                    next,
-                                    "Loop reached the maximum number of iterations (${vm.loopIterationMaximum})."
-                                )
+                                throw LoopIterationLimitError(next, vm.loopIterationMaximum)
                             loopCount[next] = (loopCount[next] ?: 0) + 1
                             vm.listeners.forEach {
                                 it.loopIteration(next)
@@ -398,11 +392,7 @@ class ProcedureInterpreter(
             is IVariableExpression -> {
                 val v = vm.callStack.topFrame.variables[exp.variable]
                 if (v == null)
-                    throw RuntimeError(
-                        RuntimeErrorType.NONINIT_VARIABLE,
-                        exp,
-                        "variable not initialized"
-                    )
+                    throw UninitializedVariableError(exp)
                 else
                     valStack.push(v)
             }
@@ -450,7 +440,7 @@ class ProcedureInterpreter(
             is IArrayAccess -> eval(exp.target, exp.index)?.let {
                 val (index, array) = it
                 if(array.isNull)
-                    throw RuntimeError(RuntimeErrorType.NULL_POINTER, exp.target, "reference to array is null")
+                    throw NullReferenceError(exp.target)
 
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
@@ -462,14 +452,14 @@ class ProcedureInterpreter(
 
             is IArrayLength -> eval(exp.target)?.let {
                 if(it.isNull)
-                    throw RuntimeError(RuntimeErrorType.NULL_POINTER, exp.target, "reference to array is null")
+                    throw NullReferenceError(exp.target)
 
                 valStack.push(vm.getValue(((it as IReference<IArray>).target).length))
             }
 
             is IRecordFieldExpression -> eval(exp.target)?.let {
                 if(it.isNull)
-                    throw RuntimeError(RuntimeErrorType.NULL_POINTER, exp.target, "reference to object is null")
+                    throw NullReferenceError(exp.target)
                 valStack.push(((it as IReference<IRecord>).target).getField(exp.field))
             }
 
@@ -632,13 +622,13 @@ class ProcedureInterpreter(
 
                 ArithmeticOperator.IDIV ->
                     if (right.toInt() == 0)
-                        throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
+                        throw DivisionByZeroError(exp)
                     else
                         Value(INT, left.toInt() / right.toInt())
 
                 ArithmeticOperator.MOD ->
                     if (right.toInt() == 0)
-                        throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
+                        throw DivisionByZeroError(exp)
                     else
                         Value(INT, left.toInt() % right.toInt())
 
@@ -650,7 +640,7 @@ class ProcedureInterpreter(
                         ArithmeticOperator.SUB -> l - r
                         ArithmeticOperator.MUL -> l * r
                         ArithmeticOperator.DIV ->
-                            if (r == 0.0) throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
+                            if (r == 0.0) throw DivisionByZeroError(exp)
                             else l / r
                         else -> unsupported()
                     }

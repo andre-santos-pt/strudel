@@ -1,8 +1,12 @@
 package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.IArrayAccess
+import pt.iscte.strudel.model.IBinaryExpression
 import pt.iscte.strudel.model.IExpression
+import pt.iscte.strudel.model.ILoop
 import pt.iscte.strudel.model.IProgramElement
+import pt.iscte.strudel.model.ITargetExpression
+import pt.iscte.strudel.model.IVariableExpression
 
 enum class RuntimeErrorType {
     LOOP_MAX,
@@ -34,13 +38,30 @@ open class RuntimeError(
     }
 }
 
+class LoopIterationLimitError(
+    val loop: ILoop,
+    val limit: Int
+) : RuntimeError(RuntimeErrorType.LOOP_MAX, loop, "Loop reached the maximum number of iterations ($limit)")
+
+class NullReferenceError(
+    val target: ITargetExpression
+) : RuntimeError(RuntimeErrorType.NULL_POINTER, target, "Reference is null: $target")
+
+class DivisionByZeroError(
+    val exp: IBinaryExpression
+) : RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, "Cannot divide by zero")
+
+class UninitializedVariableError(
+    val exp: IVariableExpression
+) : RuntimeError(RuntimeErrorType.NONINIT_VARIABLE, exp, "Variable not initialised: $exp")
+
 class ArrayIndexError(
-    element: IArrayAccess,
+    val element: IArrayAccess,
     val invalidIndex: Int,
     val indexExpression: IExpression,
     val array: IArray
 ) : RuntimeError(
-    RuntimeErrorType.ARRAY_INDEX_BOUNDS, element.index, "invalid array index access"
+    RuntimeErrorType.ARRAY_INDEX_BOUNDS, element.index, "Invalid array index access"
 ) {
     var target: IExpression
 
@@ -57,10 +78,10 @@ class ArrayIndexError(
 }
 
 class NegativeArraySizeError(
-    lengthExpression: IExpression,
+    val lengthExpression: IExpression,
     val invalidSize: Int
 ) : RuntimeError(
-    RuntimeErrorType.NEGATIVE_ARRAY_SIZE, lengthExpression, "negative array size: $invalidSize"
+    RuntimeErrorType.NEGATIVE_ARRAY_SIZE, lengthExpression, "Negative array size: $invalidSize"
 ) {
 
     override fun toString(): String {

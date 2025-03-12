@@ -10,8 +10,6 @@ import pt.iscte.strudel.vm.*
 import java.lang.RuntimeException
 import java.lang.reflect.InvocationTargetException
 
-private const val DIVIDE_BY_ZERO_MSG = "Cannot divide by zero"
-
 class ProcedureInterpreterNoExpression(
     val vm: IVirtualMachine,
     val procedure: IProcedure,
@@ -101,11 +99,7 @@ class ProcedureInterpreterNoExpression(
                     if (guardEval.isTrue) {
                         blockStack.push(BlockExec(next.block, true))
                         if (loopCount[next] == vm.loopIterationMaximum)
-                            throw RuntimeError(
-                                RuntimeErrorType.LOOP_MAX,
-                                next,
-                                "Loop reached the maximum number of iterations (${vm.loopIterationMaximum})."
-                            )
+                            throw LoopIterationLimitError(next, vm.loopIterationMaximum)
                         loopCount[next] = (loopCount[next] ?: 0) + 1
                         vm.listeners.forEach {
                             it.loopIteration(next)
@@ -271,11 +265,7 @@ class ProcedureInterpreterNoExpression(
                 }
 
                 if(array.isNull)
-                    throw RuntimeError(
-                        RuntimeErrorType.NULL_POINTER,
-                        s.arrayAccess.target,
-                        "reference is null"
-                    )
+                    throw NullReferenceError(s.arrayAccess.target)
 
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
@@ -307,11 +297,7 @@ class ProcedureInterpreterNoExpression(
                 }
 
                 if(target.isNull)
-                    throw RuntimeError(
-                        RuntimeErrorType.NULL_POINTER,
-                        s.target,
-                        "reference is null"
-                    )
+                    throw NullReferenceError(s.target)
 
                 val recordRef = target as IReference<IRecord>
                 recordRef.target.setField(s.field, value)
@@ -408,14 +394,7 @@ class ProcedureInterpreterNoExpression(
 
             is IVariableExpression -> {
                 val v = vm.callStack.topFrame.variables[exp.variable]
-                if (v == null)
-                    throw RuntimeError(
-                        RuntimeErrorType.NONINIT_VARIABLE,
-                        exp,
-                        "variable not initialized"
-                    )
-                else
-                    v
+                v ?: throw UninitializedVariableError(exp)
             }
 
             // TODO only works for 1 dim
@@ -459,11 +438,7 @@ class ProcedureInterpreterNoExpression(
                 val index = evaluate(exp.index)
                 val array = evaluate(exp.target)
                 if (array.isNull)
-                    throw RuntimeError(
-                        RuntimeErrorType.NULL_POINTER,
-                        exp.target,
-                        "reference is null"
-                    )
+                    throw NullReferenceError(exp.target)
 
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
@@ -480,11 +455,7 @@ class ProcedureInterpreterNoExpression(
             is IArrayLength ->  {
                 val it = evaluate(exp.target)
                 if (it.isNull)
-                    throw RuntimeError(
-                        RuntimeErrorType.NULL_POINTER,
-                        exp.target,
-                        "reference is null"
-                    )
+                    throw NullReferenceError(exp.target)
 
                 vm.getValue(((it as IReference<IArray>).target).length)
             }
@@ -492,11 +463,7 @@ class ProcedureInterpreterNoExpression(
             is IRecordFieldExpression -> {
                 val it = evaluate(exp.target)
                 if (it.isNull)
-                    throw RuntimeError(
-                        RuntimeErrorType.NULL_POINTER,
-                        exp.target,
-                        "reference is null"
-                    )
+                    throw NullReferenceError(exp.target)
                 (it as IReference<IRecord>).target.getField(exp.field)
             }
 
@@ -648,13 +615,13 @@ class ProcedureInterpreterNoExpression(
 
                 ArithmeticOperator.IDIV ->
                     if (right.toInt() == 0)
-                        throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
+                        throw DivisionByZeroError(exp)
                     else
                         Value(INT, left.toInt() / right.toInt())
 
                 ArithmeticOperator.MOD ->
                     if (right.toInt() == 0)
-                        throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
+                        throw DivisionByZeroError(exp)
                     else
                         Value(INT, left.toInt() % right.toInt())
 
@@ -666,7 +633,7 @@ class ProcedureInterpreterNoExpression(
                         ArithmeticOperator.SUB -> l - r
                         ArithmeticOperator.MUL -> l * r
                         ArithmeticOperator.DIV ->
-                            if (r == 0.0) throw RuntimeError(RuntimeErrorType.DIVBYZERO, exp.rightOperand, DIVIDE_BY_ZERO_MSG)
+                            if (r == 0.0) throw DivisionByZeroError(exp)
                             else l / r
                         else -> unsupported()
                     }
