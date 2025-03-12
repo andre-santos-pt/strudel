@@ -118,7 +118,7 @@ fun IProcedure.checkSemantics(): List<SemanticProblem> {
 
         fun List<IExpression>.checkAllIntType() {
             forEach {
-                if(it.type != pt.iscte.strudel.model.INT)
+                if(it.type != INT)
                     invalid.add(SemanticProblem(it,
                         "expression for array dimension must be of integer type (instead of ${it.type})"))
             }

@@ -28,7 +28,7 @@ val IModule.proceduresExcludingConstructors: List<IProcedureDeclaration>
     get() = procedures.filter { !it.hasFlag(CONSTRUCTOR_FLAG) }
 
 val IRecordType.hasEquals: Boolean
-    get() = module?.let { m -> m.procedures.any { it.hasFlag(EQUALS_FLAG) } } ?: false
+    get() = module?.let { m -> m.procedures.any { it.hasFlag(EQUALS_FLAG) } } == true
 
 val IRecordType.equals: IProcedureDeclaration
     get() = module!!.procedures.first { it.hasFlag(EQUALS_FLAG) }

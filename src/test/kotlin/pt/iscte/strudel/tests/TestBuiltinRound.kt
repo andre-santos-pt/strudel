@@ -11,7 +11,7 @@ import pt.iscte.strudel.vm.impl.IForeignProcedure
 import kotlin.math.roundToInt
 import kotlin.test.assertEquals
 
-class TestBuiltinRound: pt.iscte.strudel.tests.BaseTest({
+class TestBuiltinRound: BaseTest({
   Procedure(INT, "roundInt") {
       val d = Param(DOUBLE, "n")
       Return(MathRound.expression(d.expression()))

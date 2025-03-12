@@ -10,7 +10,7 @@ import pt.iscte.strudel.vm.RuntimeError
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class TestArrayIndexOutOfBounds : pt.iscte.strudel.tests.BaseTest({
+class TestArrayIndexOutOfBounds : BaseTest({
     Procedure(INT, "get") {
         val a = Param(array(INT), "a")
         val i = Param(INT, "i")

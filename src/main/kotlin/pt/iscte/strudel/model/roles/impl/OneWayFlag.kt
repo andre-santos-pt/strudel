@@ -15,7 +15,7 @@ class OneWayFlag(targetVar: IVariableDeclaration<*>) : IOneWayFlag {
         assignment = v.assignment!!
     }
 
-    private class Visitor internal constructor(val targetVar: IVariableDeclaration<*>) : IBlock.IVisitor {
+    private class Visitor(val targetVar: IVariableDeclaration<*>) : IBlock.IVisitor {
         var isValid = false
         private var first = true
         private var initialValue: IExpression? = null

@@ -9,7 +9,7 @@ object ControlStructureEncapsulateVisitor : VoidVisitorAdapter<Any>() {
         if (n.thenStmt !is BlockStmt) {
             val thenStmt = n.thenStmt
             val block = BlockStmt()
-            n.setThenStmt(block)
+            n.thenStmt = block
             if (thenStmt != null)
                 block.addStatement(thenStmt)
         }
@@ -26,7 +26,7 @@ object ControlStructureEncapsulateVisitor : VoidVisitorAdapter<Any>() {
         if (n.body !is BlockStmt) {
             val body = n.body
             val block = BlockStmt()
-            n.setBody(block)
+            n.body = block
             if (body != null)
                 block.addStatement(body)
         }
@@ -37,7 +37,7 @@ object ControlStructureEncapsulateVisitor : VoidVisitorAdapter<Any>() {
         if (n.body !is BlockStmt) {
             val body = n.body
             val block = BlockStmt()
-            n.setBody(block)
+            n.body = block
             if (body != null)
                 block.addStatement(body)
         }
@@ -48,7 +48,7 @@ object ControlStructureEncapsulateVisitor : VoidVisitorAdapter<Any>() {
         if (n.body !is BlockStmt) {
             val body = n.body
             val block = BlockStmt()
-            n.setBody(block)
+            n.body = block
             if (body != null)
                 block.addStatement(body)
         }
@@ -59,7 +59,7 @@ object ControlStructureEncapsulateVisitor : VoidVisitorAdapter<Any>() {
         if (n.body !is BlockStmt) {
             val body = n.body
             val block = BlockStmt()
-            n.setBody(block)
+            n.body = block
             if (body != null)
                 block.addStatement(body)
         }

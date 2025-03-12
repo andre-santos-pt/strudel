@@ -19,7 +19,7 @@ val StringConcat = IForeignProcedure.create("String", "concat", StringType, list
     Value(StringType, (args[0].value.toString()) + (args[1].value.toString()))
 }
 
-class TestBuiltinString : pt.iscte.strudel.tests.BaseTest({
+class TestBuiltinString : BaseTest({
     Procedure(StringCreate).setProperty(NAMESPACE_PROP, "String")
     Procedure(StringConcat)
     Procedure(StringType, "strConcat") {
@@ -50,7 +50,7 @@ class TestBuiltinStringJ {
                 }
                 }
         """.trimIndent()
-        val module = Java2Strudel().load(code)
+        Java2Strudel().load(code)
 
 
     }

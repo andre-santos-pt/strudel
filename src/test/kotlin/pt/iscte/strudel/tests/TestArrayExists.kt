@@ -8,7 +8,7 @@ import pt.iscte.strudel.model.util.find
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class TestArrayExists : pt.iscte.strudel.tests.BaseTest({
+class TestArrayExists : BaseTest({
     Procedure(BOOLEAN, "find") {
         val a = Param(array(INT), "a")
         val e = Param(INT, "e")

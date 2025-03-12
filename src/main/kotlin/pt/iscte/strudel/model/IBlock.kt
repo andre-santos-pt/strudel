@@ -94,7 +94,7 @@ interface IBlock : IBlockElement, Iterable<IBlockElement>, IBlockHolder {
     val procedure: IProcedure?
     val children: List<IBlockElement>
     val size: Int
-    open val isEmpty: Boolean
+    val isEmpty: Boolean
         get() = size == 0
 
     val isStatementBlock get() = parent is IBlock

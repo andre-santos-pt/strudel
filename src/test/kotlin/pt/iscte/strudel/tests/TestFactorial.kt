@@ -12,7 +12,7 @@ import pt.iscte.strudel.vm.RuntimeErrorType
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class TestFactorial : pt.iscte.strudel.tests.BaseTest({
+class TestFactorial : BaseTest({
     Procedure(INT, "factorial") {
         val n = Param(INT, "n")
         If(n.expression() equal lit(1)) {

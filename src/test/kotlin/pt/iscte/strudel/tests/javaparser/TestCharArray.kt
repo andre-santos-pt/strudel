@@ -22,7 +22,7 @@ class TestCharArray {
         val vm = IVirtualMachine.create()
         val module = Java2Strudel().load(code)
         val letters = vm.allocateArrayOf(CHAR, 'a','b','c')
-        val r = try {
+        try {
             vm.execute(module.getProcedure("replace"), letters, vm.getValue('b'), vm.getValue('z'))
         }
         catch (e: RuntimeError) {

@@ -8,7 +8,7 @@ import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 
-class TestGCD : pt.iscte.strudel.tests.BaseTest({
+class TestGCD : BaseTest({
     Procedure(INT, "gcd") {
         val a = Param(INT, "a")
         val b = Param(INT, "b")

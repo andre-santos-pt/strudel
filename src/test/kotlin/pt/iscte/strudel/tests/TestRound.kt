@@ -9,7 +9,7 @@ import pt.iscte.strudel.model.dsl.plus
 import pt.iscte.strudel.model.util.UnaryOperator
 import kotlin.test.assertEquals
 
-class TestRound : pt.iscte.strudel.tests.BaseTest({
+class TestRound : BaseTest({
     Procedure(INT, "round") {
         val value = Param(DOUBLE, "value")
         Return(UnaryOperator.CAST_TO_INT.on(value.expression() + 0.5))

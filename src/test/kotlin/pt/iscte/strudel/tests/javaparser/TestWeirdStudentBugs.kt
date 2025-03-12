@@ -3,8 +3,12 @@ package pt.iscte.strudel.tests.javaparser
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import pt.iscte.strudel.model.CHAR
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.parsing.java.Java2Strudel
+import pt.iscte.strudel.vm.IArray
+import pt.iscte.strudel.vm.IReference
+import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -146,5 +150,81 @@ class TestWeirdStudentBugs {
         val vm = IVirtualMachine.create()
 
         assertEquals(10, vm.execute(foo)?.value)
+    }
+
+    @Test
+    fun testCharArray() {
+        val src = """
+            class CharArrayReplace {
+                static void replaceLast(char[] letters, char find, char replace) {
+                    int i = letters.length - 1;
+                    while (i >= 0) {
+                        if (letters[i] == find) {
+                            letters[i] = replace;
+                            return;
+                        }
+                        i--;
+                    }
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+
+        println(module)
+
+        val replaceLast = module.getProcedure("replaceLast")
+
+        val vm = IVirtualMachine.create()
+
+        val letters = vm.allocateArrayOf(CHAR, 'a', 'b', 'c', 'a')
+        val find = vm.getValue('a')
+        val replace = vm.getValue('d')
+
+        assertEquals('a', letters.target.elements.last().value)
+
+        vm.execute(replaceLast, letters, find, replace)
+
+        assertEquals('d', letters.target.elements.last().value)
+    }
+
+    @Test
+    fun testArrayWrites() {
+        val src = """
+            class IntArraySwap {
+                static void swap(int[] array, int i, int j) {
+                    int save = array[i];
+                    array[i] = array[j];
+                    array[j] = save;
+                }
+            }
+        """.trimIndent()
+        val module = Java2Strudel().load(src)
+
+        println(module)
+
+        val swap = module.getProcedure("swap")
+
+        val vm = IVirtualMachine.create()
+
+        var count = 0
+        vm.addListener(object : IVirtualMachine.IListener {
+            override fun arrayAllocated(ref: IReference<IArray>) {
+                println("Allocated array: $ref")
+                ref.target.addListener(object : IArray.IListener {
+                    override fun elementChanged(index: Int, oldValue: IValue, newValue: IValue) {
+                        println("Write $index")
+                        count++
+                    }
+                })
+            }
+        })
+
+        val array = vm.allocateArrayOf(INT, 1, 2, 3, 4)
+        val i = vm.getValue(1)
+        val j = vm.getValue(3)
+
+        vm.execute(swap, array, i, j)
+
+        assertEquals(2, count)
     }
 }

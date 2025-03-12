@@ -23,7 +23,7 @@ class MostWantedHolder(val targetVar: IVariableDeclaration<*>) : IMostWantedHold
         expressions = visitor.expressionList
     }
 
-    private class Visitor internal constructor(val targetVar: IVariableDeclaration<*>) : IBlock.IVisitor {
+    private class Visitor(val targetVar: IVariableDeclaration<*>) : IBlock.IVisitor {
         var arrayVar: IVariableExpression? = null
         var arrayEl: IArrayAccess? = null
         var expressionList: MutableList<IProgramElement> = ArrayList()

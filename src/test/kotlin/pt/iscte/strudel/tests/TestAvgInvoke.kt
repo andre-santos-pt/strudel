@@ -11,7 +11,7 @@ import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class TestAvgInvoke : pt.iscte.strudel.tests.BaseTest({
+class TestAvgInvoke : BaseTest({
     val sumProcedure = Procedure(DOUBLE, "sum") {
         val a = Param(array(DOUBLE), "a")
         val s = Var(DOUBLE, "s")

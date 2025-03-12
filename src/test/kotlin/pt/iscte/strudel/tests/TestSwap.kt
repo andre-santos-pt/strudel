@@ -9,7 +9,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.ArrayIndexError
 import kotlin.test.assertTrue
 
-class TestSwap : pt.iscte.strudel.tests.BaseTest({
+class TestSwap : BaseTest({
     Procedure(VOID, "swap") {
         val a = Param(array(INT), "a")
         val i = Param(INT, "i")

@@ -10,7 +10,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
 import kotlin.test.assertTrue
 
-class TestSumPositivesArrayContinue : pt.iscte.strudel.tests.BaseTest({
+class TestSumPositivesArrayContinue : BaseTest({
     Procedure(DOUBLE, "sum") {
         val a = Param(array(DOUBLE), "a")
         val s = Var(DOUBLE, "s")

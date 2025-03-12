@@ -77,7 +77,7 @@ class TestJPForVarResolveBug {
         """.trimIndent()
         val module = Java2Strudel().load(src)
         println(module)
-        val vm = IVirtualMachine.create()
+        IVirtualMachine.create()
 
 
     }
@@ -93,7 +93,7 @@ class TestJPForVarResolveBug {
         """.trimIndent()
         val module = Java2Strudel().load(src)
         println(module)
-        val vm = IVirtualMachine.create()
+        IVirtualMachine.create()
 
 
     }
@@ -203,7 +203,7 @@ class TestJPForVarResolveBug {
           
          }
         """.trimIndent()
-        StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_20)
+        StaticJavaParser.getParserConfiguration().languageLevel = ParserConfiguration.LanguageLevel.JAVA_20
         StaticJavaParser.getParserConfiguration()
             .setSymbolResolver(JavaSymbolSolver(CombinedTypeSolver()))
 

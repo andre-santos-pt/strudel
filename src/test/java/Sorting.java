@@ -14,7 +14,7 @@ class Sorting {
     }
     
     // TODO short circuit
-    public static void insertionsort(int array[]) {
+    public static void insertionsort(int[] array) {
         int n = array.length;
         for (int j = 1; j < n; j++) {
             int key = array[j];
@@ -42,11 +42,11 @@ class Sorting {
         }  
     }  
     
-    public static void quickSort(int arr[]) {
+    public static void quickSort(int[] arr) {
         quickSortAux(arr, 0, arr.length-1);
     }
     
-    private static void quickSortAux(int arr[], int begin, int end) {
+    private static void quickSortAux(int[] arr, int begin, int end) {
     if (begin < end) {
         int partitionIndex = partition(arr, begin, end);
 
@@ -55,7 +55,7 @@ class Sorting {
     }
     }
     
-    private static int partition(int arr[], int begin, int end) {
+    private static int partition(int[] arr, int begin, int end) {
     int pivot = arr[end];
     int i = (begin-1);
 

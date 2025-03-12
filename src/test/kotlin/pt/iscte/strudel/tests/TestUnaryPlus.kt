@@ -8,7 +8,7 @@ import pt.iscte.strudel.model.dsl.Return
 import pt.iscte.strudel.model.util.UnaryOperator
 import kotlin.test.assertEquals
 
-class TestUnaryPlus : pt.iscte.strudel.tests.BaseTest({
+class TestUnaryPlus : BaseTest({
     Procedure(INT, "useless") {
         val value = Param(INT, "value")
         Return(UnaryOperator.PLUS. on(value.expression()))

@@ -7,7 +7,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
 import kotlin.test.assertTrue
 
-class TestMaxArray : pt.iscte.strudel.tests.BaseTest({
+class TestMaxArray : BaseTest({
     Procedure(INT, "max") {
         val a = Param(array(INT), "a")
         val m = Var(INT, "m")

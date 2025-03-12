@@ -18,7 +18,7 @@ internal fun List<Diagnostic<out JavaFileObject>>.pretty(): String =
 /**
  * Helper class for using the Java Compiler API.
  */
-internal object ClassLoader {
+object ClassLoader {
 
     /**
      * Does the Java source code file compile successfully?

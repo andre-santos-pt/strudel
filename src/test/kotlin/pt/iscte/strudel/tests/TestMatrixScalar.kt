@@ -9,7 +9,7 @@ import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import kotlin.test.assertEquals
 
-class TestMatrixScalar : pt.iscte.strudel.tests.BaseTest({
+class TestMatrixScalar : BaseTest({
     Procedure(VOID, "scale") {
         val m = Param(array(array(DOUBLE)), "m")
         val s = Param(DOUBLE, "s")

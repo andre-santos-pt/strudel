@@ -51,7 +51,7 @@ internal fun MethodCallExpr.getNamespace(
                 val static = if(it is ReferenceTypeImpl && it.typeDeclaration.isPresent)
                     it.typeDeclaration.get().declaredMethods.find { m ->
                         m.name == this.nameAsString
-                    }?.isStatic ?: false
+                    }?.isStatic == true
                 else
                     false
                 return Namespace(it.simpleNameAsString, false, static)

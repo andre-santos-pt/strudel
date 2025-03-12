@@ -9,7 +9,7 @@ import pt.iscte.strudel.model.util.UnaryOperator
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class TestNot : pt.iscte.strudel.tests.BaseTest({
+class TestNot : BaseTest({
     Procedure(BOOLEAN, "not") {
         val value = Param(BOOLEAN, "value")
         Return(UnaryOperator.NOT.on(value.expression()))

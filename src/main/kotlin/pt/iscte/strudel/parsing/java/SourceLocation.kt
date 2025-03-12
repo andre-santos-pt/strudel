@@ -1,6 +1,7 @@
 package pt.iscte.strudel.parsing.java
 
 import com.github.javaparser.ast.Node
+import pt.iscte.strudel.model.IProgramElement
 import javax.tools.Diagnostic
 import javax.tools.JavaFileObject
 
@@ -30,6 +31,8 @@ class SourceLocation(
         (diagnostic.columnNumber +  diagnostic.endPosition - diagnostic.startPosition).toInt(),
         (diagnostic.endPosition - diagnostic.startPosition).toInt()
     )
+
+    constructor(element: IProgramElement) : this(element.getProperty(JP) as Node)
 
     override fun toString(): String =
         if (startLine == endLine) "$startLine:$startColumn-$endColumn"

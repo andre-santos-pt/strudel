@@ -20,7 +20,7 @@ fun main() {
     """.trimIndent()
     val time = measureTime {
         repeat(1E6.toInt()) {
-            val ct = measureTime {
+            measureTime {
                 Java2Strudel(checkJavaCompilation = true, bindSource = true, bindJavaParser = true).load(src)
             }
             print("\r${it + 1} / 1000000")

@@ -43,7 +43,7 @@ internal class StackFrame(callStack: ICallStack, procedure: IProcedure, override
     override fun get(v: IVariableDeclaration<*>): IValue? = variableMap[v]
 
     override fun set(target: IVariableDeclaration<*>, value: IValue) {
-        val old = variables[target]
+        variables[target]
         variableMap[target] = value
     }
     override fun toString(): String {

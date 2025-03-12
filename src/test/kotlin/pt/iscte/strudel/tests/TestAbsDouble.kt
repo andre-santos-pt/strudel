@@ -6,7 +6,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.UnaryOperator
 import kotlin.test.assertEquals
 
-class TestAbsDouble : pt.iscte.strudel.tests.BaseTest({
+class TestAbsDouble : BaseTest({
     Procedure(DOUBLE, "abs") {
         val value = Param(DOUBLE, "value")
         If(value.expression() smaller  lit(0)) {

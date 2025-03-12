@@ -127,8 +127,7 @@ interface IArrayAccess : ITargetExpression, ICompositeExpression {
 interface IArrayLength : ICompositeExpression {
     val target: ITargetExpression
     override fun includes(variable: IVariableDeclaration<*>): Boolean {
-        if (target.includes(variable)) return true
-        return false
+        return target.includes(variable)
     }
 
     override fun isSame(e: IProgramElement): Boolean {

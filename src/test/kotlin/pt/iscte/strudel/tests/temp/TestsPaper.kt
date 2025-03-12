@@ -138,11 +138,11 @@ class TestsPaper {
         vm.execute(proc)
         val error = vm.error as ArrayIndexError
 
-        val inst = vm.instructionPointer // b[0] = a[b.length];
+        vm.instructionPointer // b[0] = a[b.length];
         assertEquals("b[0] = a[b.length];", vm.instructionPointer.toString().trim())
-        val array = error.target // a
+        error.target // a
         assertEquals("a", error.target.toString())
-        val index = error.invalidIndex // 10
+        error.invalidIndex // 10
         assertEquals(10, error.invalidIndex)
         val exp = error.indexExpression // b.length
         assertEquals("b.length", exp.toString())
@@ -274,13 +274,13 @@ class TestsPaper {
     fun testJVM() {
         val time = System.currentTimeMillis()
         var i = 0
-        var s = 0;
+        var s = 0
         while (i < 1000) {
             s += i
             i++
         }
         println(System.currentTimeMillis() - time)
-        return;
+        return
     }
 
 

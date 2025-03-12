@@ -14,14 +14,14 @@ class TestStackRecord: BaseTest({
     }
 
     Procedure(type.reference(), "init") {
-        val capacity = Param(INT, "capacity")
+        Param(INT, "capacity")
         val stack = type.heapAllocation()
         Return(stack)
     }
 
     Procedure(VOID, "push") {
-        val stack = Param(type, "stack")
-        val e = Param(INT, "element")
+        Param(type, "stack")
+        Param(INT, "element")
 
     }
 
@@ -31,7 +31,7 @@ class TestStackRecord: BaseTest({
 
     @Test
     fun `init`() {
-        val ret = vm.execute(procedure, vm.getValue(10))
+        vm.execute(procedure, vm.getValue(10))
         val push = module.procedure("push")
         vm.execute(push, vm.getValue(5))
         vm.execute(push, vm.getValue(6))

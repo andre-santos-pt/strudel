@@ -46,7 +46,7 @@ class TestArrayList : BaseTest({
         println(module.procedures)
         vm.execute(module.procedures[2] as IProcedure, list, vm.getValue(2))
         vm.execute(module.procedures[2] as IProcedure, list, vm.getValue(3))
-        val r = vm.execute(module.procedures[1] as IProcedure, list)
+        vm.execute(module.procedures[1] as IProcedure, list)
         assertEquals(2, vm.execute(module.procedures[1] as IProcedure, list)!!.toInt())
         //list.getField()
         //Assert.assertTrue(vm.error is ArrayIndexError && (vm.error as ArrayIndexError).invalidIndex == 6)

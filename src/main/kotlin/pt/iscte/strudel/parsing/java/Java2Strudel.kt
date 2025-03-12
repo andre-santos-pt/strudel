@@ -36,9 +36,9 @@ class Java2Strudel(
     private val checkJavaCompilation: Boolean = true,
     private val preprocessing: CompilationUnit.() -> Unit = { }, // Pre-process AST before translating
     private val allowedForeignNamespaces: List<String> = listOf(
-        java.lang.Integer::class.java.canonicalName,
+        Integer::class.java.canonicalName,
         java.lang.Double::class.java.canonicalName,
-        java.lang.Character::class.java.canonicalName,
+        Character::class.java.canonicalName,
         java.lang.Boolean::class.java.canonicalName,
         String::class.java.canonicalName,
         Math::class.java.canonicalName,
@@ -62,8 +62,7 @@ class Java2Strudel(
     private val fieldInitializers = mutableMapOf<IField, Expression>()
 
     init {
-        StaticJavaParser.getParserConfiguration()
-            .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_20)
+        StaticJavaParser.getParserConfiguration().languageLevel = ParserConfiguration.LanguageLevel.JAVA_20
         StaticJavaParser.getParserConfiguration()
             .setSymbolResolver(JavaSymbolSolver(typeSolver()))
     }

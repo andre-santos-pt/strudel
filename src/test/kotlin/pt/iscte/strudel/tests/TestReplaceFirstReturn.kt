@@ -6,7 +6,7 @@ import pt.iscte.strudel.model.cfg.IControlFlowGraph
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
 
-class TestReplaceFirstReturn : pt.iscte.strudel.tests.BaseTest({
+class TestReplaceFirstReturn : BaseTest({
     Procedure(VOID, "replaceFirst") {
         val a = Param(array(INT), "a")
         val e = Param(INT, "e")

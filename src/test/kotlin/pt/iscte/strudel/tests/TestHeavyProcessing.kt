@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 
 const val N2 = 1000
 
-class TestHeavyProcessing : pt.iscte.strudel.tests.BaseTest({
+class TestHeavyProcessing : BaseTest({
     Procedure(VOID, "test") {
         val i = Var(INT, "i")
         Assign(i, 0)
@@ -38,8 +38,8 @@ class TestHeavyProcessing : pt.iscte.strudel.tests.BaseTest({
     @Test
     fun `check i and j`() {
         vm.addListener(object : IVirtualMachine.IListener {
-            var i = 0;
-            var j = 0;
+            var i = 0
+            var j = 0
             override fun variableAssignment(a: IVariableAssignment, value: IValue) {
                 if(a.target.id == "i") {
                     val iStack = vm.callStack.topFrame.getValue("i").toInt()

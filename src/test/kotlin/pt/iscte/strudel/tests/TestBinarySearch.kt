@@ -6,7 +6,7 @@ import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.dsl.*
 import kotlin.test.assertTrue
 
-class TestBinarySearch : pt.iscte.strudel.tests.BaseTest({
+class TestBinarySearch : BaseTest({
     Procedure(BOOLEAN, "binarySearch") {
         val array = Param(INT.array().reference())
         val e = Param(INT)

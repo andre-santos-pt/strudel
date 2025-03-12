@@ -31,6 +31,6 @@ class TestIntDoubleEquality {
         println(module)
         val r = vm.execute(module.getProcedure("isMultiple"), vm.getValue(30.0),vm.getValue(5))
     println(r)
-        assertTrue(r?.isTrue ?: false)
+        assertTrue(r?.isTrue == true)
     }
 }

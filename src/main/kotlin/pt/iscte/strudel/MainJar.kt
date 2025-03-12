@@ -9,7 +9,7 @@ import java.io.File
 fun main(args: Array<String>) {
     if(args.isEmpty()) {
         System.err.println("at least one Java file has to be provided as argument")
-        return;
+        return
     }
 
     val files = args.map { File(it) }

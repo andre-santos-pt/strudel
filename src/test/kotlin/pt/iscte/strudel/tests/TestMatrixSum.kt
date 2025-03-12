@@ -5,7 +5,7 @@ import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.dsl.*
 import kotlin.test.assertEquals
 
-class TestMatrixSum : pt.iscte.strudel.tests.BaseTest({
+class TestMatrixSum : BaseTest({
     Procedure(INT, "sum") {
         val m = Param(INT.array().array().reference(), "m")
         val s = Var(INT, "s", 0)

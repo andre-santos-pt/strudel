@@ -12,7 +12,7 @@ import pt.iscte.strudel.vm.impl.Value
 import java.util.*
 import kotlin.test.assertTrue
 
-class TestJDKLinkedList : pt.iscte.strudel.tests.BaseTest({
+class TestJDKLinkedList : BaseTest({
     Procedure(linkedList, "testlist") {
         val list = Var(linkedList, "list")
         Assign(list, LListCreate.expression())
@@ -28,7 +28,7 @@ class TestJDKLinkedList : pt.iscte.strudel.tests.BaseTest({
         val r = vm.execute(procedure)
         val list = r!!.value as List<*>
         assertTrue(3 == list.size)
-        (1..3).forEachIndexed() { i, e -> assertTrue((list[i] as IValue).value == e) }
+        (1..3).forEachIndexed { i, e -> assertTrue((list[i] as IValue).value == e) }
     }
 }
 

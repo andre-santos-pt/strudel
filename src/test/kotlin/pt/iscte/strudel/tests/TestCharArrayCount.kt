@@ -7,7 +7,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
 import kotlin.test.assertTrue
 
-class TestCharArrayCount : pt.iscte.strudel.tests.BaseTest({
+class TestCharArrayCount : BaseTest({
     Procedure(INT, "count") {
         val a = Param(CHAR.array().reference(), "a")
         val n = Param(CHAR, "n")

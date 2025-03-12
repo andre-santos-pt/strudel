@@ -33,7 +33,7 @@ open class BlockListener(val target: IBlock) :
 
     class Event(val type: EventType, val element: IBlockElement, val index: Int = -1, val oldIndex: Int = -1)
 
-    open override fun add(element: IBlockElement, index: Int) {
+    override fun add(element: IBlockElement, index: Int) {
         val a = target.add(element, index)
         notifyObservers(Event(EventType.ADD, element, index))
         return a

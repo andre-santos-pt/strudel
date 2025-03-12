@@ -7,7 +7,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.ArithmeticOperator
 import kotlin.test.assertEquals
 
-class TestIsEven : pt.iscte.strudel.tests.BaseTest({
+class TestIsEven : BaseTest({
     Procedure(BOOLEAN, "isEven") {
         val value = Param(INT, "value")
         Return(ArithmeticOperator.MOD.on(value.expression(), lit(2)) equal lit(0))

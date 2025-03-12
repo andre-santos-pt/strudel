@@ -32,7 +32,7 @@ fun IReferenceType.checkArrayContent(vararg values: Int) =
 
 fun IArray.checkContent(vararg values: Int) {
     assertEquals(length, values.size)
-    values.forEachIndexed() {
+    values.forEachIndexed {
             i, e ->
         assertEquals(getElement(i).toInt(), e, "expected: ${values.toList()}, found: $this")
     }
@@ -40,7 +40,7 @@ fun IArray.checkContent(vararg values: Int) {
 
 fun IArray.checkContent(vararg values: Boolean) {
     assertEquals(length, values.size)
-    values.forEachIndexed() {
+    values.forEachIndexed {
             i, e ->
         assertEquals(getElement(i).toBoolean(), e, "expected: ${values.toList()}, found: $this")
     }
@@ -48,7 +48,7 @@ fun IArray.checkContent(vararg values: Boolean) {
 
 fun IArray.checkContent(vararg values: String) {
     assertEquals(length, values.size)
-    values.forEachIndexed() {
+    values.forEachIndexed {
             i, e ->
         assertEquals(getElement(i).toString(), e, "expected: ${values.toList()}, found: $this")
     }

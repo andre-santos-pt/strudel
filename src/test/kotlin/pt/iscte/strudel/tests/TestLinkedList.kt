@@ -10,7 +10,7 @@ import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.vm.addAllocationTracker
 import kotlin.test.assertEquals
 
-class TestLinkedList : pt.iscte.strudel.tests.BaseTest({
+class TestLinkedList : BaseTest({
 
     id = "SingleLinkedList"
 

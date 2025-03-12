@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 // TODO
-class TestMatrixIndexOutOfBounds : pt.iscte.strudel.tests.BaseTest({
+class TestMatrixIndexOutOfBounds : BaseTest({
     Procedure(INT, "get") {
         val a = Param(array(INT), "a")
         val i = Param(INT, "i")
