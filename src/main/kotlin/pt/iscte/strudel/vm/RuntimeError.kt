@@ -38,6 +38,10 @@ open class RuntimeError(
     }
 }
 
+class StackOverflowError(
+    val instruction: IProgramElement?
+) : RuntimeError(RuntimeErrorType.STACK_OVERFLOW, instruction, "Stack overflow")
+
 class LoopIterationLimitError(
     val loop: ILoop,
     val limit: Int
