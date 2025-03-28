@@ -98,8 +98,8 @@ class ProcedureInterpreterNoExpression(
                     }
                     if (guardEval.isTrue) {
                         blockStack.push(BlockExec(next.block, true))
-                        if (loopCount[next] == vm.loopIterationMaximum)
-                            throw LoopIterationLimitError(next, vm.loopIterationMaximum)
+                        if (vm.loopIterationMaximum != null && loopCount[next] == vm.loopIterationMaximum)
+                            throw LoopIterationLimitError(next, vm.loopIterationMaximum!!)
                         loopCount[next] = (loopCount[next] ?: 0) + 1
                         vm.listeners.forEach {
                             it.loopIteration(next)

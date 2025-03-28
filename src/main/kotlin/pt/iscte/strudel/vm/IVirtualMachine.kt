@@ -11,7 +11,7 @@ interface IVirtualMachine {
     val callStack: ICallStack
     val heapMemory: IHeapMemory
     val callStackMaximum: Int
-    val loopIterationMaximum: Int
+    val loopIterationMaximum: Int?
     val availableMemory: Int
     val usedMemory: Int
     val throwExceptions: Boolean
