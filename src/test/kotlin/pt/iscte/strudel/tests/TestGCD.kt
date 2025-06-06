@@ -6,7 +6,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestGCD : BaseTest({
     Procedure(INT, "gcd") {

@@ -6,8 +6,8 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.ArrayIndexError
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.RuntimeError
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 // TODO
 class TestMatrixIndexOutOfBounds : BaseTest({

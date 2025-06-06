@@ -15,9 +15,9 @@ repositories {
 
 dependencies {
     api("com.github.javaparser:javaparser-symbol-solver-core:3.26.2")
-    testApi("org.junit.jupiter:junit-jupiter-api:5.9.2")
-    testApi("org.junit.platform:junit-platform-suite:1.9.2")
-    testImplementation(kotlin("test"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
+    testImplementation("org.junit.platform:junit-platform-suite-api:1.9.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib-jdk8"))
 }
@@ -28,7 +28,6 @@ tasks.test {
 
 tasks.withType<Test> {
     exclude("**/temp/**")
-
 }
 
 java {

@@ -37,7 +37,7 @@ class TestDocumentation {
     @Test
     fun `Parsed procedure line comment`() {
         val src = """
-            public class IntArraySum {
+            class IntArraySum {
                 
                 // This function sums all the values of an integer array.
                 public static int sum(int[] a) {
@@ -58,7 +58,7 @@ class TestDocumentation {
     @Test
     fun `Parsed procedure Javadoc comment`() {
         val src = """
-            public class IntArraySum {
+            class IntArraySum {
                 
                 /**
                 This is a Javadoc comment.
@@ -87,7 +87,7 @@ class TestDocumentation {
     fun `Parsed record line comment`() {
         val src = """
             // This is a simple class with no procedures.
-            public class CompletelyEmpty {
+            class CompletelyEmpty {
 
             }
         """.trimIndent()
@@ -100,7 +100,7 @@ class TestDocumentation {
     @Test
     fun `Parsed statement line comment`() {
         val src = """
-            public class HelloWorld {
+            class HelloWorld {
             
                 public static int hello() {
                     System.out.println("Hello there! This function will return the integer value 42.");

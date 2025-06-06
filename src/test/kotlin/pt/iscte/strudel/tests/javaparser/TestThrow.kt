@@ -1,13 +1,12 @@
 package pt.iscte.strudel.tests.javaparser
 
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.parsing.java.Java2Strudel
-import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.parsing.java.ReturnError
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.RuntimeError
 import pt.iscte.strudel.vm.RuntimeErrorType
-import kotlin.test.*
 
 class TestThrow {
 

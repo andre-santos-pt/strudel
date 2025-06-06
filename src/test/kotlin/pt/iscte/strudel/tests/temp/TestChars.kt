@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.CHAR
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.tests.BaseTest
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestChars : BaseTest({
     Procedure(CHAR, "next") {

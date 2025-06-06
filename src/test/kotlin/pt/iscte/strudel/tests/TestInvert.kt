@@ -7,7 +7,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestInvert : BaseTest({
     val swap = Procedure(VOID, "swap") {

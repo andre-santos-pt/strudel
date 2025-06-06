@@ -1,7 +1,7 @@
 package pt.iscte.strudel.tests
 
 import pt.iscte.strudel.parsing.java.Java2Strudel
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 
 class TestForResolveAssignPlus {
 

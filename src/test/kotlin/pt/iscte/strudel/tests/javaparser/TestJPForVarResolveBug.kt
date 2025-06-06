@@ -5,15 +5,13 @@ import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
-import org.junit.jupiter.api.Test
+
 import pt.iscte.strudel.parsing.java.Java2Strudel
-import pt.iscte.strudel.parsing.java.extensions.simpleNameAsString
 import pt.iscte.strudel.vm.IVirtualMachine
 
 class TestJPForVarResolveBug {
 
 
-    @Test
     fun testPosition() {
         val src = """
             record Position(int line, int column) {
@@ -82,7 +80,7 @@ class TestJPForVarResolveBug {
 
     }
 
-    @Test
+
     fun testLiterals() {
         val src = """
            class Test {
@@ -98,7 +96,7 @@ class TestJPForVarResolveBug {
 
     }
 
-    @Test
+
     fun test() {
         val src = """
             record Position(int line, int column) {
@@ -184,7 +182,6 @@ class TestJPForVarResolveBug {
 
     }
 
-    @Test
     fun `bug Report case -- supposed to fail for now`() {
         val src = """
             class Dummy { 

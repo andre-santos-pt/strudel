@@ -6,7 +6,7 @@ import pt.iscte.strudel.model.dsl.Param
 import pt.iscte.strudel.model.dsl.Procedure
 import pt.iscte.strudel.model.dsl.Return
 import pt.iscte.strudel.model.util.UnaryOperator
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestUnaryPlus : BaseTest({
     Procedure(INT, "useless") {

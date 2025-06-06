@@ -8,7 +8,7 @@ import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.impl.VirtualMachine
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 
 class TestStringMemory {
 

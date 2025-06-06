@@ -7,7 +7,7 @@ import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IValue
 import kotlin.math.abs
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 
 fun IModule.procedure(id: String) =  procedures.find{ it.id == id }!! as IProcedure

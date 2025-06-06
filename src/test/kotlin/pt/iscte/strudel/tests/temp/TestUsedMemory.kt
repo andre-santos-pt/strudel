@@ -1,10 +1,9 @@
-package pt.iscte.strudel.tests
+package pt.iscte.strudel.tests.temp
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.DOUBLE
 import pt.iscte.strudel.model.INT
-import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.IProcedureDeclaration
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.IValue

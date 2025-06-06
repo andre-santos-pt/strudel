@@ -7,8 +7,8 @@ import pt.iscte.strudel.vm.ArrayIndexError
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.RuntimeError
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestArrayIndexOutOfBounds : BaseTest({
     Procedure(INT, "get") {
@@ -25,6 +25,7 @@ class TestArrayIndexOutOfBounds : BaseTest({
         override fun executionError(e: RuntimeError) {
             hit = true
             assertTrue(e is ArrayIndexError)
+            e as ArrayIndexError
             assertEquals(invalid, e.invalidIndex)
             array = e.array
         }

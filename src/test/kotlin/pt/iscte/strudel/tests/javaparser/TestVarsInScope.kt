@@ -5,14 +5,14 @@ import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.ILoop
 import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.model.util.find
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestVarsInScope {
 
     @Test
     fun test() {
         val src = """
-            public class Test {
+            class Test {
                 public static void bubbleSort(int[] arr) {
                     int n = arr.length;
                     boolean swapped;

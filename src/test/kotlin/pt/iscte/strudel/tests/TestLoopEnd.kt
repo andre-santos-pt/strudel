@@ -5,8 +5,8 @@ import pt.iscte.strudel.model.ILoop
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 
 class TestLoopEnd : BaseTest({
   Procedure(INT.array().reference(), "naturals") {

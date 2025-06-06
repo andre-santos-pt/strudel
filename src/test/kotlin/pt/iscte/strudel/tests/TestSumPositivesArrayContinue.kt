@@ -8,7 +8,7 @@ import pt.iscte.strudel.model.IVariableDeclaration
 import pt.iscte.strudel.model.cfg.IControlFlowGraph
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestSumPositivesArrayContinue : BaseTest({
     Procedure(DOUBLE, "sum") {

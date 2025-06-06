@@ -3,8 +3,8 @@ package pt.iscte.strudel.tests.javaparser
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestCallStaticInInstance {
 

@@ -5,7 +5,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.cfg.IControlFlowGraph
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.find
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestMaxArray : BaseTest({
     Procedure(INT, "max") {

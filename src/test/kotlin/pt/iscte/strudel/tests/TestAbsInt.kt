@@ -1,10 +1,10 @@
 package pt.iscte.strudel.tests
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.UnaryOperator
-import kotlin.test.assertEquals
 
 class TestAbsInt : BaseTest({
     Procedure(INT, "abs") {

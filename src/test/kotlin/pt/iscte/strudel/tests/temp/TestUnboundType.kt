@@ -6,7 +6,7 @@ import pt.iscte.strudel.model.DOUBLE
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.tests.BaseTest
 import pt.iscte.strudel.tests.approxEqual
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestUnboundType : BaseTest({
     Procedure(ANY, "sum") {

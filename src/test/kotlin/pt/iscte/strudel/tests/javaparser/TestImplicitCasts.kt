@@ -8,10 +8,7 @@ import pt.iscte.strudel.model.util.findAll
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.math.min
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestImplicitCasts {
     val code = """ 
@@ -78,8 +75,7 @@ class TestImplicitCasts {
         val module = Java2Strudel().load(src)
         println(module)
 
-        val arr = vm.execute(module["main"])
-        assertIs<IReference<IArray>>(arr)
+        val arr = vm.execute(module["main"]) as IReference<IArray>
         assertEquals(DOUBLE, arr.target.getElement(0).type)
         assertEquals(9.0, arr.target.getElement(0).value)
     }

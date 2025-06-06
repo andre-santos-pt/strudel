@@ -9,8 +9,8 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.vm.*
 import pt.iscte.strudel.vm.impl.*
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestsPaper {
     val binarySearchCode = """

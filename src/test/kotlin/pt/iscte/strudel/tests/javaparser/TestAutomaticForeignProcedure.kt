@@ -5,8 +5,8 @@ import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.extensions.getString
 import pt.iscte.strudel.tests.referenceValue
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestAutomaticForeignProcedure {
 

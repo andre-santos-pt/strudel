@@ -5,7 +5,7 @@ import org.junit.jupiter.api.assertThrows
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.LoadingError
 import pt.iscte.strudel.parsing.java.LoadingErrorType
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestLoadingErrors {
 

@@ -6,7 +6,7 @@ import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.util.*
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestExpressionMaterialize {
 

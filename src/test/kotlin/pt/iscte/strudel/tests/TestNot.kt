@@ -6,8 +6,8 @@ import pt.iscte.strudel.model.dsl.Param
 import pt.iscte.strudel.model.dsl.Procedure
 import pt.iscte.strudel.model.dsl.Return
 import pt.iscte.strudel.model.util.UnaryOperator
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestNot : BaseTest({
     Procedure(BOOLEAN, "not") {

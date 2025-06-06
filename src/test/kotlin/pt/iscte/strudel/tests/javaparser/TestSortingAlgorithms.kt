@@ -5,8 +5,8 @@ import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.IProcedure
 import pt.iscte.strudel.vm.IVirtualMachine
 import kotlin.io.path.Path
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestSortingAlgorithms {
     @Test

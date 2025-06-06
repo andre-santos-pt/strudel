@@ -8,8 +8,8 @@ import pt.iscte.strudel.model.util.find
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestNaturals : BaseTest({
     Procedure(INT.array().reference(), "naturals") {

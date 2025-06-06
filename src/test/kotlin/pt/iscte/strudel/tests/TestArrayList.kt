@@ -1,8 +1,8 @@
 package pt.iscte.strudel.tests
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestArrayList : BaseTest({
 

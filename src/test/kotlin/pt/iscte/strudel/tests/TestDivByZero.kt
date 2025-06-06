@@ -8,8 +8,8 @@ import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.RuntimeError
 import pt.iscte.strudel.vm.RuntimeErrorType
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestDivByZeroInt : BaseTest({
     Procedure(INT, "test") {

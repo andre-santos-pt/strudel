@@ -1,10 +1,10 @@
 package pt.iscte.strudel.tests.javaparser
 
+import org.junit.jupiter.api.Assertions.fail
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.RuntimeError
-import kotlin.test.Test
-import kotlin.test.fail
+import org.junit.jupiter.api.Test
 
 
 class TestVarsWithSameId {

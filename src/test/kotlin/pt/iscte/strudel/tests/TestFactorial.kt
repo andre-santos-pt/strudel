@@ -9,8 +9,8 @@ import pt.iscte.strudel.model.util.find
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.RuntimeErrorType
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestFactorial : BaseTest({
     Procedure(INT, "factorial") {

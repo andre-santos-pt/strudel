@@ -5,7 +5,7 @@ import pt.iscte.strudel.model.BOOLEAN
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.ArithmeticOperator
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestIsEven : BaseTest({
     Procedure(BOOLEAN, "isEven") {

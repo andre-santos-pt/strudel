@@ -1,14 +1,11 @@
 package pt.iscte.strudel.tests.javaparser
 
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.ReturnError
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 class TestJavaAssert {
 

@@ -8,8 +8,8 @@ import pt.iscte.strudel.model.IProcedureDeclaration
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestAvgInvoke : BaseTest({
     val sumProcedure = Procedure(DOUBLE, "sum") {

@@ -1,13 +1,10 @@
 package pt.iscte.strudel.tests.javaparser
 
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.vm.*
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 class TestNestedType {
 
@@ -116,8 +113,7 @@ class TestNestedType {
         assertEquals(12345, lastItem.target.value)
 
         val iteratorMethod = module.getProcedure("iterator", "LinkedList")
-        val ref = vm.execute(iteratorMethod, list)
-        assertIs<IReference<IRecord>>(ref)
+        val ref = vm.execute(iteratorMethod, list) as IReference<IRecord>
         val iterator: IRecord = ref.target
 
         val current = iterator.getField(iteratorType["current"]) as IReference<IRecord>

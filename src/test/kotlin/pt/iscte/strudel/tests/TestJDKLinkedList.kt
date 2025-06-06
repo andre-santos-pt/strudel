@@ -10,7 +10,7 @@ import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.impl.IForeignProcedure
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestJDKLinkedList : BaseTest({
     Procedure(linkedList, "testlist") {

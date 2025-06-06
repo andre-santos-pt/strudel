@@ -3,7 +3,7 @@ package pt.iscte.strudel.tests
 import org.junit.jupiter.api.assertThrows
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.parsing.java.LoadingError
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 
 class TestNoSystemExit {
 

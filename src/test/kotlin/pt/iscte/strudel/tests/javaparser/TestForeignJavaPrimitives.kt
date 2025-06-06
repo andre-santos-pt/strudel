@@ -7,8 +7,8 @@ import pt.iscte.strudel.parsing.java.allocateString
 import pt.iscte.strudel.parsing.java.allocateStringArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestForeignJavaPrimitives {
 

@@ -1,6 +1,8 @@
 package pt.iscte.strudel.tests
 
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.*
@@ -10,8 +12,6 @@ import pt.iscte.strudel.model.dsl.module
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IValue
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 abstract class BaseTest {
     val module : IModule

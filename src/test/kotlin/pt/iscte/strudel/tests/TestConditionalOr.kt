@@ -12,7 +12,7 @@ import pt.iscte.strudel.model.impl.Conditional
 import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.vm.NULL
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestConditionalOr : BaseTest({
     Procedure(BOOLEAN, "hasNoElements") {

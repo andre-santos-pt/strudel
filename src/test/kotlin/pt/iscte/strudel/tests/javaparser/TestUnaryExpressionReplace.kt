@@ -1,12 +1,12 @@
 package pt.iscte.strudel.tests.javaparser
 
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.model.impl.ArrayElementAssignment
 import pt.iscte.strudel.model.impl.RecordFieldAssignment
 import pt.iscte.strudel.parsing.java.LoadingError
-import kotlin.test.assertIs
 
 class TestUnaryExpressionReplace {
     @Test
@@ -31,8 +31,8 @@ class TestUnaryExpressionReplace {
         """.trimIndent()
         val module = Java2Strudel().load(src)
         val body = module.get("add").block
-        assertIs<ArrayElementAssignment>(body.children[0])
-        assertIs<RecordFieldAssignment>(body.children[1])
+        assertTrue(body.children[0] is ArrayElementAssignment)
+        assertTrue(body.children[1] is RecordFieldAssignment)
     }
 
     @Test

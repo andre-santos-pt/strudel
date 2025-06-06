@@ -7,7 +7,7 @@ import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.cfg.IControlFlowGraph
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.ArrayIndexError
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestSwap : BaseTest({
     Procedure(VOID, "swap") {

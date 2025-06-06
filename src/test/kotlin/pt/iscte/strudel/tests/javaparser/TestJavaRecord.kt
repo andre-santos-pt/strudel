@@ -1,5 +1,6 @@
 package pt.iscte.strudel.tests.javaparser
 
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import pt.iscte.strudel.model.INT
@@ -9,10 +10,6 @@ import pt.iscte.strudel.vm.IRecord
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
 import pt.iscte.strudel.vm.RuntimeError
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
 class TestJavaRecord {
 
@@ -186,9 +183,8 @@ class TestJavaRecord {
         val vm = IVirtualMachine.create()
 
         val test = module.getProcedure("test", "Test")
-        val qq = vm.execute(test)
+        val qq = vm.execute(test) as IReference<IRecord>
 
-        assertIs<IReference<IRecord>>(qq)
         assertEquals(3, qq.target.getField(qqType["x"]).value)
         assertEquals(2, qq.target.getField(qqType["y"]).value)
 
@@ -218,9 +214,8 @@ class TestJavaRecord {
         val vm = IVirtualMachine.create()
 
         val sum = module.getProcedure("sum", "Test")
-        val sumRes = vm.execute(sum, vm.allocateRecord(module.getRecordType("Point")), vm.getValue(4))
+        val sumRes = vm.execute(sum, vm.allocateRecord(module.getRecordType("Point")), vm.getValue(4)) as IReference<IRecord>
 
-        assertIs<IReference<IRecord>>(sumRes)
         assertEquals(4, sumRes.target.getField(qqType["x"]).value)
         assertEquals(4, sumRes.target.getField(qqType["y"]).value)
 

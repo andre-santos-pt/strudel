@@ -9,7 +9,7 @@ import pt.iscte.strudel.model.cfg.createCFG
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.vm.impl.IForeignProcedure
 import pt.iscte.strudel.vm.impl.Value
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 
 val StringCreate = IForeignProcedure.create("String", "create", StringType, listOf(CHAR)) { m, args ->
     Value(StringType, args[0].value.toString())

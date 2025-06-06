@@ -11,7 +11,7 @@ import pt.iscte.strudel.tests.checkIntArrayContent
 import pt.iscte.strudel.vm.IArray
 import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestNaturalsTemp : BaseTest({
     Procedure(INT.array().reference(), "naturals") {

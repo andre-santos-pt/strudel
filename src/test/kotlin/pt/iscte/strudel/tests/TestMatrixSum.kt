@@ -3,7 +3,7 @@ package pt.iscte.strudel.tests
 import org.junit.jupiter.api.Test
 import pt.iscte.strudel.model.INT
 import pt.iscte.strudel.model.dsl.*
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestMatrixSum : BaseTest({
     Procedure(INT, "sum") {

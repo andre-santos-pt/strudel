@@ -9,7 +9,7 @@ import pt.iscte.strudel.model.dsl.Procedure
 import pt.iscte.strudel.model.dsl.Return
 import pt.iscte.strudel.vm.impl.IForeignProcedure
 import kotlin.math.roundToInt
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestBuiltinRound: BaseTest({
   Procedure(INT, "roundInt") {

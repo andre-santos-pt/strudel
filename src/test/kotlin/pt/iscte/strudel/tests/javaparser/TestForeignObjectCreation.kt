@@ -4,8 +4,7 @@ import org.junit.jupiter.api.Test
 import pt.iscte.strudel.parsing.java.Java2Strudel
 import pt.iscte.strudel.tests.referenceValue
 import pt.iscte.strudel.vm.IVirtualMachine
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class TestForeignObjectCreation {
 
@@ -33,11 +32,11 @@ class TestForeignObjectCreation {
         val rand = module.getProcedure("rand")
         val result = vm.execute(rand)?.value
 
-        assertIs<Int>(result)
+        assertTrue(result is Int)
         assertTrue(result in 0..10)
 
         val newRandom = module.getProcedure("newRandom")
         val ref = vm.execute(newRandom)?.referenceValue
-        assertIs<java.util.Random>(ref)
+        assertTrue(ref is java.util.Random)
     }
 }

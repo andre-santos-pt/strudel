@@ -1,15 +1,23 @@
 package pt.iscte.strudel.parsing.java.extensions
 
-import com.github.javaparser.ast.*
+import com.github.javaparser.ast.CompilationUnit
+import com.github.javaparser.ast.Node
+import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.body.*
-import com.github.javaparser.ast.expr.*
-import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.comments.Comment
+import com.github.javaparser.ast.expr.*
+import com.github.javaparser.ast.stmt.BlockStmt
+import com.github.javaparser.ast.stmt.ExpressionStmt
+import com.github.javaparser.ast.stmt.ReturnStmt
+import com.github.javaparser.ast.stmt.Statement
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import com.github.javaparser.resolution.types.ResolvedType
-import pt.iscte.strudel.parsing.java.*
 import pt.iscte.strudel.model.*
-import pt.iscte.strudel.vm.*
+import pt.iscte.strudel.parsing.java.CONSTRUCTOR_FLAG
+import pt.iscte.strudel.parsing.java.EQUALS_FLAG
+import pt.iscte.strudel.parsing.java.OUTER_PARAM
+import pt.iscte.strudel.parsing.java.StringType
+import pt.iscte.strudel.vm.IReference
 import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
@@ -24,8 +32,8 @@ val IProcedureDeclaration.hasOuterParameter: Boolean
 val IProcedureDeclaration.hasThisParameter: Boolean
     get() = kotlin.runCatching { this.thisParameter }.isSuccess
 
-val IModule.proceduresExcludingConstructors: List<IProcedureDeclaration>
-    get() = procedures.filter { !it.hasFlag(CONSTRUCTOR_FLAG) }
+val IModule.proceduresExcludingConstructorsAndForeign: List<IProcedureDeclaration>
+    get() = procedures.filter { !it.hasFlag(CONSTRUCTOR_FLAG) && !it.isForeign }
 
 val IRecordType.hasEquals: Boolean
     get() = module?.let { m -> m.procedures.any { it.hasFlag(EQUALS_FLAG) } } == true

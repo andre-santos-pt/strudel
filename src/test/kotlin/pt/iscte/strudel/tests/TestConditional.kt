@@ -7,7 +7,7 @@ import pt.iscte.strudel.model.dsl.Procedure
 import pt.iscte.strudel.model.dsl.Return
 import pt.iscte.strudel.model.impl.Conditional
 import pt.iscte.strudel.model.util.RelationalOperator
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestConditional : BaseTest({
     Procedure(INT, "max") {

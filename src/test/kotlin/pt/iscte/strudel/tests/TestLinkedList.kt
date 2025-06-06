@@ -8,7 +8,7 @@ import pt.iscte.strudel.model.VOID
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.util.RelationalOperator
 import pt.iscte.strudel.vm.addAllocationTracker
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class TestLinkedList : BaseTest({
 
