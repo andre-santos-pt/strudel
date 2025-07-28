@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "pt.iscte"
-version = "0.10.5"
+version = "0.10.6"
 
 repositories {
     mavenCentral()
@@ -20,6 +20,8 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib-jdk8"))
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 }
 
 tasks.test {

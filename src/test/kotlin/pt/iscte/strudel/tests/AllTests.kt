@@ -1,5 +1,6 @@
 package pt.iscte.strudel.tests
 
+import org.junit.jupiter.api.Test
 import org.junit.platform.suite.api.SelectClasses
 import org.junit.platform.suite.api.Suite
 import pt.iscte.strudel.tests.javaparser.*
@@ -7,7 +8,6 @@ import java.io.File
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.hasAnnotation
-import org.junit.jupiter.api.Test
 
 
 @Suite
@@ -168,7 +168,9 @@ import org.junit.jupiter.api.Test
 
     TestExplicitConstructor::class,
 
-    TestVarsWithSameId::class
+    TestVarsWithSameId::class,
+
+    TestJavaArrayList::class
 )
 class AllTests
 

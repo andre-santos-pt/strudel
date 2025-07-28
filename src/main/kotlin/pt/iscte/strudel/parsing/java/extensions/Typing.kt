@@ -2,7 +2,6 @@ package pt.iscte.strudel.parsing.java.extensions
 
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.TypeDeclaration
-import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.ast.expr.VariableDeclarationExpr
@@ -15,17 +14,15 @@ import com.github.javaparser.resolution.model.typesystem.NullType
 import com.github.javaparser.resolution.types.*
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
-import pt.iscte.strudel.parsing.java.OUTER_PARAM
-import pt.iscte.strudel.parsing.java.defaultTypes
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.impl.ArrayType
 import pt.iscte.strudel.parsing.java.LoadingError
+import pt.iscte.strudel.parsing.java.OUTER_PARAM
+import pt.iscte.strudel.parsing.java.defaultTypes
 import pt.iscte.strudel.vm.NULL
 import java.lang.reflect.Array
 import java.lang.reflect.Method
 import kotlin.jvm.optionals.getOrNull
-import kotlin.reflect.full.cast
-import kotlin.reflect.full.createType
 
 internal fun typeSolver(): TypeSolver =
     CombinedTypeSolver().apply { add(ReflectionTypeSolver()) }
@@ -60,13 +57,12 @@ internal fun getTypeByName(
 
     return runCatching {
         val componentTypeName = qualifiedName.replace("[]", "")
-        var type = defaultTypes[componentTypeName] ?: types[componentTypeName]
-        ?: HostRecordType(
-            getClassByName(
-                componentTypeName,
-                location
-            ).canonicalName
-        )
+
+        var type =
+            defaultTypes[componentTypeName]
+            ?: types[componentTypeName]
+            ?: HostRecordType(getClassByName(componentTypeName, location).canonicalName)
+
         (0 until arrayTypeDepth).forEach { _ -> type = type.array() }
         type.reference()
     }.getOrElse {
@@ -182,26 +178,18 @@ internal fun Expression.getResolvedJavaType(): Class<*> = kotlin.runCatching {
     .getOrThrow()
 
 internal fun Expression.getResolvedType(): ResolvedType =
-    kotlin.runCatching {
-        try {
-            calculateResolvedType()
-        } catch (e: UnsolvedSymbolException) {
-            this.resolveHack() ?: throw e
-        }
-    }.onFailure {
-        println("Failed to resolve type of $this: $it")
-    }.getOrThrow()
+    try {
+        calculateResolvedType()
+    } catch (e: UnsolvedSymbolException) {
+        this.resolveHack() ?: throw e
+    }
 
 internal fun Expression.getResolvedIType(types: Map<String, IType>): IType =
-    kotlin.runCatching {
-        try {
-            calculateResolvedType().toIType(types, this)
-        } catch (e: UnsolvedSymbolException) {
-            this.resolveHack(types) ?: throw e
-        }
-    }.onFailure {
-        println("Failed to resolve type of $this: $it")
-    }.getOrThrow()
+    try {
+        calculateResolvedType().toIType(types, this)
+    } catch (e: UnsolvedSymbolException) {
+        this.resolveHack(types) ?: throw e
+    }
 
 
 // TODO hack to cover JP solver bug

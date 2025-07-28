@@ -15,18 +15,14 @@ import com.github.javaparser.ast.stmt.WhileStmt
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade
-import pt.iscte.strudel.parsing.java.extensions.*
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.PolymophicProcedure
 import pt.iscte.strudel.model.util.LogicalOperator
 import pt.iscte.strudel.model.util.RelationalOperator
-import pt.iscte.strudel.parsing.java.extensions.matches
-import pt.iscte.strudel.parsing.java.extensions.qualifiedName
+import pt.iscte.strudel.parsing.java.extensions.*
 import java.io.File
 import java.util.*
-import kotlin.Comparator
-import kotlin.collections.ArrayList
 
 
 class Java2Strudel(
@@ -648,17 +644,21 @@ class Java2Strudel(
 
                 c.fields.forEach { field ->
                     field.variables.forEach { variableDeclaration ->
+                        val fieldType = types.mapType(variableDeclaration.type, field)
+                        /*
                         val fieldType =
                             if (variableDeclaration.isGeneric(c)) types["java.lang.Object"]
                             else types[variableDeclaration.typeAsString]
                                 ?: types[kotlin.runCatching { variableDeclaration.type.resolve().simpleNameAsString }
                                     .getOrDefault(variableDeclaration.type.asString())]
+
                         if (fieldType == null)
                             LoadingError.translation(
                                 "Could not find type for variable declaration ${variableDeclaration.typeAsString} / ${
                                     variableDeclaration.type.resolve().simpleNameAsString
                                 }", variableDeclaration
                             )
+                         */
 
                         val f = recordType.addField(fieldType) {
                             id = variableDeclaration.nameAsString

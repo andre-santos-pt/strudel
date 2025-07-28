@@ -6,11 +6,8 @@ import java.io.IOException
 import java.io.PrintWriter
 import java.net.URI
 import java.nio.charset.Charset
-import java.util.*
 import javax.tools.*
-import kotlin.collections.HashMap
-
-import javax.tools.JavaFileObject.Kind.SOURCE as SOURCE
+import javax.tools.JavaFileObject.Kind.SOURCE
 
 internal fun List<Diagnostic<out JavaFileObject>>.pretty(): String =
     joinToString(System.lineSeparator()) { "[Line ${it.lineNumber}] ${it.getMessage(null)}" }
@@ -71,7 +68,7 @@ object ClassLoader {
         return diagnostics.diagnostics.filter { it.kind == Diagnostic.Kind.ERROR }
     }
 
-    private class JavaSourceFromString(name: String, val code: String): SimpleJavaFileObject(
+    internal class JavaSourceFromString(name: String, val code: String): SimpleJavaFileObject(
         URI.create("string:///${name.replace('.', '/')}${SOURCE.extension}"), SOURCE
     ) {
         override fun getCharContent(ignoreEncodingErrors: Boolean): CharSequence = code

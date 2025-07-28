@@ -3,3 +3,6 @@
 /build/
 /build/classes/java/test/
 /src/test/kotlin/pt/iscte/strudel/tests/benchmark/
+/.benchmark/
+/src/main/kotlin/pt/iscte/strudel/benchmark/
+/src/main/resources/ip24/
