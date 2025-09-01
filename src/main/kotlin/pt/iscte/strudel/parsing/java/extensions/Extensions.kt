@@ -12,13 +12,12 @@ import com.github.javaparser.ast.stmt.ReturnStmt
 import com.github.javaparser.ast.stmt.Statement
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import com.github.javaparser.resolution.types.ResolvedType
-import pt.iscte.strudel.benchmark.loader.RecordTypeData
 import pt.iscte.strudel.model.*
-import pt.iscte.strudel.parsing.java.*
+import pt.iscte.strudel.parsing.java.CONSTRUCTOR_FLAG
+import pt.iscte.strudel.parsing.java.EQUALS_FLAG
+import pt.iscte.strudel.parsing.java.OUTER_PARAM
+import pt.iscte.strudel.parsing.java.StringType
 import pt.iscte.strudel.vm.IReference
-import pt.iscte.strudel.vm.IValue
-import pt.iscte.strudel.vm.IVirtualMachine
-import pt.iscte.strudel.vm.NULL
 import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
@@ -207,39 +206,39 @@ fun CompilationUnit.nodeAtLine(line: Int): Node? =
     findFirst(Node::class.java) { it.begin.isPresent && it.begin.get().line == line }.getOrNull
 
 // TODO ugly
-@Suppress("UNCHECKED_CAST")
-internal fun Any?.toIValue(vm: IVirtualMachine, module: IModule): IValue =
-    when (this) {
-        is Array<*> -> toList().toIValue(vm, module)
-        is Collection<*> -> {
-            if (isEmpty()) vm.allocateArrayOf(ANY)
-            else if (runCatching { vm.getValue(first()) }.isSuccess) {
-                val type = vm.getValue(first()).type
-                vm.allocateArrayOf(type, *this.map { it.toIValue(vm, module) }.toTypedArray())
-            } else if (first() is String) {
-                vm.allocateStringArray(*(this as Collection<String>).toTypedArray())
-            } else {
-                val typeName = when (val f = first()) {
-                    is RecordTypeData -> f.name
-                    else -> f!!::class.java.canonicalName
-                }
-                val type =
-                    module.types.firstOrNull { it.id == typeName } ?:
-                    throw java.lang.UnsupportedOperationException("Cannot find array base type: $typeName")
-                vm.allocateArrayOf(type, *this.map { it.toIValue(vm, module) }.toTypedArray())
-            }
-        }
-        is IValue -> this
-        is String -> getString(this)
-        is RecordTypeData -> {
-            val recordType = module.getRecordType(this.name)
-            val ref = vm.allocateRecord(recordType)
-            val record = ref.target
-            recordType.fields.forEachIndexed { i, field ->
-                record.setField(field, this.fields[i].toIValue(vm, module))
-            }
-            ref
-        }
-        null -> NULL
-        else -> vm.getValue(this)
-    }
+//@Suppress("UNCHECKED_CAST")
+//internal fun Any?.toIValue(vm: IVirtualMachine, module: IModule): IValue =
+//    when (this) {
+//        is Array<*> -> toList().toIValue(vm, module)
+//        is Collection<*> -> {
+//            if (isEmpty()) vm.allocateArrayOf(ANY)
+//            else if (runCatching { vm.getValue(first()) }.isSuccess) {
+//                val type = vm.getValue(first()).type
+//                vm.allocateArrayOf(type, *this.map { it.toIValue(vm, module) }.toTypedArray())
+//            } else if (first() is String) {
+//                vm.allocateStringArray(*(this as Collection<String>).toTypedArray())
+//            } else {
+//                val typeName = when (val f = first()) {
+//                    is RecordTypeData -> f.name
+//                    else -> f!!::class.java.canonicalName
+//                }
+//                val type =
+//                    module.types.firstOrNull { it.id == typeName } ?:
+//                    throw java.lang.UnsupportedOperationException("Cannot find array base type: $typeName")
+//                vm.allocateArrayOf(type, *this.map { it.toIValue(vm, module) }.toTypedArray())
+//            }
+//        }
+//        is IValue -> this
+//        is String -> getString(this)
+//        is RecordTypeData -> {
+//            val recordType = module.getRecordType(this.name)
+//            val ref = vm.allocateRecord(recordType)
+//            val record = ref.target
+//            recordType.fields.forEachIndexed { i, field ->
+//                record.setField(field, this.fields[i].toIValue(vm, module))
+//            }
+//            ref
+//        }
+//        null -> NULL
+//        else -> vm.getValue(this)
+//    }
