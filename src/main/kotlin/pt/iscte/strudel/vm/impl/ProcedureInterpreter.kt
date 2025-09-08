@@ -171,7 +171,8 @@ class ProcedureInterpreter(
 
                 is IBinaryExpression -> operator.on(leftOperand.materialize(), rightOperand.materialize())
 
-//                is IUnaryExpression -> "${e.operator}${materialize(e.operand)}"
+                is IUnaryExpression -> operator.on(operand.materialize())
+
 //                is IProcedureCallExpression -> "${e.procedure.id}(${e.arguments.joinToString(", ") { materialize(it) }})"
                 is IArrayAccess -> if (target is IVariableExpression)
                     (target as IVariableExpression).variable[index.materialize()]
@@ -184,6 +185,8 @@ class ProcedureInterpreter(
 ////                    this.toString()
                 is IArrayLength -> if (target is IVariableExpression)
                     Literal(INT, (vm.topFrame.variables[(target as IVariableExpression).variable] as IReference<IArray>).target.length.toString())
+
+
                 else
                     this
 //                //  is IRecordFieldExpression -> "${materialize(e.target)}.${e.field}"

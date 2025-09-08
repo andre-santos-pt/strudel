@@ -166,6 +166,8 @@ class ProcedureInterpreterNoExpression(
                     rightOperand.materialize()
                 )
 
+                is IUnaryExpression -> operator.on(operand.materialize())
+
                 is IConditionalExpression -> Conditional(
                     condition.materialize(), trueCase.materialize(), falseCase.materialize()
                 )

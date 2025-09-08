@@ -16,5 +16,5 @@ internal class UnaryExpression(
 
     override val parts: List<IExpression> = listOf(operand)
 
-    override fun toString() = "${operator.id}$operand"
+    override fun toString() = "${operator.id}($operand)"
 }
