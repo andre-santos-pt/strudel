@@ -507,7 +507,7 @@ class ProcedureInterpreterNoExpression(
                 it.procedureCall(
                     call.procedure,
                     args,
-                    vm.callStack.previousFrame?.procedure
+                    vm.callStack.topFrame.procedure
                 )
             }
             val ret =  try {
@@ -539,7 +539,7 @@ class ProcedureInterpreterNoExpression(
                     it.procedureCall(
                         proc,
                         args,
-                        vm.callStack.previousFrame?.procedure
+                        vm.callStack.topFrame.procedure
                     )
                 }
                 val run = (proc as ForeignProcedure).run(vm, args)
