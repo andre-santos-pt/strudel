@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "pt.iscte"
-version = "0.10.7"
+version = "0.10.8"
 
 repositories {
     mavenCentral()
@@ -36,7 +36,6 @@ java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
-
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "17"

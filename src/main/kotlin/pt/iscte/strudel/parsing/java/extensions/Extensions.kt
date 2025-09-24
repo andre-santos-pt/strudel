@@ -112,6 +112,7 @@ internal fun Node.replaceBinaryOperatorAssignWithRegularAssign() =
                 val newAssign = AssignExpr(target, newValue, AssignExpr.Operator.ASSIGN)
 
                 n.replace(newAssign)
+                newValue.setRange(n.range.getOrNull)
                 newValue.accept(this, arg)
 
             } else

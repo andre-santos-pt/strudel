@@ -10,6 +10,7 @@ import pt.iscte.strudel.model.dsl.*
 import pt.iscte.strudel.model.impl.ProcedureCall
 import pt.iscte.strudel.model.impl.RecordFieldExpression
 import pt.iscte.strudel.model.impl.VariableExpression
+import pt.iscte.strudel.model.util.ArithmeticOperator
 import pt.iscte.strudel.model.util.UnaryOperator
 import pt.iscte.strudel.parsing.java.extensions.getOrNull
 import pt.iscte.strudel.parsing.java.extensions.getTypeFromJavaParser
@@ -116,7 +117,7 @@ class JavaStatement2Strudel(
                     is UnaryExpr -> when(s.operator) {
                         UnaryExpr.Operator.PREFIX_INCREMENT, UnaryExpr.Operator.POSTFIX_INCREMENT ->
                             when (val exp = exp2Strudel.map(s.expression)) {
-                                is VariableExpression -> block.Assign(exp.variable, exp.toCharCodeOrUnchanged() + lit(1))
+                                is VariableExpression -> block.Assign(exp.variable, ArithmeticOperator.ADD.on(exp.toCharCodeOrUnchanged(), lit(1)).bind(s))
                                 is RecordFieldExpression -> block.FieldSet(
                                     exp.target,
                                     exp.field,
@@ -126,7 +127,7 @@ class JavaStatement2Strudel(
                             }
                         UnaryExpr.Operator.PREFIX_DECREMENT, UnaryExpr.Operator.POSTFIX_DECREMENT ->
                             when (val exp = exp2Strudel.map(s.expression)) {
-                                is VariableExpression -> block.Assign(exp.variable, exp.toCharCodeOrUnchanged() - lit(1))
+                                is VariableExpression -> block.Assign(exp.variable, ArithmeticOperator.SUB.on(exp.toCharCodeOrUnchanged(), lit(1)).bind(s))
                                 is RecordFieldExpression -> block.FieldSet(
                                     exp.target,
                                     exp.field,
