@@ -258,9 +258,9 @@ fun countIterations(
 
 ## Projects using Strudel
 
-Check out the following publications 📰 and/or projects 🛠️, which use Strudel as a runtime environment:
+Check out the following publications 📰 and projects 🛠️, which use Strudel as a runtime environment:
 
 - 📰 [Jask: Generation of Questions About Learners' Code in Java](https://dl.acm.org/doi/10.1145/3502718.3524761)
 - 📰 [Jinter: A Hint Generation System for Java Exercises](https://dl.acm.org/doi/abs/10.1145/3587102.3588820)
-- 📰 [Witter: A Library for White-Box Testing of Introductory Programming Algorithms](https://github.com/ambco-iscte/witter)
+- 🛠️ [Witter: A Library for White-Box Testing of Introductory Programming Algorithms](https://github.com/ambco-iscte/witter)
 - 🛠️ [Jask: A Library for Generating Questions about Learners' Code in Java](https://github.com/ambco-iscte/jask)

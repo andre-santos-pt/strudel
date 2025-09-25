@@ -6,7 +6,6 @@ import pt.iscte.strudel.model.impl.Literal
 import pt.iscte.strudel.model.impl.PredefinedArrayAllocation
 import pt.iscte.strudel.model.util.*
 import pt.iscte.strudel.vm.*
-import java.lang.RuntimeException
 
 class ProcedureInterpreter(
     val vm: IVirtualMachine,
@@ -632,6 +631,8 @@ class ProcedureInterpreter(
                 ArithmeticOperator.MOD ->
                     if (right.toInt() == 0)
                         throw DivisionByZeroError(exp)
+                    else if (left.type == DOUBLE || right.type == DOUBLE)
+                        Value(DOUBLE, left.toDouble() % right.toDouble())
                     else
                         Value(INT, left.toInt() % right.toInt())
 

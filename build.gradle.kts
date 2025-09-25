@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URI
 
 plugins {
@@ -37,7 +36,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-tasks.withType<KotlinCompile> {
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions.jvmTarget = "17"
     //compilerOptions {
     //    freeCompilerArgs.add("-Xjvm-default=all")
