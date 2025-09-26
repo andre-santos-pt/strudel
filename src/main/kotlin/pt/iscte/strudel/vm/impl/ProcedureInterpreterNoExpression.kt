@@ -22,8 +22,7 @@ class ProcedureInterpreterNoExpression(
             blockStack.top.current
 
     val currentExpression: IExpression?
-        get() =
-            null
+        get() = null // TODO?
 
     fun <T> MutableList<T>.push(e: T) = add(e)
     fun <T> MutableList<T>.pop(): T {
@@ -402,7 +401,7 @@ class ProcedureInterpreterNoExpression(
             is PredefinedArrayAllocation -> {
                 vm.allocateArrayOfValues(
                     exp.componentType,
-                    exp.elements.map { evaluate(it) }, exp)
+                    exp.elements.map { evaluate(it) })
             }
 
             is IArrayAllocation -> {
@@ -421,14 +420,14 @@ class ProcedureInterpreterNoExpression(
                 }
 
                 val dim = dims[0].toInt()
-                val arrayRef = vm.allocateArray(baseType, dim, exp)
+                val arrayRef = vm.allocateArray(baseType, dim)
 
                 // TODO other dims? only works for 1 and 2
                 for (d in dims.drop(1)) {
                     for (i in 0 until dim) {
                         arrayRef.target.setElement(
                             i,
-                            vm.allocateArray(exp.componentType, d.toInt(), exp)
+                            vm.allocateArray(exp.componentType, d.toInt())
                         )
                     }
                 }
@@ -482,7 +481,7 @@ class ProcedureInterpreterNoExpression(
             is IProcedureCallExpression -> handleProcedureCall(exp)
 
             is IRecordAllocation -> {
-                vm.allocateRecord(exp.recordType, exp)
+                vm.allocateRecord(exp.recordType)
             }
 
             is IConditionalExpression ->

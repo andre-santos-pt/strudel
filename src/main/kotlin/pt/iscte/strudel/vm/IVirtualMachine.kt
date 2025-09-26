@@ -58,8 +58,8 @@ interface IVirtualMachine {
 
     fun execute(procedure: IProcedureDeclaration, vararg arguments: IValue): IValue?
 
-    fun allocateArray(baseType: IType, length: Int, sourceExp: IExpression? = null): IReference<IArray> {
-        val array = heapMemory.allocateArray(baseType, length, sourceExp = sourceExp)
+    fun allocateArray(baseType: IType, length: Int): IReference<IArray> {
+        val array = heapMemory.allocateArray(baseType, length)
         for (i in 0 until array.length)
             array.setElement(i, baseType.defaultValue)
 
@@ -70,8 +70,8 @@ interface IVirtualMachine {
         return ref
     }
 
-    fun allocateArrayOf(baseType: IType, vararg values: Any, sourceExp: IExpression? = null): IReference<IArray> {
-        val array = heapMemory.allocateArray(baseType, values.size, sourceExp = sourceExp)
+    fun allocateArrayOf(baseType: IType, vararg values: Any): IReference<IArray> {
+        val array = heapMemory.allocateArray(baseType, values.size)
         values.forEachIndexed { i, e ->
             val v =
                 if (e is IValue) e
@@ -94,8 +94,8 @@ interface IVirtualMachine {
         return ref
     }
 
-    fun allocateRecord(type: IRecordType, sourceExp: IExpression? = null): IReference<IRecord> {
-        val ref = Reference(heapMemory.allocateRecord(type, sourceExp))
+    fun allocateRecord(type: IRecordType): IReference<IRecord> {
+        val ref = Reference(heapMemory.allocateRecord(type))
         listeners.forEach { it.recordAllocated(ref) }
         return ref
     }

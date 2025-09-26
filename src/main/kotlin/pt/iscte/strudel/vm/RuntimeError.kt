@@ -5,6 +5,7 @@ import pt.iscte.strudel.model.IBinaryExpression
 import pt.iscte.strudel.model.IExpression
 import pt.iscte.strudel.model.ILoop
 import pt.iscte.strudel.model.IProgramElement
+import pt.iscte.strudel.model.IStatement
 import pt.iscte.strudel.model.ITargetExpression
 import pt.iscte.strudel.model.IVariableExpression
 
@@ -97,5 +98,5 @@ class NegativeArraySizeError(
 class OutOfMemoryError(
     val objects: MutableList<IValue>,
     val culprit: IValue,
-    val sourceExp: IExpression? = null
-): RuntimeError(RuntimeErrorType.OUT_OF_MEMORY, sourceExp, "Out of memory: cannot allocate $culprit at $sourceExp")
+    val source: IProgramElement? = null
+): RuntimeError(RuntimeErrorType.OUT_OF_MEMORY, source, "Out of memory: cannot allocate $culprit at $source")

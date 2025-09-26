@@ -170,7 +170,9 @@ import kotlin.reflect.full.hasAnnotation
 
     TestVarsWithSameId::class,
 
-    TestJavaArrayList::class
+    TestJavaArrayList::class,
+
+    TestOutOfMemoryError::class
 )
 class AllTests
 

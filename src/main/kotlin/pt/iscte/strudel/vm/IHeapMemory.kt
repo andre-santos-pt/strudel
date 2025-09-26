@@ -7,10 +7,10 @@ import pt.iscte.strudel.model.IType
 
 interface IHeapMemory {
     //@Throws(RuntimeError::class)
-    fun allocateArray(baseType: IType, vararg dimensions: Int, sourceExp: IExpression? = null): IArray
+    fun allocateArray(baseType: IType, vararg dimensions: Int): IArray
 
     //@Throws(RuntimeError::class)
-    fun allocateRecord(type: IRecordType, sourceExp: IExpression? = null): IRecord
+    fun allocateRecord(type: IRecordType): IRecord
 
     val memory: Int
 }

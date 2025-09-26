@@ -401,7 +401,7 @@ class ProcedureInterpreter(
 
             // TODO only works for 1 dim
             is PredefinedArrayAllocation -> eval(exp.elements)?.let {
-               val arrayRef = vm.allocateArrayOfValues(exp.componentType, it.reversed(), exp)
+               val arrayRef = vm.allocateArrayOfValues(exp.componentType, it.reversed())
 //                val arrayRef = vm.allocateArray(exp.componentType, exp.elements.size, exp)
 //                it.reversed().forEachIndexed { index, e ->
 //                    arrayRef.target.setElement(index, e)
@@ -424,14 +424,14 @@ class ProcedureInterpreter(
                 }
 
                 var dim = dims[0].toInt()
-                val arrayRef = vm.allocateArray(baseType, dim, exp)
+                val arrayRef = vm.allocateArray(baseType, dim)
 
                 // TODO other dims? only works for 1 and 2
                 for (d in dims.drop(1)) {
                     for (i in 0 until dim) {
                         arrayRef.target.setElement(
                             i,
-                            vm.allocateArray(exp.componentType, d.toInt(), exp)
+                            vm.allocateArray(exp.componentType, d.toInt())
                         )
                     }
                 }
@@ -487,7 +487,7 @@ class ProcedureInterpreter(
             }
 
             is IRecordAllocation -> {
-                valStack.push(vm.allocateRecord(exp.recordType, exp))
+                valStack.push(vm.allocateRecord(exp.recordType))
             }
 
             is IConditionalExpression -> {
@@ -692,8 +692,8 @@ class ProcedureInterpreter(
     }
 }
 
-internal fun IVirtualMachine.allocateArrayOfValues(baseType: IType, values: List<IValue>, sourceExp: IExpression? = null): IReference<IArray> {
-    val array = heapMemory.allocateArray(baseType, values.size, sourceExp = sourceExp)
+internal fun IVirtualMachine.allocateArrayOfValues(baseType: IType, values: List<IValue>): IReference<IArray> {
+    val array = heapMemory.allocateArray(baseType, values.size)
     // to avoid listener notification
     values.forEachIndexed { i, e ->
         (array as Array).array[i] = e
