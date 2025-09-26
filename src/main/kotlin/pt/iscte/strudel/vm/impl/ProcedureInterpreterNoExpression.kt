@@ -402,7 +402,7 @@ class ProcedureInterpreterNoExpression(
             is PredefinedArrayAllocation -> {
                 vm.allocateArrayOfValues(
                     exp.componentType,
-                    exp.elements.map { evaluate(it) })
+                    exp.elements.map { evaluate(it) }, exp)
             }
 
             is IArrayAllocation -> {
@@ -421,14 +421,14 @@ class ProcedureInterpreterNoExpression(
                 }
 
                 val dim = dims[0].toInt()
-                val arrayRef = vm.allocateArray(baseType, dim)
+                val arrayRef = vm.allocateArray(baseType, dim, exp)
 
                 // TODO other dims? only works for 1 and 2
                 for (d in dims.drop(1)) {
                     for (i in 0 until dim) {
                         arrayRef.target.setElement(
                             i,
-                            vm.allocateArray(exp.componentType, d.toInt())
+                            vm.allocateArray(exp.componentType, d.toInt(), exp)
                         )
                     }
                 }
@@ -482,7 +482,7 @@ class ProcedureInterpreterNoExpression(
             is IProcedureCallExpression -> handleProcedureCall(exp)
 
             is IRecordAllocation -> {
-                vm.allocateRecord(exp.recordType)
+                vm.allocateRecord(exp.recordType, exp)
             }
 
             is IConditionalExpression ->

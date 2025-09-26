@@ -118,19 +118,16 @@ internal class VirtualMachine(
     inner class Memory : IHeapMemory {
         private val objects: MutableList<IValue> = mutableListOf()
 
-        private fun add(v: IValue) {
+        private fun add(v: IValue, sourceExp: IExpression? = null) {
             if (memory + v.memory > availableMemory)
-                throw RuntimeError(
-                    RuntimeErrorType.OUT_OF_MEMORY,
-                    null,
-                    "out of memory"
-                )
+                throw OutOfMemoryError(objects, v, sourceExp)
             objects.add(v)
         }
 
         override fun allocateArray(
             baseType: IType,
-            vararg dimensions: Int
+            vararg dimensions: Int,
+            sourceExp: IExpression?
         ): IArray {
             require(dimensions.isNotEmpty() && dimensions[0] >= 0)
             var arrayType = baseType.array()
@@ -147,16 +144,16 @@ internal class VirtualMachine(
                 if (remainingDims[0] != -1)
                     for (j in 0 until dimensions[0])
                         array.setElement(
-                            j, allocateArray(baseType, *remainingDims)
+                            j, allocateArray(baseType, *remainingDims, sourceExp = sourceExp)
                         )
             }
-            add(array)
+            add(array, sourceExp)
             return array
         }
 
-        override fun allocateRecord(type: IRecordType): IRecord {
+        override fun allocateRecord(type: IRecordType, sourceExp: IExpression?): IRecord {
             val rec = Record(type)
-            add(rec)
+            add(rec, sourceExp)
             return rec
         }
 

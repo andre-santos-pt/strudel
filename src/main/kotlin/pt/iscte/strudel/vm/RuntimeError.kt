@@ -65,7 +65,7 @@ class ArrayIndexError(
     val indexExpression: IExpression,
     val array: IArray
 ) : RuntimeError(
-    RuntimeErrorType.ARRAY_INDEX_BOUNDS, element.index, "Invalid array index access"
+    RuntimeErrorType.ARRAY_INDEX_BOUNDS, element.index, "Invalid array index access: $element"
 ) {
     var target: IExpression
 
@@ -93,3 +93,9 @@ class NegativeArraySizeError(
                 " ; invalid size: " + invalidSize + " ; expression: " + sourceElement
     }
 }
+
+class OutOfMemoryError(
+    val objects: MutableList<IValue>,
+    val culprit: IValue,
+    val sourceExp: IExpression? = null
+): RuntimeError(RuntimeErrorType.OUT_OF_MEMORY, sourceExp, "Out of memory: cannot allocate $culprit at $sourceExp")
