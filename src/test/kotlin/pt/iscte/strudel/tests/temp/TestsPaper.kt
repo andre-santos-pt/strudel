@@ -98,11 +98,11 @@ class TestsPaper {
             1, 2, 4, 5, 7, 7, 9, 10, 10, 11, 14, 15, 15, 17, 20, 21, 22
         )
         val e: IValue = vm.getValue(20)
-        val process = ProcedureInterpreter(vm, binarySearch, array, e)
+        val process = ProcedureInterpreterNoExpression(vm, binarySearch, array, e)
         process.init()
         while (!process.isOver()) {
             println(process.instructionPointer)
-            process.stepStatement()
+            process.step()
         }
         val result: IValue? = process.returnValue
 

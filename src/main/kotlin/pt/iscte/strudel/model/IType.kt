@@ -8,6 +8,14 @@ interface ITypeProvider {
 
     fun getArrayType(componentType: IType): IArrayType
 
+    fun getArrayType(componentType: IType, dimensions: Int): IArrayType {
+        var at = getArrayType(componentType)
+        (1 until dimensions).forEach { _ ->
+            at = getArrayType(at)
+        }
+        return at
+    }
+
     fun getReferenceType(targetType: IType): IReferenceType
 }
 

@@ -2,6 +2,7 @@ package pt.iscte.strudel.vm.impl
 
 import pt.iscte.strudel.model.*
 import pt.iscte.strudel.model.dsl.get
+import pt.iscte.strudel.model.impl.ArrayLength
 import pt.iscte.strudel.model.impl.Conditional
 import pt.iscte.strudel.model.impl.Literal
 import pt.iscte.strudel.model.impl.PredefinedArrayAllocation
@@ -97,7 +98,10 @@ class ProcedureInterpreterNoExpression(
                     if (guardEval.isTrue) {
                         blockStack.push(BlockExec(next.block, true))
                         if (vm.loopIterationMaximum != null && loopCount[next] == vm.loopIterationMaximum)
-                            throw LoopIterationLimitError(next, vm.loopIterationMaximum!!)
+                            throw LoopIterationLimitError(
+                                next,
+                                vm.loopIterationMaximum!!
+                            )
                         loopCount[next] = (loopCount[next] ?: 0) + 1
                         vm.listeners.forEach {
                             it.loopIteration(next)
@@ -133,6 +137,7 @@ class ProcedureInterpreterNoExpression(
                     }
                     index++
                 }
+
                 else -> index++
             }
         }
@@ -167,14 +172,22 @@ class ProcedureInterpreterNoExpression(
                 is IUnaryExpression -> operator.on(operand.materialize())
 
                 is IConditionalExpression -> Conditional(
-                    condition.materialize(), trueCase.materialize(), falseCase.materialize()
+                    condition.materialize(),
+                    trueCase.materialize(),
+                    falseCase.materialize()
                 )
 
 //                is IUnaryExpression -> "${e.operator}${materialize(e.operand)}"
 //                is IProcedureCallExpression -> "${e.procedure.id}(${e.arguments.joinToString(", ") { materialize(it) }})"
                 is IArrayAccess -> if (target is IVariableExpression)
                     (target as IVariableExpression).variable[index.materialize()]
-                else
+                else if (target is IArrayAccess) {
+                    val t = target.materialize()
+                    if (t is ITargetExpression)
+                        ArrayLength(t)
+                    else
+                        this
+                } else
                     this
 //
 ////                is IArrayAccess -> if (e.target is IVariableExpression)
@@ -202,7 +215,8 @@ class ProcedureInterpreterNoExpression(
         }
 
     private fun execute(s: IStatement): Boolean {
-        fun unsupported(msg: String): Nothing = throw RuntimeError(RuntimeErrorType.UNSUPPORTED, s, msg)
+        fun unsupported(msg: String): Nothing =
+            throw RuntimeError(RuntimeErrorType.UNSUPPORTED, s, msg)
 
         // Implicit upcasting
         fun IType.upcast(value: IValue): IValue = when (this) {
@@ -212,17 +226,20 @@ class ProcedureInterpreterNoExpression(
                 DOUBLE -> vm.getValue(value.toDouble().toInt().toChar())
                 else -> unsupported("implicit cast of ${value.type.id} to $id")
             }
+
             INT -> when (value.type) {
                 CHAR -> vm.getValue(value.toChar().code)
                 INT -> value
                 else -> unsupported("implicit cast of ${value.type.id} to $id")
             }
+
             DOUBLE -> when (value.type) {
                 CHAR -> vm.getValue(value.toChar().code.toDouble())
                 INT -> vm.getValue(value.toDouble())
                 DOUBLE -> value
                 else -> unsupported("implicit cast of ${value.type.id} to $id")
             }
+
             else -> value
         }
 
@@ -264,7 +281,7 @@ class ProcedureInterpreterNoExpression(
                     )
                 }
 
-                if(array.isNull)
+                if (array.isNull)
                     throw NullReferenceError(s.arrayAccess.target)
 
                 val i = index.toInt()
@@ -296,7 +313,7 @@ class ProcedureInterpreterNoExpression(
                     )
                 }
 
-                if(target.isNull)
+                if (target.isNull)
                     throw NullReferenceError(s.target)
 
                 val recordRef = target as IReference<IRecord>
@@ -310,9 +327,15 @@ class ProcedureInterpreterNoExpression(
 
             is IReturn ->
                 if (s.isError) {
-                    val error = if(s.expression != null) evaluate(s.expression!!) else NULL
-                    val errorMessage = if(error.isNull) s.error?.toString() else error.toString()
-                    throw RuntimeError(RuntimeErrorType.EXCEPTION, s, errorMessage)
+                    val error =
+                        if (s.expression != null) evaluate(s.expression!!) else NULL
+                    val errorMessage =
+                        if (error.isNull) s.error?.toString() else error.toString()
+                    throw RuntimeError(
+                        RuntimeErrorType.EXCEPTION,
+                        s,
+                        errorMessage
+                    )
                 } else if (s.expression != null) {
                     val value =
                         if (s.isVoid) evaluate(s.expression!!)
@@ -397,11 +420,11 @@ class ProcedureInterpreterNoExpression(
                 v ?: throw UninitializedVariableError(exp)
             }
 
-            // TODO only works for 1 dim
             is PredefinedArrayAllocation -> {
-                vm.allocateArrayOfValues(
+                vm.allocateArrayOf(
                     exp.componentType,
-                    exp.elements.map { evaluate(it) })
+                    *exp.elements.map { evaluate(it) }.toTypedArray()
+                )
             }
 
             is IArrayAllocation -> {
@@ -414,24 +437,22 @@ class ProcedureInterpreterNoExpression(
                         )
                 }
 
-                var baseType = exp.componentType
-                repeat(exp.dimensions.size - 1) {
-                    baseType = baseType.array()
-                }
-
-                val dim = dims[0].toInt()
-                val arrayRef = vm.allocateArray(baseType, dim)
-
-                // TODO other dims? only works for 1 and 2
-                for (d in dims.drop(1)) {
-                    for (i in 0 until dim) {
-                        arrayRef.target.setElement(
-                            i,
-                            vm.allocateArray(exp.componentType, d.toInt())
-                        )
+                fun recAllocate(type: IType, dimIndex: Int): IReference<IArray> {
+                    val dim = dims[dimIndex].toInt()
+                    val compType = if(type is IArrayType) type.componentType else type
+                    val arrayRef = vm.allocateArray(compType, dim)
+                    if (dimIndex < dims.size - 1) {
+                        for (i in 0 until dim) {
+                            arrayRef.target.setElement(i, recAllocate(compType, dimIndex + 1))
+                        }
                     }
+                    return arrayRef
                 }
-                arrayRef
+
+                if (dims.isEmpty())
+                    throw RuntimeError(RuntimeErrorType.UNSUPPORTED, exp, "zero-dimension arrays not supported")
+                else
+                    recAllocate(procedure.module?.getArrayType(exp.componentType, dims.size) ?: exp.componentType.array(dims.size), 0)
             }
 
             is IArrayAccess -> {
@@ -452,7 +473,7 @@ class ProcedureInterpreterNoExpression(
                 array.target.getElement(i)
             }
 
-            is IArrayLength ->  {
+            is IArrayLength -> {
                 val it = evaluate(exp.target)
                 if (it.isNull)
                     throw NullReferenceError(exp.target)
@@ -508,11 +529,14 @@ class ProcedureInterpreterNoExpression(
                     vm.callStack.topFrame.procedure
                 )
             }
-            val ret =  try {
+            val ret = try {
                 (call.procedure as ForeignProcedure).run(vm, args) ?: NULL
-            }
-            catch (e: InvocationTargetException) {
-                throw RuntimeError(RuntimeErrorType.FOREIGN_PROCEDURE, call, e.message ?: e.targetException.message)
+            } catch (e: InvocationTargetException) {
+                throw RuntimeError(
+                    RuntimeErrorType.FOREIGN_PROCEDURE,
+                    call,
+                    e.message ?: e.targetException.message
+                )
             }
             vm.listeners.forEach {
                 it.procedureEnd(
@@ -588,7 +612,10 @@ class ProcedureInterpreterNoExpression(
                 else Value(DOUBLE, value.toChar().code.toDouble())
 
             UnaryOperator.CAST_TO_CHAR ->
-                if (type.isNumber) Value(CHAR, value.toDouble().toInt().toChar())
+                if (type.isNumber) Value(
+                    CHAR,
+                    value.toDouble().toInt().toChar()
+                )
                 else Value(CHAR, value.toChar())
 
             else -> throw UnsupportedOperationException(operator.toString())
@@ -600,18 +627,45 @@ class ProcedureInterpreterNoExpression(
         right: IValue
     ): IValue {
         fun unsupported(): Nothing =
-            throw RuntimeError(RuntimeErrorType.UNSUPPORTED, exp, "operator ${exp.operator} between ${left.type.id} and ${right.type.id}")
+            throw RuntimeError(
+                RuntimeErrorType.UNSUPPORTED,
+                exp,
+                "operator ${exp.operator} between ${left.type.id} and ${right.type.id}"
+            )
 
         val operator = exp.operator
         val type = exp.type
         return when (operator) {
             is ArithmeticOperator -> when (operator) {
-                ArithmeticOperator.BITWISE_XOR -> Value(type, left.toInt() xor right.toInt())
-                ArithmeticOperator.BITWISE_AND -> Value(type, left.toInt() and right.toInt())
-                ArithmeticOperator.BITWISE_OR -> Value(type, left.toInt() or right.toInt())
-                ArithmeticOperator.LEFT_SHIFT -> Value(type, left.toInt() shl right.toInt())
-                ArithmeticOperator.SIGNED_RIGHT_SHIFT -> Value(type, left.toInt() shr right.toInt())
-                ArithmeticOperator.UNSIGNED_RIGHT_SHIFT -> Value(type, left.toInt() ushr right.toInt())
+                ArithmeticOperator.BITWISE_XOR -> Value(
+                    type,
+                    left.toInt() xor right.toInt()
+                )
+
+                ArithmeticOperator.BITWISE_AND -> Value(
+                    type,
+                    left.toInt() and right.toInt()
+                )
+
+                ArithmeticOperator.BITWISE_OR -> Value(
+                    type,
+                    left.toInt() or right.toInt()
+                )
+
+                ArithmeticOperator.LEFT_SHIFT -> Value(
+                    type,
+                    left.toInt() shl right.toInt()
+                )
+
+                ArithmeticOperator.SIGNED_RIGHT_SHIFT -> Value(
+                    type,
+                    left.toInt() shr right.toInt()
+                )
+
+                ArithmeticOperator.UNSIGNED_RIGHT_SHIFT -> Value(
+                    type,
+                    left.toInt() ushr right.toInt()
+                )
 
                 ArithmeticOperator.IDIV ->
                     if (right.toInt() == 0)
@@ -637,10 +691,14 @@ class ProcedureInterpreterNoExpression(
                         ArithmeticOperator.DIV ->
                             if (r == 0.0) throw DivisionByZeroError(exp)
                             else l / r
+
                         else -> unsupported()
                     }
 
-                    if (type == INT) Value(type, res.toInt()) else Value(type, res)
+                    if (type == INT) Value(type, res.toInt()) else Value(
+                        type,
+                        res
+                    )
                 }
             }
 
@@ -648,7 +706,7 @@ class ProcedureInterpreterNoExpression(
                 RelationalOperator.EQUAL ->
                     if (left.isNumber && right.isNumber)
                         Value(BOOLEAN, left.toDouble() == right.toDouble())
-                    else if(left is IReference<*> && right is IReference<*>)
+                    else if (left is IReference<*> && right is IReference<*>)
                         Value(BOOLEAN, left.target === right.target)
                     else
                         Value(BOOLEAN, left.value == right.value)
@@ -656,7 +714,7 @@ class ProcedureInterpreterNoExpression(
                 RelationalOperator.DIFFERENT ->
                     if (left.isNumber && right.isNumber)
                         Value(BOOLEAN, left.toDouble() != right.toDouble())
-                    else if(left is IReference<*> && right is IReference<*>)
+                    else if (left is IReference<*> && right is IReference<*>)
                         Value(BOOLEAN, left.target !== right.target)
                     else
                         Value(BOOLEAN, left.value != right.value)
@@ -675,12 +733,14 @@ class ProcedureInterpreterNoExpression(
                 }
             }
 
-            is LogicalOperator -> Value(type, when (operator) {
-                LogicalOperator.AND -> left.toBoolean() && right.toBoolean()
-                LogicalOperator.OR -> left.toBoolean() || right.toBoolean()
-                LogicalOperator.XOR -> left.toBoolean() xor right.toBoolean()
-                else -> unsupported()
-            })
+            is LogicalOperator -> Value(
+                type, when (operator) {
+                    LogicalOperator.AND -> left.toBoolean() && right.toBoolean()
+                    LogicalOperator.OR -> left.toBoolean() || right.toBoolean()
+                    LogicalOperator.XOR -> left.toBoolean() xor right.toBoolean()
+                    else -> unsupported()
+                }
+            )
 
             else -> unsupported()
         }
