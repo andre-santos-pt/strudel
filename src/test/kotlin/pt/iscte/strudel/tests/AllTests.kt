@@ -100,6 +100,8 @@ import kotlin.reflect.full.hasAnnotation
 
     TestSameIdentifierVariables::class,
 
+    TestEqualsArrays::class,
+
     TestComparable::class,
     TestComparator::class,
     TestOwnComparable::class,

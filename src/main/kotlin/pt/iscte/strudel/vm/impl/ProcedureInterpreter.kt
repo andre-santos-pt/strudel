@@ -657,12 +657,16 @@ class ProcedureInterpreter(
                 RelationalOperator.EQUAL ->
                     if (left.isNumber && right.isNumber)
                         Value(BOOLEAN, left.toDouble() == right.toDouble())
+                    else if(left is IReference<*> && right is IReference<*>)
+                        Value(BOOLEAN, left.target === right.target)
                     else
                         Value(BOOLEAN, left.value == right.value)
 
                 RelationalOperator.DIFFERENT ->
                     if (left.isNumber && right.isNumber)
                         Value(BOOLEAN, left.toDouble() != right.toDouble())
+                    else if(left is IReference<*> && right is IReference<*>)
+                        Value(BOOLEAN, left.target !== right.target)
                     else
                         Value(BOOLEAN, left.value != right.value)
 
