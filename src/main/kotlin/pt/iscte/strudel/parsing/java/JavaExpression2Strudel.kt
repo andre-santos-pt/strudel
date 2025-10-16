@@ -3,6 +3,7 @@ package pt.iscte.strudel.parsing.java
 import com.github.javaparser.ast.body.CallableDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
+import com.github.javaparser.ast.type.ArrayType
 import com.github.javaparser.ast.type.PrimitiveType
 import com.github.javaparser.resolution.types.ResolvedPrimitiveType
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration
@@ -157,7 +158,8 @@ class JavaExpression2Strudel(
 
                 if (exp.levels[0].dimension.isPresent)
                     arrayType.heapAllocation(exp.levels.map { map(it.dimension.get()) })
-                else map(exp.initializer.get())
+                else
+                    map(exp.initializer.get())
             }
 
             is ArrayInitializerExpr -> {
@@ -165,6 +167,15 @@ class JavaExpression2Strudel(
                 val baseType = when (val parent = exp.parentNode.getOrNull) {
                     is ArrayCreationExpr -> types.mapType(parent.elementType, exp).array()
                     is VariableDeclarator -> types.mapType(parent.type, exp)
+                    is ArrayInitializerExpr -> {
+                        try {
+                            val type = (exp.parentNode.get().parentNode.get() as VariableDeclarator).type as ArrayType
+                            types.mapType(type.elementType, exp).array()
+                        }
+                        catch (e: Exception) {
+                            LoadingError.unsupported("array initializer", exp)
+                        }
+                    }
                     else -> LoadingError.unsupported("array initializer", exp)
                 }
                 baseType.asArrayType.heapAllocationWith(values)
