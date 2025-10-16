@@ -181,13 +181,7 @@ class ProcedureInterpreterNoExpression(
 //                is IProcedureCallExpression -> "${e.procedure.id}(${e.arguments.joinToString(", ") { materialize(it) }})"
                 is IArrayAccess -> if (target is IVariableExpression)
                     (target as IVariableExpression).variable[index.materialize()]
-                else if (target is IArrayAccess) {
-                    val t = target.materialize()
-                    if (t is ITargetExpression)
-                        ArrayLength(t)
-                    else
-                        this
-                } else
+                 else
                     this
 //
 ////                is IArrayAccess -> if (e.target is IVariableExpression)
@@ -199,6 +193,13 @@ class ProcedureInterpreterNoExpression(
                         INT,
                         (vm.topFrame.variables[(target as IVariableExpression).variable] as IReference<IArray>).target.length.toString()
                     )
+                else if (target is IArrayAccess) {
+                    val t = target.materialize()
+                    if (t is ITargetExpression)
+                        ArrayLength(t)
+                    else
+                        this
+                }
                 else
                     this
 
