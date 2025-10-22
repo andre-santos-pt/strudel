@@ -72,17 +72,23 @@ interface IConditionalExpression : ICompositeExpression {
 
 interface IArrayAllocation : ICompositeExpression {
     val componentType: IType
-    val dimensions: List<IExpression>
+    val dimensions: List<IExpression?>
 
     override fun includes(variable: IVariableDeclaration<*>): Boolean {
-        for (e in dimensions) if (e.includes(variable)) return true
+        for (e in dimensions) if (e?.includes(variable) == true) return true
         return false
     }
 
     override fun isSame(e: IProgramElement): Boolean {
         return e is IArrayAllocation &&
                 type.isSame(e.type) &&
-                IExpression.areSame(dimensions, e.dimensions)
+                dimensions.size == e.dimensions.size &&
+                dimensions.zip(e.dimensions).all { (d1, d2) ->
+                    if (d1 == null && d2 == null) true
+                    else if (d1 != null && d2 != null) d1.isSame(d2)
+                    else false
+                }
+               // IExpression.areSame(dimensions, e.dimensions)
     }
 }
 

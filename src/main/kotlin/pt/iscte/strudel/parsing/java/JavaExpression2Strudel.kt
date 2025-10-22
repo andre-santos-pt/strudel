@@ -149,15 +149,14 @@ class JavaExpression2Strudel(
                 else -> LoadingError.unsupported("cast to non-primitive type $t", exp)
             }
 
-            // TODO multi level
             is ArrayCreationExpr -> {
-                if (exp.levels.size > 1 && exp.levels.any { !it.dimension.isPresent })
-                    LoadingError.unsupported("multi-dimension array initialization with partial dimensions", exp)
+//                if (exp.levels.size > 1 && exp.levels.any { !it.dimension.isPresent })
+//                    LoadingError.unsupported("multi-dimension array initialization with partial dimensions", exp)
 
                 val arrayType = types.mapType(exp.elementType, exp).array()
 
                 if (exp.levels[0].dimension.isPresent)
-                    arrayType.heapAllocation(exp.levels.map { map(it.dimension.get()) })
+                    arrayType.heapAllocation(exp.levels.map { if(it.dimension.isPresent) map(it.dimension.get()) else null })
                 else
                     map(exp.initializer.get())
             }

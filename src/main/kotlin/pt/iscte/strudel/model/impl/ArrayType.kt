@@ -12,7 +12,7 @@ internal class ArrayType(override val componentType: IType) : ProgramElement(), 
         id = componentType.id + "[]"
     }
 
-    override fun heapAllocation(dimensions: List<IExpression>): IArrayAllocation {
+    override fun heapAllocation(dimensions: List<IExpression?>): IArrayAllocation {
         return ArrayAllocation(componentType, dimensions)
     }
 

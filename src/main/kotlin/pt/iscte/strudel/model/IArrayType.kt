@@ -21,7 +21,7 @@ interface IArrayType : IType {
         return e is IArrayType && componentType.isSame(e.componentType)
     }
 
-    fun heapAllocation(dimensions: List<IExpression>): IArrayAllocation
+    fun heapAllocation(dimensions: List<IExpression?>): IArrayAllocation
 
     fun heapAllocation(singleDimension: IExpression): IArrayAllocation
         = heapAllocation(listOf(singleDimension))

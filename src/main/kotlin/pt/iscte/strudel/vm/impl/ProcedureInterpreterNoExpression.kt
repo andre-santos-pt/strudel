@@ -429,25 +429,34 @@ class ProcedureInterpreterNoExpression(
             }
 
             is IArrayAllocation -> {
-                val dims = exp.dimensions.map { evaluate(it) }
+                val dims = exp.dimensions.map { it?.let { evaluate(it).toInt() } }
                 dims.forEachIndexed { i, d ->
-                    if (d.toInt() < 0)
+                    if (d != null && d < 0)
                         throw NegativeArraySizeError(
-                            exp.dimensions[i],
+                            exp.dimensions[i] ?: NULL_LITERAL,
                             d.toInt()
                         )
                 }
 
-                fun recAllocate(type: IType, dimIndex: Int): IReference<IArray> {
-                    val dim = dims[dimIndex].toInt()
-                    val compType = if(type is IArrayType) type.componentType else type
-                    val arrayRef = vm.allocateArray(compType, dim)
-                    if (dimIndex < dims.size - 1) {
-                        for (i in 0 until dim) {
-                            arrayRef.target.setElement(i, recAllocate(compType, dimIndex + 1))
+                fun recAllocate(type: IType, dimIndex: Int): IReference<out IValue> {
+                    val d = dims[dimIndex]
+                    if(d != null) {
+                        val dim = d.toInt()
+                        val compType =
+                            if (type is IArrayType) type.componentType else type
+                        val arrayRef = vm.allocateArray(compType, dim)
+                        if (dimIndex < dims.size - 1) {
+                            for (i in 0 until dim) {
+                                arrayRef.target.setElement(
+                                    i,
+                                    recAllocate(compType, dimIndex + 1)
+                                )
+                            }
                         }
+                        return arrayRef
                     }
-                    return arrayRef
+                    else
+                        return vm.getNullReference()
                 }
 
                 if (dims.isEmpty())

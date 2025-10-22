@@ -8,13 +8,13 @@ import pt.iscte.strudel.model.IType
 
 internal class ArrayAllocation(
     override val componentType: IType,
-    override  val dimensions: List<IExpression>,
+    override  val dimensions: List<IExpression?>,
 ) : Expression(), IArrayAllocation {
 
     override val type: IType = componentType.array(dimensions.size).reference()
 
     override val parts: List<IExpression>
-        get() = dimensions
+        get() = dimensions.filterNotNull()
 
     override fun toString() = "new $componentType ${dimensions.joinToString(separator = "") { "[$it]" }}"
 }
