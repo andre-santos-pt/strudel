@@ -81,7 +81,7 @@ interface IVirtualMachine {
                 else allocateRecord(baseType as IRecordType)
 
             // || (v.type.isReference && baseType.isSame((v.type as IReferenceType).target))
-            require(baseType.isSame(v.type) || (v.type.isReference && baseType.isSame((v.type as IReferenceType).target))) {
+            require(baseType is ANY || baseType.isSame(v.type) || (v.type.isReference && baseType.isSame((v.type as IReferenceType).target))) {
                 "Cannot add element $e of IType ${v.type::class.simpleName} ${v.type.id} to array with base IType ${baseType::class.simpleName} ${baseType.id}"
             }
             // to avoid listener notification
