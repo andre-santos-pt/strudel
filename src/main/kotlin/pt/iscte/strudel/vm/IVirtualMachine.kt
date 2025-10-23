@@ -60,8 +60,8 @@ interface IVirtualMachine {
 
     fun allocateArray(baseType: IType, length: Int): IReference<IArray> {
         val array = heapMemory.allocateArray(baseType, length)
-        for (i in 0 until array.length)
-            array.setElement(i, baseType.defaultValue)
+        for (i in 0 until array.length) // to avoid array event
+            (array as pt.iscte.strudel.vm.impl.Array).array[i] = baseType.defaultValue
 
         val ref = Reference(array)
         listeners.forEach {
