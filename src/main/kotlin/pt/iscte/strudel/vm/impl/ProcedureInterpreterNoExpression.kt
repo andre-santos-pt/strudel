@@ -181,6 +181,8 @@ class ProcedureInterpreterNoExpression(
 //                is IProcedureCallExpression -> "${e.procedure.id}(${e.arguments.joinToString(", ") { materialize(it) }})"
                 is IArrayAccess -> if (target is IVariableExpression)
                     (target as IVariableExpression).variable[index.materialize()]
+                 else if(target is IArrayAccess)
+                    ((target as IArrayAccess).materialize() as IArrayAccess)[index.materialize()]
                  else
                     this
 //
@@ -447,10 +449,8 @@ class ProcedureInterpreterNoExpression(
                         val arrayRef = vm.allocateArray(compType, dim)
                         if (dimIndex < dims.size - 1) {
                             for (i in 0 until dim) {
-                                arrayRef.target.setElement(
-                                    i,
-                                    recAllocate(compType, dimIndex + 1)
-                                )
+                                // to avoid array event
+                                (arrayRef.target as Array).array[i] = recAllocate(compType, dimIndex + 1)
                             }
                         }
                         return arrayRef
