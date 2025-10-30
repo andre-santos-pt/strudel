@@ -172,10 +172,8 @@ internal val ResolvedType.simpleNameAsString: String
         else -> describe()
     }
 
-internal fun Expression.getResolvedJavaType(): Class<*> = kotlin.runCatching {
+internal fun Expression.getResolvedJavaType(): Class<*> =
     getResolvedType().toJavaType(this)
-}.onFailure { println("Failed to resolve Java type of $this: $it") }
-    .getOrThrow()
 
 internal fun Expression.getResolvedType(): ResolvedType =
     try {

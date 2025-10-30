@@ -1,7 +1,5 @@
 package pt.iscte.strudel.model
 
-import pt.iscte.strudel.model.impl.Procedure
-
 /**
  * Mutable
  */
@@ -49,7 +47,8 @@ interface IModule : IModuleView, ITypeProvider {
         return list
     }
 
-    fun getType(id: String): IType = types.find { it.id == id } ?: throw IllegalArgumentException("not found")
+    fun getType(id: String): IType = types.find { it.id == id } ?:
+    throw IllegalArgumentException("IType $id not found")
 
     fun getRecordType(id: String): IRecordType
             = members.filterIsInstance<IRecordType>().find { it.id == id } ?: throw IllegalArgumentException(id)

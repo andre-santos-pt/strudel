@@ -48,17 +48,28 @@ class ArrayIndexIterator(variable: IVariableDeclaration<*>) : IArrayIndexIterato
         var arrayExpressionsMap = mutableMapOf<IVariableDeclaration<*>, MutableList<IProgramElement>>()
 
         override fun visit(arrayElement: IArrayAccess): Boolean {    //... = v[i] + ....
-                val arrayVariable: IVariableDeclaration<*> = (arrayElement.target as IVariableExpression).variable
-                if (arrayElement.index.includes(variable)) {
-                    arrayExpressionsMap.putMulti(arrayVariable, arrayElement)
-                    if (!arrayVariables.contains(arrayVariable)) arrayVariables.add(arrayVariable)
-                }
+            val arrayVariable: IVariableDeclaration<*> = (arrayElement.target as IVariableExpression).variable
+            if (arrayElement.index.includes(variable)) {
+                arrayExpressionsMap.putMulti(arrayVariable, arrayElement)
+                if (!arrayVariables.contains(arrayVariable)) arrayVariables.add(arrayVariable)
+            }
             return false
         }
 
+        private fun getMultidimensionalArrayAccessVariable(access: IArrayAccess): IVariableExpression? =
+            when (val target = access.target) {
+                is IVariableExpression -> target
+                is IArrayAccess -> getMultidimensionalArrayAccessVariable(target)
+                else -> null
+            }
+
         override fun visit(assignment: IArrayElementAssignment): Boolean {    //v[i] = ...
-                val arrayVariable: IVariableDeclaration<*> =
-                    (assignment.arrayAccess.target as IVariableExpression).variable
+                val arrayVariable: IVariableDeclaration<*>? =
+                    getMultidimensionalArrayAccessVariable(assignment.arrayAccess)?.variable
+
+                if (arrayVariable == null)
+                    throw NoSuchElementException("Cannot find array variable for: $assignment")
+
                 if (assignment.arrayAccess.index.includes(variable)) {
                     arrayExpressionsMap.putMulti(arrayVariable, assignment)
                     if (!arrayVariables.contains(arrayVariable)) arrayVariables.add(arrayVariable)
