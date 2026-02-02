@@ -1,6 +1,7 @@
 package pt.iscte.strudel.vm
 
 import pt.iscte.strudel.model.IArrayAccess
+import pt.iscte.strudel.model.IArrayAllocation
 import pt.iscte.strudel.model.IBinaryExpression
 import pt.iscte.strudel.model.IExpression
 import pt.iscte.strudel.model.ILoop
@@ -83,6 +84,7 @@ class ArrayIndexError(
 }
 
 class NegativeArraySizeError(
+    val allocation: IArrayAllocation,
     val lengthExpression: IExpression,
     val invalidSize: Int
 ) : RuntimeError(

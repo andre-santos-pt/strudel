@@ -32,7 +32,10 @@ class SourceLocation(
         (diagnostic.endPosition - diagnostic.startPosition).toInt()
     )
 
-    constructor(element: IProgramElement) : this(element.getProperty(JP) as Node)
+    constructor(element: IProgramElement) : this(
+        element.getProperty(JP) as? Node ?:
+        throw IllegalArgumentException("Strudel element $element not bound to JavaParser Node")
+    )
 
     override fun toString(): String =
         if (startLine == endLine) "$startLine:$startColumn-$endColumn"

@@ -435,6 +435,7 @@ class ProcedureInterpreterNoExpression(
                 dims.forEachIndexed { i, d ->
                     if (d != null && d < 0)
                         throw NegativeArraySizeError(
+                            exp,
                             exp.dimensions[i] ?: NULL_LITERAL,
                             d.toInt()
                         )
