@@ -1,14 +1,6 @@
 package pt.iscte.strudel.vm
 
-import pt.iscte.strudel.model.IArrayAccess
-import pt.iscte.strudel.model.IArrayAllocation
-import pt.iscte.strudel.model.IBinaryExpression
-import pt.iscte.strudel.model.IExpression
-import pt.iscte.strudel.model.ILoop
-import pt.iscte.strudel.model.IProgramElement
-import pt.iscte.strudel.model.IStatement
-import pt.iscte.strudel.model.ITargetExpression
-import pt.iscte.strudel.model.IVariableExpression
+import pt.iscte.strudel.model.*
 
 enum class RuntimeErrorType {
     LOOP_MAX,
@@ -50,8 +42,9 @@ class LoopIterationLimitError(
 ) : RuntimeError(RuntimeErrorType.LOOP_MAX, loop, "Loop reached the maximum number of iterations ($limit)")
 
 class NullReferenceError(
-    val target: ITargetExpression
-) : RuntimeError(RuntimeErrorType.NULL_POINTER, target, "Reference is null: $target")
+    val context: IProgramElement,
+    val targetReference: ITargetExpression
+) : RuntimeError(RuntimeErrorType.NULL_POINTER, targetReference, "Reference is null: $targetReference")
 
 class DivisionByZeroError(
     val exp: IBinaryExpression

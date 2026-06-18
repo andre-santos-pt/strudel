@@ -9,10 +9,12 @@
 [How Does Strudel Work?](#how-does-strudel-work) •
 [Examples](#examples)
 
-[![SoSym 2025 - Check out our journal article on Strudel!](https://img.shields.io/static/v1?label=SoSym+2025&message=Check+out+our+journal+article+on+Strudel!&color=008FFF&style=for-the-badge&logo=doi)](https://doi.org/10.1007/s10270-025-01337-7)
+<br>
+
+[![SoSym 2025 - Check out our journal article on Strudel!](https://img.shields.io/static/v1?label=SoSym+2025&message=Check+out+our+journal+article+on+Strudel!&color=008FFF&style=badge&logo=doi)](https://doi.org/10.1007/s10270-025-01337-7)
 
 </div>
-<br>
+<br><br>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="resources/overview-darkmode.png">

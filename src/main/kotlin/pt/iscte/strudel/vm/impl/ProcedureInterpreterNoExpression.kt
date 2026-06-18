@@ -285,7 +285,7 @@ class ProcedureInterpreterNoExpression(
                 }
 
                 if (array.isNull)
-                    throw NullReferenceError(s.arrayAccess.target)
+                    throw NullReferenceError(s, s.arrayAccess.target)
 
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
@@ -317,7 +317,7 @@ class ProcedureInterpreterNoExpression(
                 }
 
                 if (target.isNull)
-                    throw NullReferenceError(s.target)
+                    throw NullReferenceError(s, s.target)
 
                 val recordRef = target as IReference<IRecord>
                 recordRef.target.setField(s.field, value)
@@ -470,7 +470,7 @@ class ProcedureInterpreterNoExpression(
                 val index = evaluate(exp.index)
                 val array = evaluate(exp.target)
                 if (array.isNull)
-                    throw NullReferenceError(exp.target)
+                    throw NullReferenceError(exp, exp.target)
 
                 val i = index.toInt()
                 if (i < 0 || i >= ((array as IReference<IArray>).target).length)
@@ -487,7 +487,7 @@ class ProcedureInterpreterNoExpression(
             is IArrayLength -> {
                 val it = evaluate(exp.target)
                 if (it.isNull)
-                    throw NullReferenceError(exp.target)
+                    throw NullReferenceError(exp, exp.target)
 
                 vm.getValue(((it as IReference<IArray>).target).length)
             }
@@ -495,7 +495,7 @@ class ProcedureInterpreterNoExpression(
             is IRecordFieldExpression -> {
                 val it = evaluate(exp.target)
                 if (it.isNull)
-                    throw NullReferenceError(exp.target)
+                    throw NullReferenceError(exp, exp.target)
                 (it as IReference<IRecord>).target.getField(exp.field)
             }
 
