@@ -7,6 +7,8 @@ import pt.iscte.strudel.model.impl.Conditional
 import pt.iscte.strudel.model.impl.Literal
 import pt.iscte.strudel.model.impl.PredefinedArrayAllocation
 import pt.iscte.strudel.model.util.*
+import pt.iscte.strudel.parsing.java.extensions.hasThisParameter
+import pt.iscte.strudel.parsing.java.extensions.isInstanceMethod
 import pt.iscte.strudel.vm.*
 import java.lang.reflect.InvocationTargetException
 
@@ -233,6 +235,7 @@ class ProcedureInterpreterNoExpression(
             INT -> when (value.type) {
                 CHAR -> vm.getValue(value.toChar().code)
                 INT -> value
+                DOUBLE -> vm.getValue((value.value as Double).toInt())
                 else -> unsupported("implicit cast of ${value.type.id} to $id")
             }
 
@@ -531,6 +534,9 @@ class ProcedureInterpreterNoExpression(
         call: IProcedureCall
     ): IValue {
         val args = call.arguments.map { evaluate(it) }
+
+        if (call.procedure.isInstanceMethod && args.isNotEmpty() && args.first().isNull)
+            throw NullReferenceError(call, call.arguments.first())
 
         if (call.procedure.isForeign) {
             vm.listeners.forEach {

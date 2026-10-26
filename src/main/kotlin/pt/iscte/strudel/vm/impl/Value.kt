@@ -19,6 +19,7 @@ internal class Value (override val type: IType, override val value: Any?) : IVal
             value.toString()
 
     override fun copy() = this
+    override fun deepCopy() = Value(type, value)
     override val isNull: Boolean = false
 
     override val isTrue: Boolean = value == true

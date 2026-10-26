@@ -225,7 +225,14 @@ internal class VirtualMachine(
         override fun copy(): IRecord {
             val record = Record(type)
             for (f in type.fields)
-                record.fields[f] = fields[f]!!.copy()
+                record.fields[f] = fields[f]!!
+            return record
+        }
+
+        override fun deepCopy(): IRecord {
+            val record = Record(type)
+            for (f in type.fields)
+                record.fields[f] = fields[f]!!.deepCopy()
             return record
         }
 

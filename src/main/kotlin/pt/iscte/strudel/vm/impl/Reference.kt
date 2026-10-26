@@ -20,6 +20,10 @@ internal class Reference<T: IValue>(override var target: T) : IReference<T> {
         return Reference(target)
     }
 
+    override fun deepCopy(): IReference<T> {
+        return Reference(target.deepCopy() as T)
+    }
+
     override fun toString(): String {
         return "$target"
     }

@@ -17,6 +17,12 @@ internal class Array(private val t: IArrayType, length: Int) : IArray {
         return copy
     }
 
+    override fun deepCopy(): IArray {
+        val copy = Array(type, array.size)
+        for (i in array.indices) copy.array[i] = array[i].deepCopy()
+        return copy
+    }
+
     override val length: Int  get() = array.size
 
     override var elements: List<IValue>

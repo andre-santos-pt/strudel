@@ -13,6 +13,7 @@ internal class ForeignProcedure(
     id: String,
     override val returnType: IType,
     parameterTypes: List<IType>,
+    val isInstanceMethod: Boolean = false,
     val action: (IVirtualMachine, List<IValue>) -> IValue?
 ) : ProgramElement(), IProcedureDeclaration {
 
@@ -22,6 +23,7 @@ internal class ForeignProcedure(
         id: String,
         returnType: IType,
         param1: IType,
+        isInstanceMethod: Boolean = false,
         action: (IVirtualMachine, List<IValue>) -> Unit
     ) : this(
         module,
@@ -29,7 +31,9 @@ internal class ForeignProcedure(
         id,
         returnType,
         listOf(param1),
-        { vm: IVirtualMachine, args: List<IValue> -> action(vm, args); null })
+        isInstanceMethod,
+        { vm: IVirtualMachine, args: List<IValue> -> action(vm, args); null }
+    )
 
     init {
         module?.members?.add(this)
@@ -38,6 +42,9 @@ internal class ForeignProcedure(
     override var id: String? = id
 
     override val parameters: List<IParameter> = parameterTypes.map { VariableDeclaration(this, it) }
+
+    override val thisParameter: IParameter
+        get() = if (isInstanceMethod) parameters.first() else null!!
 
     override fun addParameter(type: IType): IParameter {
         throw UnsupportedOperationException()
@@ -61,8 +68,9 @@ interface IForeignProcedure {
             id: String,
             returnType: IType,
             parameterTypes: List<IType>,
+            isInstanceMethod: Boolean = false,
             action: (IVirtualMachine, List<IValue>) -> IValue?
         ): IProcedureDeclaration =
-            ForeignProcedure(null, namespace, id, returnType, parameterTypes, action)
+            ForeignProcedure(null, namespace, id, returnType, parameterTypes, isInstanceMethod, action)
     }
 }

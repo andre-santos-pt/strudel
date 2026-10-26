@@ -28,6 +28,9 @@ class TestForeignErrors {
         val vm = IVirtualMachine.create(throwExceptions = false)
         val main = module.getProcedure("main")
         vm.execute(main)
+
+        // TODO: este teste falha porque a mensagem de erro vem "Index 12 out of bounds for length 12"
+        //  será que é de eu estar a usar uma versão diferente do Java?
         assertEquals("String index out of range: 12", vm.error?.message)
     }
 

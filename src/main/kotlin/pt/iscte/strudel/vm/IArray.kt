@@ -10,6 +10,7 @@ interface IArray : IMemory {
     fun getElement(i: Int): IValue
     fun setElement(i: Int, value: IValue)
     override fun copy(): IArray
+    override fun deepCopy(): IArray
 
     override val memory: Int
         get() = ARRAY_OVERHEAD + length * (type as IArrayType).bytes

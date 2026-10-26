@@ -4,6 +4,7 @@ import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.TypeDeclaration
 import com.github.javaparser.ast.expr.Expression
 import com.github.javaparser.ast.expr.NameExpr
+import com.github.javaparser.ast.expr.NullLiteralExpr
 import com.github.javaparser.ast.expr.VariableDeclarationExpr
 import com.github.javaparser.ast.stmt.ForStmt
 import com.github.javaparser.ast.type.Type
@@ -183,7 +184,8 @@ internal fun Expression.getResolvedType(): ResolvedType =
     }
 
 internal fun Expression.getResolvedIType(types: Map<String, IType>): IType =
-    try {
+    if (this is NullLiteralExpr) NULL.type
+    else try {
         calculateResolvedType().toIType(types, this)
     } catch (e: UnsolvedSymbolException) {
         this.resolveHack(types) ?: throw e

@@ -23,7 +23,7 @@ class TestLoadingErrors {
 
         assertEquals(1, ex.messages.size)
 
-        val (_, location) = ex.messages.first()
+        val (_, _, location) = ex.messages.first()
 
         assertEquals(2, location.startLine)
         assertEquals(2, location.endLine)
@@ -50,7 +50,7 @@ class TestLoadingErrors {
 
         assertEquals(1, ex.messages.size)
 
-        val (message, location) = ex.messages.first()
+        val (_, message, location) = ex.messages.first()
 
         assertEquals("unsupported enum declarations", message)
 
@@ -79,7 +79,7 @@ class TestLoadingErrors {
 
         assertEquals(1, ex.messages.size)
 
-        val (message, location) = ex.messages.first()
+        val (_, message, location) = ex.messages.first()
         assertEquals("unsupported modifier protected", message)
         assertEquals(2, location.startLine)
         assertEquals(2, location.endLine)
@@ -103,7 +103,7 @@ class TestLoadingErrors {
 
         assertEquals(1, ex.messages.size)
 
-        val (message, location) = ex.messages.first()
+        val (_, message, location) = ex.messages.first()
         assertEquals("unsupported extends keyword", message)
         assertEquals(3, location.startLine)
         assertEquals(3, location.endLine)

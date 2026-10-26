@@ -8,6 +8,7 @@ object NULL : IValue {
     override val type: IType get() = UnboundType()
     override fun toString() = "null"
     override fun copy() = this
+    override fun deepCopy() = NULL
 
     override val isNull: Boolean = true
     override val isTrue: Boolean = false
@@ -32,6 +33,7 @@ interface IValue {
     val type: IType
     val value: Any?
     fun copy(): IValue
+    fun deepCopy(): IValue
 
     val isNull: Boolean
 

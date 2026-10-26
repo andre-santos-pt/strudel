@@ -43,7 +43,7 @@ class LoopIterationLimitError(
 
 class NullReferenceError(
     val context: IProgramElement,
-    val targetReference: ITargetExpression
+    val targetReference: IExpression
 ) : RuntimeError(RuntimeErrorType.NULL_POINTER, targetReference, "Reference is null: $targetReference")
 
 class DivisionByZeroError(

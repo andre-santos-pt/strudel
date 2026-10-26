@@ -18,6 +18,7 @@ import pt.iscte.strudel.parsing.java.EQUALS_FLAG
 import pt.iscte.strudel.parsing.java.OUTER_PARAM
 import pt.iscte.strudel.parsing.java.StringType
 import pt.iscte.strudel.vm.IReference
+import pt.iscte.strudel.vm.NULL
 import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
@@ -32,6 +33,9 @@ val IProcedureDeclaration.hasOuterParameter: Boolean
 val IProcedureDeclaration.hasThisParameter: Boolean
     get() = kotlin.runCatching { this.thisParameter }.isSuccess
 
+val IProcedureDeclaration.isInstanceMethod: Boolean
+    get() = hasThisParameter
+
 val IModule.proceduresExcludingConstructorsAndForeign: List<IProcedureDeclaration>
     get() = procedures.filter { !it.hasFlag(CONSTRUCTOR_FLAG) && !it.isForeign }
 
@@ -41,7 +45,8 @@ val IRecordType.hasEquals: Boolean
 val IRecordType.equals: IProcedureDeclaration
     get() = module!!.procedures.first { it.hasFlag(EQUALS_FLAG) }
 
-fun getString(value: String): IReference<*> = Reference(Value(StringType, value))
+fun getString(value: String?): IReference<*> =
+    Reference(if (value == null) NULL else Value(StringType, value))
 
 val <T> Optional<T>.getOrNull: T?
     get() = if (isPresent) this.get() else null

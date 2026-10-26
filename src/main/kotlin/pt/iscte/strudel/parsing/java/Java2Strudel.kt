@@ -68,7 +68,7 @@ class Java2Strudel(
         if (checkJavaCompilation) {
             val diagnostics = ClassLoader.compile(className, src)
             if (diagnostics.isNotEmpty())
-                LoadingError.compilation(diagnostics)
+                LoadingError.compilation(diagnostics, src)
         }
 
         val compilationUnit = StaticJavaParser.parse(src)
@@ -86,7 +86,7 @@ class Java2Strudel(
         if (checkJavaCompilation) {
             val diagnostics = ClassLoader.compile(className, src)
             if (diagnostics.isNotEmpty())
-                LoadingError.compilation(diagnostics)
+                LoadingError.compilation(diagnostics, src)
         }
     }
 

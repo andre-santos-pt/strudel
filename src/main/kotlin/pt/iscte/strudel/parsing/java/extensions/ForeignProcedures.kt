@@ -35,12 +35,14 @@ internal fun foreign(
             types
         )
     }
+
     return ForeignProcedure(
         module,
         method.declaringClass.primitiveType.canonicalName,
         method.name,
         getTypeByName(method.returnType.canonicalName, location, types),
-        parameterTypes
+        parameterTypes,
+        !Modifier.isStatic(method.modifiers)
     )
     { vm, args ->
         val jvmArgs = args.map {

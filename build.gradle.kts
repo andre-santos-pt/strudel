@@ -1,12 +1,13 @@
 import java.net.URI
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("jvm") version "1.8.20"
+    kotlin("jvm") version "2.4.20"
     id("maven-publish")
 }
 
 group = "pt.iscte"
-version = "0.11.2"
+version = "0.11.3"
 
 repositories {
     mavenCentral()
@@ -37,7 +38,10 @@ java {
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions.jvmTarget = "17"
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+    }
+    // kotlinOptions.jvmTarget = "17"
     //compilerOptions {
     //    freeCompilerArgs.add("-Xjvm-default=all")
     //}
