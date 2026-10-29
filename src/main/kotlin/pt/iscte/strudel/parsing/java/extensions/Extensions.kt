@@ -23,6 +23,7 @@ import pt.iscte.strudel.vm.impl.Reference
 import pt.iscte.strudel.vm.impl.Value
 import java.util.*
 import kotlin.jvm.optionals.getOrDefault
+import kotlin.math.abs
 
 val IProcedureDeclaration.outerParameter: IParameter
     get() = parameters.find { it.id == OUTER_PARAM }!!
@@ -209,4 +210,6 @@ internal fun Node.substituteControlBlocks() =
     accept(ControlStructureEncapsulateVisitor, null)
 
 fun CompilationUnit.nodeAtLine(line: Int): Node? =
-    findFirst(Node::class.java) { it.begin.isPresent && it.begin.get().line == line }.getOrNull
+    findAll(Node::class.java) {
+        it.begin.isPresent && it.end.isPresent && it.begin.get().line <= line && it.end.get().line >= line
+    }.minByOrNull { abs(it.end.get().line - it.begin.get().line) }
